@@ -1,0 +1,150 @@
+/**
+ * LRC utilities — format timestamps, compile LRC, trigger download.
+ */
+
+/**
+ * Formats a number of seconds into LRC timestamp format [mm:ss.xx]
+ */
+export function formatTimestamp(seconds) {
+  if (seconds == null || seconds < 0) return '[00:00.00]';
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  const mm = String(mins).padStart(2, '0');
+  const ss = secs.toFixed(2).padStart(5, '0');
+  return `[${mm}:${ss}]`;
+}
+
+/**
+ * Parses an LRC timestamp string like "[01:23.45]" into seconds
+ */
+export function parseTimestamp(str) {
+  const match = str.match(/\[(\d{2}):(\d{2}\.\d{2})\]/);
+  if (!match) return null;
+  return parseInt(match[1], 10) * 60 + parseFloat(match[2]);
+}
+
+/**
+ * Compiles an array of { text, timestamp } into a valid .lrc string
+ */
+export function compileLRC(lines, includeTranslations = false) {
+  return lines
+    .map((line) => {
+      if (line.timestamp != null) {
+        let output = `${formatTimestamp(line.timestamp)} ${line.text}`;
+        if (includeTranslations && line.translation) {
+          output += `\n${formatTimestamp(line.timestamp)} ${line.translation}`;
+        }
+        return output;
+      }
+      return line.text;
+    })
+    .join('\n');
+}
+
+/**
+ * Triggers a browser download of the given text content as a file.
+ */
+export function downloadLRC(content, filename = 'lyrics.lrc') {
+  const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+/**
+ * Formats a number of seconds into SRT timestamp format HH:MM:SS,mmm
+ */
+export function formatSrtTimestamp(seconds) {
+  if (seconds == null || seconds < 0) return '00:00:00,000';
+  const hrs = Math.floor(seconds / 3600);
+  const mins = Math.floor((seconds % 3600) / 60);
+  const secs = Math.floor(seconds % 60);
+  const ms = Math.floor((seconds % 1) * 1000);
+  const h = String(hrs).padStart(2, '0');
+  const m = String(mins).padStart(2, '0');
+  const s = String(secs).padStart(2, '0');
+  const msStr = String(ms).padStart(3, '0');
+  return `${h}:${m}:${s},${msStr}`;
+}
+
+/**
+ * Compiles an array of { text, timestamp } into a valid .srt string
+ */
+export function compileSRT(lines, duration) {
+  const synced = lines.filter((l) => l.timestamp != null);
+  if (synced.length === 0) return '';
+  
+  return synced.map((line, i) => {
+    const start = line.timestamp;
+    const nextLine = synced[i + 1];
+    let end = start + 5; // Default 5 seconds duration
+    if (nextLine && nextLine.timestamp != null) {
+      end = nextLine.timestamp;
+    } else if (duration) {
+      end = Math.max(start + 2, duration);
+    }
+    
+    return `${i + 1}\n${formatSrtTimestamp(start)} --> ${formatSrtTimestamp(end)}\n${
+      line.secondary ? line.secondary + '\n' : ''
+    }${line.text}${
+      line.translation ? '\n' + line.translation : ''
+    }\n`;
+  }).join('\n');
+}
+
+export function parseLrcSrtFile(content, filename) {
+  const isSrt = filename.toLowerCase().endsWith('.srt');
+  const parsedLines = [];
+  
+  if (isSrt) {
+    const blocks = content.replace(/\r\n/g, '\n').split('\n\n');
+    blocks.forEach(block => {
+      const parts = block.trim().split('\n');
+      if (parts.length >= 3) {
+        const timeMatch = parts[1].match(/(\d{2}):(\d{2}):(\d{2}),(\d{3})\s*-->/);
+        if (timeMatch) {
+          const h = parseInt(timeMatch[1], 10);
+          const m = parseInt(timeMatch[2], 10);
+          const s = parseInt(timeMatch[3], 10);
+          const ms = parseInt(timeMatch[4], 10);
+          const timestamp = h * 3600 + m * 60 + s + ms / 1000;
+          
+          let secondary = '', text = '', translation = '';
+          const textLines = parts.slice(2);
+          if (textLines.length === 1) {
+            text = textLines[0];
+          } else if (textLines.length === 2) {
+            text = textLines[0];
+            translation = textLines.slice(1).join('\n');
+          } else {
+            secondary = textLines[0];
+            text = textLines[1];
+            translation = textLines.slice(2).join('\n');
+          }
+          parsedLines.push({ text, timestamp, secondary, translation });
+        }
+      }
+    });
+  } else {
+    const lrcLines = content.replace(/\r\n/g, '\n').split('\n');
+    lrcLines.forEach(line => {
+      const match = line.match(/\[(\d{2}):(\d{2}\.\d{2})\](.*)/);
+      if (match) {
+        const m = parseInt(match[1], 10);
+        const s = parseFloat(match[2]);
+        const text = match[3].trim();
+        parsedLines.push({ text, timestamp: m * 60 + s });
+      } else if (line.trim() !== '') {
+        // Fallback for lines without timestamps if user just uploads plain text
+        parsedLines.push({ text: line.trim(), timestamp: null });
+      }
+    });
+  }
+  
+  return parsedLines;
+}
