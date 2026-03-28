@@ -20,6 +20,11 @@ export default function Editor({
   const [rawText, setRawText] = useState('');
   const [editingLineIndex, setEditingLineIndex] = useState(null);
   const [editingText, setEditingText] = useState('');
+  const [dragIndex, setDragIndex] = useState(null);
+  const [dragOverIndex, setDragOverIndex] = useState(null);
+  const [offsetValue, setOffsetValue] = useState('');
+  const [selectedLines, setSelectedLines] = useState(new Set());
+  const lastClickedRef = useRef(null);
   const activeLineRef = useRef(null);
   const listRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -162,6 +167,135 @@ export default function Editor({
 
   const syncedCount = useMemo(() => lines.filter((l) => l.timestamp != null).length, [lines]);
 
+  // ——— Drag-to-reorder ———
+  const handleDragStart = (e, index) => {
+    setDragIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', index);
+  };
+  const handleDragOver = (e, index) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverIndex(index);
+  };
+  const handleDragEnd = () => {
+    setDragIndex(null);
+    setDragOverIndex(null);
+  };
+  const handleDrop = (e, dropIndex) => {
+    e.preventDefault();
+    if (dragIndex == null || dragIndex === dropIndex) return;
+    setLines((prev) => {
+      const updated = [...prev];
+      const [moved] = updated.splice(dragIndex, 1);
+      updated.splice(dropIndex, 0, moved);
+      return updated;
+    });
+    // Update active line index to follow the moved line
+    if (activeLineIndex === dragIndex) {
+      setActiveLineIndex(dropIndex);
+    } else if (dragIndex < activeLineIndex && dropIndex >= activeLineIndex) {
+      setActiveLineIndex(activeLineIndex - 1);
+    } else if (dragIndex > activeLineIndex && dropIndex <= activeLineIndex) {
+      setActiveLineIndex(activeLineIndex + 1);
+    }
+    setDragIndex(null);
+    setDragOverIndex(null);
+  };
+
+  // ——— Global offset shift ———
+  const handleApplyOffset = () => {
+    const delta = parseFloat(offsetValue);
+    if (isNaN(delta) || delta === 0) return;
+    setLines((prev) => prev.map((l) => ({
+      ...l,
+      timestamp: l.timestamp != null ? Math.max(0, l.timestamp + delta) : null,
+    })));
+    setOffsetValue('');
+  };
+
+  // ——— Selection logic ———
+  const handleLineClick = (i, e) => {
+    if (e.shiftKey && lastClickedRef.current != null) {
+      // Range select from last clicked to current
+      const start = Math.min(lastClickedRef.current, i);
+      const end = Math.max(lastClickedRef.current, i);
+      setSelectedLines((prev) => {
+        const next = new Set(prev);
+        for (let idx = start; idx <= end; idx++) {
+          next.add(idx);
+        }
+        return next;
+      });
+    } else if (e.ctrlKey || e.metaKey) {
+      // Toggle individual line
+      setSelectedLines((prev) => {
+        const next = new Set(prev);
+        if (next.has(i)) {
+          next.delete(i);
+        } else {
+          next.add(i);
+        }
+        return next;
+      });
+      lastClickedRef.current = i;
+    } else {
+      // Normal click — set active, clear selection
+      setActiveLineIndex(i);
+      setSelectedLines(new Set());
+      lastClickedRef.current = i;
+    }
+  };
+
+  const clearSelection = () => {
+    setSelectedLines(new Set());
+  };
+
+  // ——— Bulk actions on selected lines ———
+  const handleBulkClearTimestamps = () => {
+    setLines((prev) => prev.map((l, idx) =>
+      selectedLines.has(idx) ? { ...l, timestamp: null } : l
+    ));
+    clearSelection();
+  };
+
+  const handleBulkDelete = () => {
+    setLines((prev) => prev.filter((_, idx) => !selectedLines.has(idx)));
+    // Adjust activeLineIndex
+    setActiveLineIndex((prev) => {
+      let offset = 0;
+      for (const idx of selectedLines) {
+        if (idx < prev) offset++;
+      }
+      return Math.max(0, prev - offset);
+    });
+    clearSelection();
+  };
+
+  const handleBulkShift = (delta) => {
+    setLines((prev) => prev.map((l, idx) =>
+      selectedLines.has(idx) && l.timestamp != null
+        ? { ...l, timestamp: Math.max(0, l.timestamp + delta) }
+        : l
+    ));
+  };
+
+  // Escape to deselect
+  useEffect(() => {
+    if (selectedLines.size === 0) return;
+    const handler = (e) => {
+      if (e.key === 'Escape') {
+        clearSelection();
+      } else if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+        e.preventDefault();
+        handleBulkDelete();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [selectedLines]);
+
   return (
     <div className="glass rounded-xl sm:rounded-2xl p-3 sm:p-5 flex flex-col h-full animate-fade-in">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-3 mb-3 sm:mb-4">
@@ -256,11 +390,20 @@ export default function Editor({
                 <div
                   key={i}
                   ref={isActive ? activeLineRef : null}
-                  onClick={() => setActiveLineIndex(i)}
-                  className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 cursor-pointer group ${isActive
-                    ? 'bg-primary/10 border border-primary/30'
-                    : 'hover:bg-zinc-800/40 border border-transparent'
-                    }`}
+                  onClick={(e) => handleLineClick(i, e)}
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, i)}
+                  onDragOver={(e) => handleDragOver(e, i)}
+                  onDragEnd={handleDragEnd}
+                  onDrop={(e) => handleDrop(e, i)}
+                  className={`flex items-center gap-2 sm:gap-3 px-3 py-2 rounded-lg transition-all duration-200 cursor-pointer group ${selectedLines.has(i)
+                    ? 'bg-primary/15 border border-primary/40 ring-1 ring-primary/20'
+                    : isActive
+                      ? 'bg-primary/10 border border-primary/30'
+                      : dragOverIndex === i
+                        ? 'bg-accent-blue/10 border border-accent-blue/30'
+                        : 'hover:bg-zinc-800/40 border border-transparent'
+                    } ${dragIndex === i ? 'opacity-40' : ''}`}
                 >
                   <span
                     className={`text-xs font-mono min-w-[75px] mt-1 shrink-0 transition-colors ${isSynced
@@ -383,6 +526,63 @@ export default function Editor({
             })}
           </div>
 
+          {/* ——— Compact Selection Action Bar ——— */}
+          {selectedLines.size > 0 && (
+            <div className="flex items-center justify-center gap-1 px-2 py-1.5 bg-zinc-900/95 border border-primary/30 rounded-lg shadow-lg animate-fade-in backdrop-blur-md">
+              <span className="text-[10px] font-bold text-primary tabular-nums px-1.5">
+                {selectedLines.size}
+              </span>
+              <div className="w-px h-4 bg-zinc-700/50" />
+              <button
+                onClick={handleBulkClearTimestamps}
+                className="p-1.5 text-orange-400 hover:bg-orange-500/15 rounded-md transition-all cursor-pointer"
+                title={t('clearTimestamps') || 'Clear timestamps'}
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </button>
+              <button
+                onClick={() => handleBulkShift(-0.1)}
+                className="p-1.5 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700/60 rounded-md transition-all cursor-pointer"
+                title={t('minusTime')}
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+                </svg>
+              </button>
+              <button
+                onClick={() => handleBulkShift(0.1)}
+                className="p-1.5 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700/60 rounded-md transition-all cursor-pointer"
+                title={t('plusTime')}
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5L15.75 12l-7.5 7.5" />
+                </svg>
+              </button>
+              <div className="w-px h-4 bg-zinc-700/50" />
+              <button
+                onClick={handleBulkDelete}
+                className="p-1.5 text-red-400 hover:bg-red-500/15 rounded-md transition-all cursor-pointer"
+                title={t('deleteSelected') || 'Delete selected'}
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+              <div className="w-px h-4 bg-zinc-700/50" />
+              <button
+                onClick={clearSelection}
+                className="p-1.5 text-zinc-500 hover:text-zinc-200 hover:bg-zinc-700/60 rounded-md transition-all cursor-pointer"
+                title={t('deselectAll') || 'Deselect all (Esc)'}
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          )}
+
           {/* Sync controls */}
           <div className="flex flex-row gap-2 pt-2 border-t border-zinc-800/50 overflow-x-auto">
             <button
@@ -423,8 +623,30 @@ export default function Editor({
             </button>
           </div>
 
+          {/* Global offset shift */}
+          <div className="flex items-center gap-2 pt-1">
+            <span className="text-xs text-zinc-500 whitespace-nowrap flex-shrink-0">{t('shiftAll')}</span>
+            <input
+              type="number"
+              step="0.1"
+              value={offsetValue}
+              onChange={(e) => setOffsetValue(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleApplyOffset()}
+              placeholder="±0.0s"
+              className="w-20 bg-zinc-800/60 border border-zinc-700 rounded-lg px-2 py-1 text-xs text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-primary/50 transition-all font-mono text-center"
+              title={t('shiftAllTitle')}
+            />
+            <button
+              onClick={handleApplyOffset}
+              disabled={!offsetValue || isNaN(parseFloat(offsetValue))}
+              className="px-2.5 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg transition-all text-xs cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              {t('apply')}
+            </button>
+          </div>
+
           <p className="text-xs text-zinc-600 text-center">
-            {t('markInstruction')}
+            {selectedLines.size > 0 ? (t('selectionHint') || 'Shift+Click: range · Ctrl+Click: toggle · Esc: deselect') : t('markInstruction')}
           </p>
 
 
