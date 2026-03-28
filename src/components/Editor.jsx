@@ -361,18 +361,18 @@ export default function Editor({
           </h2>
         </div>
         {syncMode && (
-          <div className="flex items-center gap-2 sm:gap-3 w-full">
-            <div className="flex items-center gap-2 flex-1">
-              <span className="text-xs text-zinc-500">
-                {syncedCount}/{lines.length}
-              </span>
-              <div className="h-1.5 flex-1 bg-zinc-800 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-primary to-accent-purple rounded-full transition-all duration-300"
-                  style={{ width: `${(syncedCount / Math.max(lines.length, 1)) * 100}%` }}
-                />
-              </div>
-            </div>
+          <div className="flex items-center justify-end gap-1 sm:gap-2 w-full">
+            <button
+              id="clear-timestamps-btn"
+              onClick={handleClearTimestamps}
+              className="p-1 sm:p-1.5 hover:bg-orange-500/10 rounded-lg text-orange-400 hover:text-orange-300 transition-colors cursor-pointer flex-shrink-0"
+              title={t('clearTimestamps')}
+            >
+              <svg className="w-3.5 sm:w-4 h-3.5 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            <div className="w-px h-4 bg-zinc-800 hidden sm:block mx-1" />
             <button
               onClick={() => {
                 requestConfirm(t('confirmRemoveAll'), () => {
@@ -439,7 +439,7 @@ export default function Editor({
         <div className="flex flex-col flex-1 gap-3 animate-fade-in min-h-0">
           <div
             ref={listRef}
-            className="flex-1 overflow-y-auto space-y-1 pr-1 min-h-0"
+            className="flex-1 overflow-y-auto space-y-1 pr-1 min-h-0 mask-edges"
           >
             {lines.map((line, i) => {
               const isActive = i === activeLineIndex;
@@ -454,7 +454,7 @@ export default function Editor({
                   onDragOver={(e) => handleDragOver(e, i)}
                   onDragEnd={handleDragEnd}
                   onDrop={(e) => handleDrop(e, i)}
-                  className={`flex items-center gap-2 sm:gap-3 px-3 py-2 rounded-lg transition-all duration-200 cursor-pointer group ${selectedLines.has(i)
+                  className={`flex items-center gap-2 sm:gap-3 px-3 py-2 rounded-lg transition-all duration-200 cursor-pointer group relative overflow-hidden ${selectedLines.has(i)
                     ? 'bg-primary/15 border border-primary/40 ring-1 ring-primary/20'
                     : isActive
                       ? 'bg-primary/10 border border-primary/30'
@@ -463,8 +463,12 @@ export default function Editor({
                         : 'hover:bg-zinc-800/40 border border-transparent'
                     } ${dragIndex === i ? 'opacity-40' : ''}`}
                 >
+                  {/* Subtle active accent bar */}
+                  {isActive && (
+                    <div className="absolute left-0 inset-y-0 w-1 bg-primary shadow-[0_0_12px_rgba(29,185,84,0.6)] z-0 rounded-l-xl opacity-90" />
+                  )}
                   <span
-                    className={`text-xs font-mono min-w-[75px] mt-1 shrink-0 transition-colors ${isSynced
+                    className={`text-xs font-mono tabular-nums min-w-[75px] mt-1 shrink-0 transition-colors ${isSynced
                       ? 'text-primary'
                       : isActive
                         ? 'text-zinc-400 animate-pulse-glow'
@@ -652,13 +656,13 @@ export default function Editor({
             <button
               id="mark-btn"
               onClick={handleMark}
-              className="px-4 sm:px-6 h-8 sm:h-9 flex items-center justify-center gap-1.5 bg-primary hover:bg-primary-dim text-zinc-950 font-bold rounded-lg transition-all duration-200 cursor-pointer glow-primary text-xs sm:text-sm flex-shrink-0"
+              title={t('mark')}
+              className="px-2.5 sm:px-3 h-8 sm:h-9 flex items-center justify-center bg-primary hover:bg-primary-dim text-zinc-950 font-bold rounded-lg transition-all duration-200 cursor-pointer glow-primary flex-shrink-0"
             >
               <svg className="w-3.5 sm:w-4 h-3.5 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
-              {t('mark')}
             </button>
             <button
               id="undo-btn"
@@ -670,7 +674,6 @@ export default function Editor({
               <svg className="w-3.5 sm:w-4 h-3.5 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h10a5 5 0 015 5v2M3 10l4-4m-4 4l4 4" />
               </svg>
-              <span className="hidden sm:inline">Undo</span>
             </button>
             <button
               id="redo-btn"
@@ -682,18 +685,8 @@ export default function Editor({
               <svg className="w-3.5 sm:w-4 h-3.5 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21 10H11a5 5 0 00-5 5v2m15-7l-4-4m4 4l-4 4" />
               </svg>
-              <span className="hidden sm:inline">Redo</span>
             </button>
-            <button
-              id="clear-timestamps-btn"
-              onClick={handleClearTimestamps}
-              className="px-2.5 sm:px-3 h-8 sm:h-9 flex items-center justify-center gap-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg transition-all duration-200 cursor-pointer text-xs font-semibold whitespace-nowrap flex-shrink-0"
-            >
-              <svg className="w-3.5 sm:w-4 h-3.5 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              {t('clear')}
-            </button>
+
 
             {/* Global offset shift */}
             {settings.showShiftAll && (
@@ -725,8 +718,9 @@ export default function Editor({
         isOpen={confirmConfig.isOpen}
         message={confirmConfig.message}
         onConfirm={() => {
-          if (confirmConfig.onConfirm) confirmConfig.onConfirm();
+          const action = confirmConfig.onConfirm;
           setConfirmConfig({ isOpen: false, message: '', onConfirm: null });
+          if (action) setTimeout(action, 0);
         }}
         onCancel={() => setConfirmConfig({ isOpen: false, message: '', onConfirm: null })}
       />
