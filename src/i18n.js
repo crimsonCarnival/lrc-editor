@@ -61,7 +61,8 @@ const resources = {
       pasteMatchesLineInstruction: 'Paste one line per line. They will be matched in order from top to bottom with your main lyrics timestamps.',
       pasteTextPlaceholder: 'Paste text here...',
       saveTracks: 'Save Tracks',
-      cancel: 'Cancel'
+      cancel: 'Cancel',
+      removeLine: 'Remove this line'
     }
   },
   es: {
@@ -122,7 +123,8 @@ const resources = {
       pasteMatchesLineInstruction: 'Pega una línea por línea. Se organizarán en orden de arriba a abajo con las marcas de tiempo de las letras principales.',
       pasteTextPlaceholder: 'Pega tu texto aquí...',
       saveTracks: 'Guardar Pistas',
-      cancel: 'Cancelar'
+      cancel: 'Cancelar',
+      removeLine: 'Eliminar esta línea'
     }
   },
   ja: {
@@ -183,7 +185,8 @@ const resources = {
       pasteMatchesLineInstruction: '1行ずつ貼り付けてください。メインの歌詞のタイムスタンプと上から順に一致します。',
       pasteTextPlaceholder: 'ここにテキストを貼り付け...',
       saveTracks: 'トラックを保存',
-      cancel: 'キャンセル'
+      cancel: 'キャンセル',
+      removeLine: 'この行を削除'
     }
   }
 };
