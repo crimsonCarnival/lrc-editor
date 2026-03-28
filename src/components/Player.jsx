@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { createVocalIsolation } from '../utils/audioProcessing';
 import { useTranslation } from 'react-i18next';
 
-const SPEED_PRESETS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3];
+const SPEED_PRESETS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.25, 2.5, 2.75, 3];
 const MIN_SPEED = 0.1;
-const MAX_SPEED = 4;
+const MAX_SPEED = 5;
 
 export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, playerRef, mediaTitle, onTitleChange }) {
   const { t } = useTranslation();
@@ -19,6 +20,7 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
   const [vocalIsolation, setVocalIsolation] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
+  const [speedMenuPos, setSpeedMenuPos] = useState(null);
   const [customSpeedInput, setCustomSpeedInput] = useState('');
   const [ytError, setYtError] = useState('');
 
@@ -134,7 +136,7 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
       updateTooltip(e);
     };
 
-    const handleClick = (e) => {
+    const handleMouseDown = (e) => {
       const rect = waveContainerRef.current?.getBoundingClientRect();
       if (!rect) return;
 
@@ -142,21 +144,23 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
       const percentage = Math.max(0, Math.min(x / rect.width, 1));
       const time = percentage * (audioElement.duration || 0);
 
-      if (!isFollowingCursor) {
-        isFollowingCursor = true;
-        audioElement.currentTime = time;
-        onTimeUpdate?.(time);
-      } else {
-        isFollowingCursor = false;
-      }
+      isFollowingCursor = true;
+      audioElement.currentTime = time;
+      onTimeUpdate?.(time);
+    };
+
+    const handleMouseUp = () => {
+      isFollowingCursor = false;
     };
 
     waveContainerRef.current?.addEventListener('mouseenter', createTooltip);
     waveContainerRef.current?.addEventListener('mousemove', handleMouseMove, { passive: true });
     waveContainerRef.current?.addEventListener('mouseleave', () => {
       if (tooltipElement) tooltipElement.style.display = 'none';
+      isFollowingCursor = false;
     });
-    waveContainerRef.current?.addEventListener('click', handleClick);
+    waveContainerRef.current?.addEventListener('mousedown', handleMouseDown);
+    window.addEventListener('mouseup', handleMouseUp);
 
     wavesurferRef.current = ws;
   }, [onTimeUpdate]);
@@ -512,13 +516,13 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
           <span className="uppercase shrink-0 text-xs sm:text-sm">{t('playerTitle')}</span>
           {mediaTitle && (
             <>
-          <div className="flex items-center gap-1 px-1 py-0.5 bg-zinc-800/40 rounded text-xs">
+              <div className="flex items-center gap-1 px-1 py-0.5 bg-zinc-800/40 rounded text-xs">
                 <svg className="w-2.5 h-2.5 text-primary shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z" />
                 </svg>
                 <div className="flex-1 overflow-hidden relative" style={{ maskImage: 'linear-gradient(to right, transparent, black 5%, black 95%, transparent)' }}>
                   <span className="text-primary normal-case tracking-normal animate-marquee">{mediaTitle}</span>
-                </div>          
+                </div>
               </div>
             </>
           )}
@@ -685,7 +689,7 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
                 onClick={toggleVocalIsolation}
                 title={vocalIsolation ? t('disableVocals') : t('focusVocals')}
                 className={`w-8 sm:w-9 h-8 sm:h-9 flex items-center justify-center rounded-full transition-all duration-200 cursor-pointer flex-shrink-0 ${vocalIsolation
-                  ? 'bg-accent-purple text-white shadow-lg shadow-accent-purple/30 scale-110'
+                  ? 'bg-primary text-zinc-950 shadow-lg shadow-primary/30 scale-110'
                   : 'bg-zinc-800 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700'
                   }`}
               >
@@ -701,73 +705,78 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
                 ref={speedBtnRef}
                 id="speed-btn"
                 onClick={() => {
-                  setShowSpeedMenu(prev => !prev);
+                  setShowSpeedMenu(prev => {
+                    if (!prev && speedBtnRef.current) {
+                      const rect = speedBtnRef.current.getBoundingClientRect();
+                      setSpeedMenuPos({
+                        top: rect.bottom + 8,
+                        right: window.innerWidth - rect.right,
+                      });
+                    }
+                    return !prev;
+                  });
                 }}
                 title={t('speed')}
-                className={`h-8 sm:h-9 px-2 sm:px-2.5 flex items-center gap-1 rounded-full transition-all duration-200 cursor-pointer flex-shrink-0 text-xs font-mono font-semibold ${
-                  playbackSpeed !== 1
-                    ? 'bg-accent-blue text-white shadow-lg shadow-accent-blue/30'
-                    : 'bg-zinc-800 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700'
-                }`}
+                className={`h-8 sm:h-9 px-2 sm:px-2.5 flex items-center gap-1 rounded-full transition-all duration-200 cursor-pointer flex-shrink-0 text-xs font-mono font-semibold ${playbackSpeed !== 1
+                  ? 'bg-primary text-zinc-950 shadow-lg shadow-primary/30'
+                  : 'bg-zinc-800 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700'
+                  }`}
               >
                 {playbackSpeed}x
                 <svg className={`w-2.5 h-2.5 transition-transform duration-200 ${showSpeedMenu ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
-              {showSpeedMenu && speedBtnRef.current && (() => {
-                const rect = speedBtnRef.current.getBoundingClientRect();
-                return (
-                  <div
-                    ref={speedMenuRef}
-                    className="fixed w-44 bg-zinc-900 border border-zinc-700/80 rounded-xl shadow-2xl shadow-black/50 overflow-hidden animate-fade-in z-[9999]"
-                    style={{
-                      bottom: window.innerHeight - rect.top + 8,
-                      right: window.innerWidth - rect.right,
-                    }}
-                  >
-                    <div className="p-1.5 max-h-52 overflow-y-auto speed-menu-scroll">
-                      {SPEED_PRESETS.map((speed) => (
-                        <button
-                          key={speed}
-                          onClick={() => applySpeed(speed)}
-                          className={`w-full text-left px-3 py-1.5 text-xs font-mono rounded-lg transition-all duration-150 cursor-pointer ${
-                            playbackSpeed === speed
-                              ? 'bg-accent-blue/20 text-accent-blue font-bold'
-                              : 'text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100'
+              {showSpeedMenu && speedMenuPos && createPortal(
+                <div
+                  ref={speedMenuRef}
+                  className="fixed w-44 bg-zinc-900 border border-zinc-700/80 rounded-xl shadow-2xl shadow-black/50 overflow-hidden animate-fade-in z-[9999]"
+                  style={{
+                    top: speedMenuPos.top,
+                    right: speedMenuPos.right,
+                  }}
+                >
+                  <div className="p-1.5 max-h-52 overflow-y-auto speed-menu-scroll">
+                    {SPEED_PRESETS.map((speed) => (
+                      <button
+                        key={speed}
+                        onClick={() => applySpeed(speed)}
+                        className={`w-full text-left px-3 py-1.5 text-xs font-mono rounded-lg transition-all duration-150 cursor-pointer ${playbackSpeed === speed
+                          ? 'bg-primary/20 text-primary font-bold'
+                          : 'text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100'
                           }`}
-                        >
-                          {speed}x {speed === 1 && <span className="text-zinc-500 font-sans">(normal)</span>}
-                        </button>
-                      ))}
-                    </div>
-                    <div className="border-t border-zinc-700/60 p-2">
-                      <label className="text-[10px] text-zinc-500 font-medium uppercase tracking-wider mb-1 block">{t('customSpeed') || 'Custom'} ({MIN_SPEED}–{MAX_SPEED}x)</label>
-                      <div className="flex gap-1.5">
-                        <input
-                          id="custom-speed-input"
-                          type="number"
-                          min={MIN_SPEED}
-                          max={MAX_SPEED}
-                          step={0.05}
-                          value={customSpeedInput}
-                          onChange={(e) => setCustomSpeedInput(e.target.value)}
-                          onKeyDown={(e) => e.key === 'Enter' && handleCustomSpeedSubmit()}
-                          placeholder="e.g. 1.3"
-                          className="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-2.5 py-1.5 text-xs text-zinc-100 font-mono placeholder-zinc-600 focus:outline-none focus:border-accent-blue/50 focus:ring-1 focus:ring-accent-blue/25 transition-all w-0"
-                        />
-                        <button
-                          onClick={handleCustomSpeedSubmit}
-                          disabled={!customSpeedInput || isNaN(parseFloat(customSpeedInput)) || parseFloat(customSpeedInput) < MIN_SPEED || parseFloat(customSpeedInput) > MAX_SPEED}
-                          className="px-2.5 py-1.5 bg-accent-blue hover:bg-accent-blue/80 disabled:bg-zinc-800 disabled:text-zinc-600 text-white text-xs font-semibold rounded-lg transition-all cursor-pointer disabled:cursor-not-allowed"
-                        >
-                          ✓
-                        </button>
-                      </div>
+                      >
+                        {speed}x {speed === 1 && <span className="text-zinc-500 font-sans">(normal)</span>}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="border-t border-zinc-700/60 p-2">
+                    <label className="text-[10px] text-zinc-500 font-medium uppercase tracking-wider mb-1 block">{t('customSpeed') || 'Custom'} ({MIN_SPEED}–{MAX_SPEED}x)</label>
+                    <div className="flex gap-1.5">
+                      <input
+                        id="custom-speed-input"
+                        type="number"
+                        min={MIN_SPEED}
+                        max={MAX_SPEED}
+                        step={0.05}
+                        value={customSpeedInput}
+                        onChange={(e) => setCustomSpeedInput(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleCustomSpeedSubmit()}
+                        placeholder="e.g. 1.3"
+                        className="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-2.5 py-1.5 text-xs text-zinc-100 font-mono placeholder-zinc-600 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/25 transition-all w-0"
+                      />
+                      <button
+                        onClick={handleCustomSpeedSubmit}
+                        disabled={!customSpeedInput || isNaN(parseFloat(customSpeedInput)) || parseFloat(customSpeedInput) < MIN_SPEED || parseFloat(customSpeedInput) > MAX_SPEED}
+                        className="px-2.5 py-1.5 bg-primary hover:bg-primary-dim disabled:bg-zinc-800 disabled:text-zinc-600 text-zinc-950 text-xs font-semibold rounded-lg transition-all cursor-pointer disabled:cursor-not-allowed"
+                      >
+                        ✓
+                      </button>
                     </div>
                   </div>
-                );
-              })()}
+                </div>,
+                document.body
+              )}
             </div>
           </div>
         </div>
