@@ -2,13 +2,17 @@ import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import Player from './components/Player';
 import Editor from './components/Editor';
 import Preview from './components/Preview';
+import Settings from './components/Settings';
 import { compileLRC, compileSRT, downloadLRC } from './utils/lrc';
 import useHistory from './utils/useHistory';
 import KeyboardHelp from './components/KeyboardHelp';
 import { useTranslation } from 'react-i18next';
+import { SettingsProvider, useSettings } from './contexts/SettingsContext';
 
-export default function App() {
+function AppInner() {
   const { t, i18n } = useTranslation();
+  const { settings } = useSettings();
+
   // Lines state with undo/redo
   const [lines, setLines, undo, redo, canUndo, canRedo] = useHistory([]);
 
@@ -17,22 +21,25 @@ export default function App() {
   const [playbackPosition, setPlaybackPosition] = useState(0);
   const [duration, setDuration] = useState(0);
   const [exportFilename, setExportFilename] = useState('lyrics');
-  const [exportFormat, setExportFormat] = useState('lrc');
   const [showExportPanel, setShowExportPanel] = useState(false);
   const [mediaTitle, setMediaTitle] = useState('');
   const [includeTranslations, setIncludeTranslations] = useState(false);
   const [hasMedia, setHasMedia] = useState(false);
   const [showKeyboardHelp, setShowKeyboardHelp] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [wasCopied, setWasCopied] = useState(false);
   const [isRestoring, setIsRestoring] = useState(true);
   const [pendingSession, setPendingSession] = useState(null);
 
-
-
-
-
   const playerRef = useRef(null);
   const exportPanelRef = useRef(null);
+
+  // ——— Auto-fill filename from media title (settings-driven) ———
+  useEffect(() => {
+    if (settings.defaultFilenamePattern === 'media' && mediaTitle) {
+      setExportFilename(mediaTitle);
+    }
+  }, [mediaTitle, settings.defaultFilenamePattern]);
 
   // ——— Auto-Save / Session Recovery ———
   useEffect(() => {
@@ -51,7 +58,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (isRestoring || !lines.length) return;
+    if (isRestoring || !lines.length || !settings.autoSaveEnabled) return;
     const timeoutId = setTimeout(() => {
       localStorage.setItem('lrc-syncer-session', JSON.stringify({
         lines,
@@ -59,9 +66,9 @@ export default function App() {
         activeLineIndex,
         timestamp: Date.now()
       }));
-    }, 1000);
+    }, settings.autoSaveInterval);
     return () => clearTimeout(timeoutId);
-  }, [lines, syncMode, activeLineIndex, isRestoring]);
+  }, [lines, syncMode, activeLineIndex, isRestoring, settings.autoSaveEnabled, settings.autoSaveInterval]);
 
   const handleRestoreSession = () => {
     if (pendingSession) {
@@ -81,6 +88,9 @@ export default function App() {
   const handleMediaChange = useCallback((loaded) => {
     setHasMedia(loaded);
     if (!loaded) {
+      if (settings.confirmDestructive) {
+        // No confirm needed when media is simply removed — data is auto-saved
+      }
       setLines([]);
       setSyncMode(false);
       setActiveLineIndex(0);
@@ -89,7 +99,7 @@ export default function App() {
       setMediaTitle('');
       setShowExportPanel(false);
     }
-  }, [setLines]);
+  }, [setLines, settings.confirmDestructive]);
 
   // ——— Global Undo/Redo keyboard shortcut ———
   useEffect(() => {
@@ -131,11 +141,11 @@ export default function App() {
 
   const handleExport = () => {
     const name = exportFilename.trim() || 'lyrics';
-    if (exportFormat === 'srt') {
+    if (settings.downloadFormat === 'srt') {
       const srt = compileSRT(lines, duration);
       downloadLRC(srt, `${name}.srt`);
     } else {
-      const lrc = compileLRC(lines, includeTranslations);
+      const lrc = compileLRC(lines, includeTranslations, settings.timestampPrecision);
       downloadLRC(lrc, `${name}.lrc`);
     }
     setShowExportPanel(false);
@@ -143,10 +153,10 @@ export default function App() {
 
   const handleCopy = async () => {
     let content = '';
-    if (exportFormat === 'srt') {
+    if (settings.copyFormat === 'srt') {
       content = compileSRT(lines, duration);
     } else {
-      content = compileLRC(lines, includeTranslations);
+      content = compileLRC(lines, includeTranslations, settings.timestampPrecision);
     }
     try {
       await navigator.clipboard.writeText(content);
@@ -183,29 +193,50 @@ export default function App() {
               <h1 className="text-base sm:text-lg font-bold text-zinc-100 tracking-tight truncate">
                 {t('appName')}
               </h1>
-              <p className="text-xs text-zinc-500 truncate">
-                {t('appSubtitle')}
-              </p>
             </div>
           </div>
 
           <div className="flex items-center gap-1 sm:gap-2 w-full sm:w-auto">
-            <select
-              value={i18n.resolvedLanguage?.split('-')[0] || 'en'}
-              onChange={(e) => i18n.changeLanguage(e.target.value)}
-              className="bg-zinc-800/80 border border-zinc-700/60 rounded-lg sm:rounded-xl px-2 sm:px-3 py-1.5 sm:py-2 text-xs font-semibold text-zinc-200 focus:outline-none focus:border-primary/50 transition-all cursor-pointer shadow-lg hover:bg-zinc-700"
-            >
-              <option value="en">EN</option>
-              <option value="es">ES</option>
-              <option value="ja">日本語</option>
-            </select>
+            {/* Language Selector */}
+            <div className="relative flex items-center bg-zinc-800/80 hover:bg-zinc-700 border border-zinc-700/60 rounded-lg sm:rounded-xl shadow-lg transition-all cursor-pointer">
+              <div className="absolute left-2.5 sm:left-3 pointer-events-none text-zinc-400">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <select
+                value={i18n.resolvedLanguage?.split('-')[0] || 'en'}
+                onChange={(e) => i18n.changeLanguage(e.target.value)}
+                className="appearance-none bg-transparent w-full h-full pl-8 sm:pl-9 pr-3 sm:pr-4 py-1.5 sm:py-2 text-xs font-semibold text-zinc-200 focus:outline-none cursor-pointer"
+                title={t('settingsLanguageDesc') || 'Language'}
+              >
+                <option value="en" className="bg-zinc-800">EN</option>
+                <option value="es" className="bg-zinc-800">ES</option>
+                <option value="ja" className="bg-zinc-800">JA</option>
+              </select>
+            </div>
 
+            {/* Settings button */}
+            <button
+              onClick={() => setShowSettings(true)}
+              className="px-2 sm:px-3 h-8 sm:h-9 flex items-center justify-center gap-1.5 rounded-lg sm:rounded-xl bg-zinc-800/80 border border-zinc-700/60 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700 transition-all cursor-pointer shadow-lg flex-shrink-0"
+              title={t('settingsTitle')}
+            >
+              <svg className="w-4 sm:w-4.5 h-4 sm:h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              <span className="hidden sm:inline text-xs font-semibold">{t('settingsTitle')}</span>
+            </button>
+
+            {/* Help button */}
             <button
               onClick={() => setShowKeyboardHelp(prev => !prev)}
-              className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-lg sm:rounded-xl bg-zinc-800/80 border border-zinc-700/60 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700 transition-all cursor-pointer shadow-lg flex-shrink-0"
-              title={t('keyboardShortcuts')}
+              className="px-2 sm:px-3 h-8 sm:h-9 flex items-center justify-center gap-1.5 rounded-lg sm:rounded-xl bg-zinc-800/80 border border-zinc-700/60 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700 transition-all cursor-pointer shadow-lg flex-shrink-0"
+              title={t('keyboardShortcuts') || 'Shortcuts'}
             >
               <kbd className="text-xs font-mono font-bold">?</kbd>
+              <span className="hidden sm:inline text-xs font-semibold">{t('keyboardShortcuts') || 'Help'}</span>
             </button>
 
             {canExport && (
@@ -213,7 +244,7 @@ export default function App() {
                 <button
                   id="export-btn"
                   onClick={() => setShowExportPanel(!showExportPanel)}
-                  className="flex items-center justify-center gap-1 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5 bg-gradient-to-r from-primary to-primary-dim hover:from-primary-dim hover:to-primary text-zinc-950 font-semibold text-xs sm:text-sm rounded-lg sm:rounded-xl transition-all duration-300 hover:scale-105 active:scale-95 cursor-pointer shadow-lg shadow-primary/20"
+                  className="flex items-center justify-center gap-1 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5 bg-gradient-to-r from-primary to-primary-dim hover:from-primary-dim hover:to-primary text-zinc-950 font-semibold text-xs sm:text-sm rounded-lg sm:rounded-xl transition-all duration-300 cursor-pointer shadow-lg shadow-primary/20"
                 >
                   <svg className="w-3 sm:w-4 h-3 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -222,18 +253,6 @@ export default function App() {
                 </button>
                 {showExportPanel && (
                   <div className="absolute right-0 top-full mt-2 rounded-lg sm:rounded-xl p-3 sm:p-4 space-y-2 sm:space-y-3 w-64 sm:w-72 z-50 animate-fade-in shadow-2xl bg-zinc-900 border border-zinc-700">
-                    <label className="block mb-2">
-                      <span className="text-xs text-zinc-400 font-medium">{t('format')}</span>
-                      <select
-                        value={exportFormat}
-                        onChange={(e) => setExportFormat(e.target.value)}
-                        className="mt-1 w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-primary/50 transition-all"
-                      >
-                        <option value="lrc">.lrc (Lyrics)</option>
-                        <option value="srt">.srt (Subtitles)</option>
-                      </select>
-                    </label>
-
                     <label className="block">
                       <span className="text-xs text-zinc-400 font-medium">{t('filename')}</span>
                       <div className="flex items-center gap-1 mt-1">
@@ -246,11 +265,11 @@ export default function App() {
                           placeholder="lyrics"
                           className="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/25 transition-all w-0"
                         />
-                        <span className="text-sm text-zinc-500 min-w-8">.{exportFormat}</span>
+                        <span className="text-sm text-zinc-500 min-w-8">.{settings.downloadFormat}</span>
                       </div>
                     </label>
 
-                    {exportFormat === 'lrc' && lines.some(l => l.translation) && (
+                    {settings.downloadFormat === 'lrc' && lines.some(l => l.translation) && (
                       <label className="flex items-center gap-2 cursor-pointer">
                         <input
                           type="checkbox"
@@ -343,6 +362,7 @@ export default function App() {
         </footer>
       </div>
       <KeyboardHelp isOpen={showKeyboardHelp} onClose={() => setShowKeyboardHelp(false)} />
+      <Settings isOpen={showSettings} onClose={() => setShowSettings(false)} />
 
       {/* Session Restore Modal */}
       {pendingSession && (
@@ -379,5 +399,13 @@ export default function App() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <SettingsProvider>
+      <AppInner />
+    </SettingsProvider>
   );
 }
