@@ -126,9 +126,9 @@ export default function App() {
                 <button
                   id="export-btn"
                   onClick={() => setShowExportPanel(!showExportPanel)}
-                  className="flex items-center justify-center gap-1 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5 bg-gradient-to-r from-primary to-primary-dim hover:from-primary-dim hover:to-primary text-zinc-950 font-semibold text-xs sm:text-sm rounded-lg sm:rounded-xl transition-all duration-300 hover:scale-105 active:scale-95 cursor-pointer shadow-lg shadow-primary/20 w-full sm:w-auto"
+                  className="flex items-center justify-center gap-1 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5 bg-gradient-to-r from-primary to-primary-dim hover:from-primary-dim hover:to-primary text-zinc-950 font-semibold text-xs sm:text-sm rounded-lg sm:rounded-xl transition-all duration-300 hover:scale-105 active:scale-95 cursor-pointer shadow-lg shadow-primary/20"
                 >
-                  <svg className="w-3 sm:w-4 h-3 sm:h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <svg className="w-3 sm:w-4 h-3 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                   </svg>
                   <span className="hidden sm:inline">{t('export')}</span>
@@ -188,9 +188,9 @@ export default function App() {
         </header>
 
         {/* 3-Column layout */}
-        <div className="flex-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-2 sm:gap-3 lg:gap-4 min-h-0 overflow-hidden">
+        <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-2 sm:gap-3 lg:gap-4 min-h-0 overflow-hidden">
           {/* Left: Player + Editor */}
-          <div className="md:col-span-1 lg:col-span-5 flex flex-col gap-2 sm:gap-3 lg:gap-4 min-h-0">
+          <div className="lg:col-span-5 flex flex-col gap-2 sm:gap-3 lg:gap-4 min-h-0">
             <Player
               mediaTitle={mediaTitle}
               onTitleChange={setMediaTitle}
@@ -227,7 +227,7 @@ export default function App() {
           </div>
 
           {/* Right: Preview */}
-          <div className="md:col-span-1 lg:col-span-7 min-h-0 flex flex-col">
+          <div className="hidden lg:flex lg:col-span-7 min-h-0 flex-col">
             <Preview
               lines={lines}
               setLines={setLines}

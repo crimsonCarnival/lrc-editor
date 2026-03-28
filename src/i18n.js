@@ -62,7 +62,8 @@ const resources = {
       pasteTextPlaceholder: 'Paste text here...',
       saveTracks: 'Save Tracks',
       cancel: 'Cancel',
-      removeLine: 'Remove this line'
+      removeLine: 'Remove this line',
+      addLine: 'Add line'
     }
   },
   es: {
@@ -124,7 +125,8 @@ const resources = {
       pasteTextPlaceholder: 'Pega tu texto aquí...',
       saveTracks: 'Guardar Pistas',
       cancel: 'Cancelar',
-      removeLine: 'Eliminar esta línea'
+      removeLine: 'Eliminar esta línea',
+      addLine: 'Añadir línea'
     }
   },
   ja: {
@@ -186,7 +188,8 @@ const resources = {
       pasteTextPlaceholder: 'ここにテキストを貼り付け...',
       saveTracks: 'トラックを保存',
       cancel: 'キャンセル',
-      removeLine: 'この行を削除'
+      removeLine: 'この行を削除',
+      addLine: '行を追加'
     }
   }
 };

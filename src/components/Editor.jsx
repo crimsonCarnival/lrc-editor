@@ -152,6 +152,14 @@ export default function Editor({
     });
   };
 
+  const handleAddLine = (index) => {
+    setLines((prev) => {
+      const updated = [...prev];
+      updated.splice(index + 1, 0, { text: '', timestamp: prev[index].timestamp });
+      return updated;
+    });
+  };
+
   const syncedCount = useMemo(() => lines.filter((l) => l.timestamp != null).length, [lines]);
 
   return (
@@ -163,29 +171,28 @@ export default function Editor({
           </h2>
         </div>
         {syncMode && (
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
-            <div className="flex items-center gap-2 flex-1 sm:flex-initial">
+          <div className="flex items-center gap-2 sm:gap-3 w-full">
+            <div className="flex items-center gap-2 flex-1">
               <span className="text-xs text-zinc-500">
                 {syncedCount}/{lines.length}
               </span>
-              <div className="h-1.5 w-16 sm:w-20 bg-zinc-800 rounded-full overflow-hidden flex-shrink-0">
+              <div className="h-1.5 flex-1 bg-zinc-800 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-gradient-to-r from-primary to-accent-purple rounded-full transition-all duration-300"
                   style={{ width: `${(syncedCount / Math.max(lines.length, 1)) * 100}%` }}
                 />
               </div>
             </div>
-            <div className="w-px h-4 bg-zinc-800 mx-1 hidden sm:block" />
             <button
               onClick={() => {
                 setLines([]);
                 setRawText('');
                 setSyncMode(false);
               }}
-              className="p-1 sm:p-1.5 hover:bg-red-500/10 rounded-lg text-zinc-500 hover:text-red-400 transition-colors cursor-pointer w-full sm:w-auto text-center"
+              className="p-1 sm:p-1.5 hover:bg-red-500/10 rounded-lg text-red-400 hover:text-red-300 transition-colors cursor-pointer flex-shrink-0"
               title={t('removeAllLyrics')}
             >
-              <svg className="w-3 sm:w-4 h-3 sm:h-4 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg className="w-3 sm:w-4 h-3 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
               </svg>
             </button>
@@ -293,7 +300,7 @@ export default function Editor({
                       />
                     ) : (
                       <p
-                        className={`text-sm transition-colors ${isActive
+                        className={`text-xs transition-colors ${isActive
                           ? 'text-zinc-100 font-medium'
                           : isSynced
                             ? 'text-zinc-300'
@@ -318,7 +325,7 @@ export default function Editor({
                           className="p-1 hover:bg-primary/20 rounded text-zinc-500 hover:text-primary transition-colors cursor-pointer mr-2"
                           title={t('jumpSync')}
                         >
-                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M8 5v14l11-7z" />
                           </svg>
                         </button>
@@ -327,8 +334,8 @@ export default function Editor({
                           className="p-1 hover:bg-zinc-700/60 rounded text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer"
                           title={t('minusTime')}
                         >
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M20 12H4" />
+                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
                           </svg>
                         </button>
                         <button
@@ -336,17 +343,26 @@ export default function Editor({
                           className="p-1 hover:bg-zinc-700/60 rounded text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer"
                           title={t('plusTime')}
                         >
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5L15.75 12l-7.5 7.5" />
                           </svg>
                         </button>
                         <div className="w-px h-4 bg-zinc-700/50 mx-1" />
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleAddLine(i); }}
+                          className="p-1 text-zinc-500 hover:text-green-400 transition-all duration-150 cursor-pointer rounded hover:bg-green-500/10"
+                          title={t('addLine')}
+                        >
+                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                          </svg>
+                        </button>
                         <button
                           onClick={(e) => { e.stopPropagation(); handleClearLine(i); }}
                           className="p-1 text-zinc-500 hover:text-orange-400 transition-all duration-150 cursor-pointer rounded hover:bg-orange-500/10"
                           title={t('clearTimestamp')}
                         >
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                           </svg>
                         </button>
@@ -357,7 +373,7 @@ export default function Editor({
                       className="p-1 text-zinc-500 hover:text-red-400 transition-all duration-150 cursor-pointer rounded hover:bg-red-500/10"
                       title={t('removeLine')}
                     >
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                       </svg>
                     </button>
@@ -368,11 +384,11 @@ export default function Editor({
           </div>
 
           {/* Sync controls */}
-          <div className="flex flex-col sm:flex-row gap-2 sm:gap-2 pt-2 border-t border-zinc-800/50 overflow-x-auto">
+          <div className="flex flex-row gap-2 pt-2 border-t border-zinc-800/50 overflow-x-auto">
             <button
               id="mark-btn"
               onClick={handleMark}
-              className="flex-1 py-2 sm:py-2.5 bg-primary hover:bg-primary-dim text-zinc-950 font-bold rounded-lg sm:rounded-xl transition-all duration-200 cursor-pointer hover:scale-[1.02] active:scale-[0.98] glow-primary text-sm flex-shrink-0 sm:flex-shrink-1"
+              className="flex-1 py-2 bg-primary hover:bg-primary-dim text-zinc-950 font-bold rounded-lg transition-all duration-200 cursor-pointer hover:scale-[1.02] active:scale-[0.98] glow-primary text-xs"
             >
               {t('mark')}
             </button>
@@ -380,10 +396,10 @@ export default function Editor({
               id="undo-btn"
               onClick={undo}
               disabled={!canUndo}
-              className="px-2 sm:px-2.5 py-2 sm:py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg sm:rounded-xl transition-all duration-200 cursor-pointer text-sm disabled:opacity-30 disabled:cursor-not-allowed flex-shrink-0"
+              className="px-2 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg transition-all duration-200 cursor-pointer text-xs disabled:opacity-30 disabled:cursor-not-allowed flex-shrink-0"
               title={t('undoTitle')}
             >
-              <svg className="w-3 sm:w-4 h-3 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h10a5 5 0 015 5v2M3 10l4-4m-4 4l4 4" />
               </svg>
             </button>
@@ -391,17 +407,17 @@ export default function Editor({
               id="redo-btn"
               onClick={redo}
               disabled={!canRedo}
-              className="px-2 sm:px-2.5 py-2 sm:py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg sm:rounded-xl transition-all duration-200 cursor-pointer text-sm disabled:opacity-30 disabled:cursor-not-allowed flex-shrink-0"
+              className="px-2 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg transition-all duration-200 cursor-pointer text-xs disabled:opacity-30 disabled:cursor-not-allowed flex-shrink-0"
               title={t('redoTitle')}
             >
-              <svg className="w-3 sm:w-4 h-3 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21 10H11a5 5 0 00-5 5v2m15-7l-4-4m4 4l-4 4" />
               </svg>
             </button>
             <button
               id="clear-timestamps-btn"
               onClick={handleClearTimestamps}
-              className="px-2 sm:px-3 py-2 sm:py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg sm:rounded-xl transition-all duration-200 cursor-pointer text-sm whitespace-nowrap flex-shrink-0"
+              className="px-3 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg transition-all duration-200 cursor-pointer text-xs whitespace-nowrap flex-shrink-0"
             >
               {t('clear')}
             </button>
