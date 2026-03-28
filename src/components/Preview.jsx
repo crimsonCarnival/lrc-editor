@@ -162,11 +162,20 @@ export default function Preview({ lines, setLines, playbackPosition, playerRef }
                     key={i}
                     ref={isActive ? activeRef : null}
                     onClick={() => handleLineClick(line)}
-                    className={`px-2 sm:px-4 py-1 sm:py-2 rounded-lg transition-all duration-500 ease-out overflow-hidden flex flex-col items-start cursor-pointer select-none ${isActive
-                        ? 'scale-y-105 origin-center my-1 sm:my-2'
+                    title={line.timestamp != null ? t('clickToSeek') : ''}
+                    className={`group px-2 sm:px-4 py-1 sm:py-2 rounded-lg transition-all duration-500 ease-out flex flex-col items-start cursor-pointer select-none relative ${isActive
+                        ? 'scale-y-105 origin-center my-1 sm:my-2 bg-zinc-800/10'
                         : 'hover:bg-zinc-800/30'
                       }`}
                   >
+                    {/* Play cursor on hover (only for synced lines) */}
+                    {line.timestamp != null && (
+                      <div className="absolute left-0 top-1/2 -translate-x-full -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-primary pointer-events-none pr-2">
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M8 5v14l11-7z" />
+                        </svg>
+                      </div>
+                    )}
                     {/* Secondary/Romaji Track */}
                     {line.secondary && (
                       <p
