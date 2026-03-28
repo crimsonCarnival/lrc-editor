@@ -89,6 +89,14 @@ const resources = {
       deleteSelected: 'Delete selected',
       deselectAll: 'Deselect all',
       selectionHint: 'Shift+Click: range · Ctrl+Click: toggle · Esc: deselect',
+      shortcutSelectionSection: 'Selection',
+      shortcutClick: 'Click',
+      shortcutDblClick: 'Double-click',
+      shortcutRangeSelect: 'Select range of lines',
+      shortcutToggleSelect: 'Toggle line selection',
+      shortcutDeselect: 'Deselect all / Close',
+      shortcutDeleteSelected: 'Delete selected lines',
+      shortcutEditLine: 'Edit line text',
     }
   },
   es: {
@@ -178,6 +186,14 @@ const resources = {
       deleteSelected: 'Eliminar selección',
       deselectAll: 'Deseleccionar todo',
       selectionHint: 'Shift+Clic: rango · Ctrl+Clic: alternar · Esc: deseleccionar',
+      shortcutSelectionSection: 'Selección',
+      shortcutClick: 'Clic',
+      shortcutDblClick: 'Doble clic',
+      shortcutRangeSelect: 'Seleccionar rango de líneas',
+      shortcutToggleSelect: 'Alternar selección de línea',
+      shortcutDeselect: 'Deseleccionar todo / Cerrar',
+      shortcutDeleteSelected: 'Eliminar líneas seleccionadas',
+      shortcutEditLine: 'Editar texto de línea',
     }
   },
   ja: {
@@ -267,6 +283,14 @@ const resources = {
       deleteSelected: '選択を削除',
       deselectAll: '選択解除',
       selectionHint: 'Shift+クリック: 範囲選択 · Ctrl+クリック: 切替 · Esc: 解除',
+      shortcutSelectionSection: '選択',
+      shortcutClick: 'クリック',
+      shortcutDblClick: 'ダブルクリック',
+      shortcutRangeSelect: '行の範囲選択',
+      shortcutToggleSelect: '行の選択を切替',
+      shortcutDeselect: '選択解除 / 閉じる',
+      shortcutDeleteSelected: '選択した行を削除',
+      shortcutEditLine: '行のテキストを編集',
     }
   }
 };
