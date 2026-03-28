@@ -79,28 +79,3 @@ Or with separate lines:
 ```
 
 This allows you to display multiple language layers or versions simultaneously during playback, making it ideal for language learning or providing context for your audience.
-
-## Building for Production
-
-```bash
-npm run build
-```
-
-Output will be in the `dist/` folder, ready for deployment.
-
-## Project Structure
-
-- `src/components/` - React components (Player, Editor, Preview)
-- `src/utils/` - Utility functions (audio processing, LRC parsing, history management)
-- `src/assets/` - Static resources
-- `public/` - Public assets (favicon, etc.)
-
-## Technologies
-
-- **React** - UI framework
-- **Vite** - Build tool and dev server
-- **i18n** - Internationalization support
-
-## License
-
-[Add your license here]
