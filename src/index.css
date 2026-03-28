@@ -16,7 +16,6 @@ html,
 body,
 #root {
   height: 100%;
-  overflow: hidden;
 }
 
 /* Scrollbar */
@@ -60,6 +59,16 @@ body,
 /* Glow effect */
 .glow-primary {
   box-shadow: 0 0 20px rgba(29, 185, 84, 0.25), 0 0 60px rgba(29, 185, 84, 0.1);
+}
+
+.glow-line {
+  text-shadow: 0 0 20px rgba(29, 185, 84, 0.5);
+}
+
+/* Edge blur mask */
+.mask-edges {
+  mask-image: linear-gradient(to bottom, transparent, black 24px, black calc(100% - 24px), transparent);
+  -webkit-mask-image: linear-gradient(to bottom, transparent, black 24px, black calc(100% - 24px), transparent);
 }
 
 .glow-line {
