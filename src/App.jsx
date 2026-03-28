@@ -4,6 +4,7 @@ import Editor from './components/Editor';
 import Preview from './components/Preview';
 import { compileLRC, compileSRT, downloadLRC } from './utils/lrc';
 import useHistory from './utils/useHistory';
+import KeyboardHelp from './components/KeyboardHelp';
 import { useTranslation } from 'react-i18next';
 
 export default function App() {
@@ -21,6 +22,10 @@ export default function App() {
   const [mediaTitle, setMediaTitle] = useState('');
   const [includeTranslations, setIncludeTranslations] = useState(false);
   const [hasMedia, setHasMedia] = useState(false);
+  const [showKeyboardHelp, setShowKeyboardHelp] = useState(false);
+  const [wasCopied, setWasCopied] = useState(false);
+  const [isRestoring, setIsRestoring] = useState(true);
+  const [pendingSession, setPendingSession] = useState(null);
 
 
 
@@ -28,6 +33,49 @@ export default function App() {
 
   const playerRef = useRef(null);
   const exportPanelRef = useRef(null);
+
+  // ——— Auto-Save / Session Recovery ———
+  useEffect(() => {
+    const saved = localStorage.getItem('lrc-syncer-session');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed.lines && parsed.lines.length > 0) {
+          setPendingSession(parsed);
+        }
+      } catch (e) {
+        console.error('Failed to parse session data', e);
+      }
+    }
+    setIsRestoring(false);
+  }, []);
+
+  useEffect(() => {
+    if (isRestoring || !lines.length) return;
+    const timeoutId = setTimeout(() => {
+      localStorage.setItem('lrc-syncer-session', JSON.stringify({
+        lines,
+        syncMode,
+        activeLineIndex,
+        timestamp: Date.now()
+      }));
+    }, 1000);
+    return () => clearTimeout(timeoutId);
+  }, [lines, syncMode, activeLineIndex, isRestoring]);
+
+  const handleRestoreSession = () => {
+    if (pendingSession) {
+      setLines(pendingSession.lines);
+      if (pendingSession.syncMode) setSyncMode(pendingSession.syncMode);
+      if (pendingSession.activeLineIndex != null) setActiveLineIndex(pendingSession.activeLineIndex);
+    }
+    setPendingSession(null);
+  };
+
+  const handleDiscardSession = () => {
+    localStorage.removeItem('lrc-syncer-session');
+    setPendingSession(null);
+  };
 
   // ——— Clear all data when media is removed ———
   const handleMediaChange = useCallback((loaded) => {
@@ -53,6 +101,8 @@ export default function App() {
       } else if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
         e.preventDefault();
         redo();
+      } else if (e.key === '?') {
+        setShowKeyboardHelp((prev) => !prev);
       }
     };
     window.addEventListener('keydown', handler);
@@ -89,6 +139,22 @@ export default function App() {
       downloadLRC(lrc, `${name}.lrc`);
     }
     setShowExportPanel(false);
+  };
+
+  const handleCopy = async () => {
+    let content = '';
+    if (exportFormat === 'srt') {
+      content = compileSRT(lines, duration);
+    } else {
+      content = compileLRC(lines, includeTranslations);
+    }
+    try {
+      await navigator.clipboard.writeText(content);
+      setWasCopied(true);
+      setTimeout(() => setWasCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy', err);
+    }
   };
 
   const syncedCount = useMemo(() => lines.filter((l) => l.timestamp != null).length, [lines]);
@@ -188,13 +254,21 @@ export default function App() {
                       </label>
                     )}
 
-                    <button
-                      id="export-confirm-btn"
-                      onClick={handleExport}
-                      className="w-full py-2.5 bg-primary hover:bg-primary-dim text-zinc-950 font-semibold text-sm rounded-lg transition-all cursor-pointer"
-                    >
-                      {t('download')}
-                    </button>
+                    <div className="flex gap-2 w-full mt-2">
+                      <button
+                        onClick={handleCopy}
+                        className="flex-1 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-semibold text-sm rounded-lg transition-all cursor-pointer"
+                      >
+                        {wasCopied ? t('copied') : t('copyToClipboard')}
+                      </button>
+                      <button
+                        id="export-confirm-btn"
+                        onClick={handleExport}
+                        className="flex-1 py-2.5 bg-primary hover:bg-primary-dim text-zinc-950 font-semibold text-sm rounded-lg transition-all cursor-pointer"
+                      >
+                        {t('download')}
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -215,7 +289,7 @@ export default function App() {
               playerRef={playerRef}
             />
             <div className="flex-1 min-h-0 flex flex-col">
-              {hasMedia ? (
+              {(hasMedia || lines.length > 0) ? (
                 <Editor
                   lines={lines}
                   setLines={setLines}
@@ -260,6 +334,42 @@ export default function App() {
           </p>
         </footer>
       </div>
+      <KeyboardHelp isOpen={showKeyboardHelp} onClose={() => setShowKeyboardHelp(false)} />
+
+      {/* Session Restore Modal */}
+      {pendingSession && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={handleDiscardSession} />
+          <div className="relative bg-zinc-900 border border-zinc-700/80 rounded-2xl p-6 max-w-sm w-full mx-4 shadow-2xl animate-fade-in">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent-purple flex items-center justify-center shadow-lg shadow-primary/20 flex-shrink-0">
+                <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-bold text-zinc-100">{t('sessionRestoreTitle')}</h3>
+            </div>
+            <p className="text-sm text-zinc-400 mb-2 leading-relaxed">{t('sessionRestoreMessage')}</p>
+            <p className="text-xs text-zinc-500 mb-5">
+              {pendingSession.lines?.length || 0} {t('sessionRestoreLines')}
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={handleDiscardSession}
+                className="flex-1 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-semibold text-sm rounded-xl transition-all cursor-pointer"
+              >
+                {t('sessionDiscard')}
+              </button>
+              <button
+                onClick={handleRestoreSession}
+                className="flex-1 py-2.5 bg-primary hover:bg-primary-dim text-zinc-950 font-semibold text-sm rounded-xl transition-all cursor-pointer"
+              >
+                {t('sessionRestore')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
