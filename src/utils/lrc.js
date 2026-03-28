@@ -133,7 +133,7 @@ export function parseLrcSrtFile(content, filename) {
   } else {
     const lrcLines = content.replace(/\r\n/g, '\n').split('\n');
     lrcLines.forEach(line => {
-      const match = line.match(/\[(\d{2}):(\d{2}\.\d{2})\](.*)/);
+      const match = line.match(/\[(\d{1,2}):(\d{2}\.\d{2,3})\](.*)/);
       if (match) {
         const m = parseInt(match[1], 10);
         const s = parseFloat(match[2]);

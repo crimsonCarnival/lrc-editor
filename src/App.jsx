@@ -27,6 +27,7 @@ export default function App() {
 
 
   const playerRef = useRef(null);
+  const exportPanelRef = useRef(null);
 
   // ——— Clear all data when media is removed ———
   const handleMediaChange = useCallback((loaded) => {
@@ -57,6 +58,18 @@ export default function App() {
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [undo, redo]);
+
+  // ——— Close export panel on outside click ———
+  useEffect(() => {
+    if (!showExportPanel) return;
+    const handler = (e) => {
+      if (exportPanelRef.current && !exportPanelRef.current.contains(e.target)) {
+        setShowExportPanel(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showExportPanel]);
 
   const handleTimeUpdate = useCallback((time) => {
     setPlaybackPosition(time);
@@ -122,7 +135,7 @@ export default function App() {
             </select>
 
             {canExport && (
-              <div className="relative flex-1 sm:flex-initial">
+              <div className="relative flex-1 sm:flex-initial" ref={exportPanelRef}>
                 <button
                   id="export-btn"
                   onClick={() => setShowExportPanel(!showExportPanel)}

@@ -404,7 +404,7 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
         },
       };
     }
-  });
+  }, [source, isPlaying, playerRef]);
 
   const formatTime = (s) => {
     if (!s || isNaN(s)) return '0:00.00';
