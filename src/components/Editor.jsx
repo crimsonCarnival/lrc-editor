@@ -57,14 +57,19 @@ export default function Editor({
     setLines((prev) => {
       const updated = [...prev];
       if (updated[index] && updated[index].timestamp != null) {
+        const newTimestamp = Math.max(0, updated[index].timestamp + delta);
         updated[index] = {
           ...updated[index],
-          timestamp: Math.max(0, updated[index].timestamp + delta),
+          timestamp: newTimestamp,
         };
+        // Seek player to the new timestamp
+        if (playerRef?.current?.seek) {
+          playerRef.current.seek(newTimestamp);
+        }
       }
       return updated;
     });
-  }, [setLines]);
+  }, [playerRef, setLines]);
 
   const handleMark = useCallback(() => {
     if (activeLineIndex >= lines.length) return;
