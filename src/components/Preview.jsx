@@ -117,9 +117,6 @@ export default function Preview({ lines, setLines, playbackPosition, playerRef }
               {t('cancel')}
             </button>
           </div>
-          <p className="text-xs text-zinc-500">
-            {t('pasteMatchesLineInstruction')}
-          </p>
           <textarea
             value={pasteText}
             onChange={(e) => setPasteText(e.target.value)}
