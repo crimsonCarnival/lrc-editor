@@ -193,44 +193,44 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
     requestConfirm(t('confirmRemoveMedia') || 'Remove currently loaded media?', () => {
       if (source === 'local') {
         if (audioRef.current) audioRef.current.pause();
-      if (localUrl) URL.revokeObjectURL(localUrl);
-      setLocalFile(null);
-      setLocalUrl(null);
-      localBlobRef.current = null;
-      // Destroy waveform
-      if (wavesurferRef.current) {
-        wavesurferRef.current.destroy();
-        wavesurferRef.current = null;
+        if (localUrl) URL.revokeObjectURL(localUrl);
+        setLocalFile(null);
+        setLocalUrl(null);
+        localBlobRef.current = null;
+        // Destroy waveform
+        if (wavesurferRef.current) {
+          wavesurferRef.current.destroy();
+          wavesurferRef.current = null;
+        }
+        // Destroy vocal isolation
+        if (vocalIsolationRef.current) {
+          vocalIsolationRef.current.destroy();
+          vocalIsolationRef.current = null;
+        }
+        setVocalIsolation(false);
+      } else if (source === 'youtube') {
+        if (ytPlayerRef.current) {
+          try { ytPlayerRef.current.destroy(); } catch (e) { /* ignore */ }
+          ytPlayerRef.current = null;
+        }
+        // Recreate the inner div for future use
+        if (ytContainerRef.current) {
+          ytContainerRef.current.innerHTML = '';
+          const inner = document.createElement('div');
+          inner.id = 'yt-player-inner';
+          ytContainerRef.current.appendChild(inner);
+          ytInnerRef.current = inner;
+        }
+        setYtReady(false);
+        setYtUrl('');
+        setYtError('');
       }
-      // Destroy vocal isolation
-      if (vocalIsolationRef.current) {
-        vocalIsolationRef.current.destroy();
-        vocalIsolationRef.current = null;
-      }
-      setVocalIsolation(false);
-    } else if (source === 'youtube') {
-      if (ytPlayerRef.current) {
-        try { ytPlayerRef.current.destroy(); } catch (e) { /* ignore */ }
-        ytPlayerRef.current = null;
-      }
-      // Recreate the inner div for future use
-      if (ytContainerRef.current) {
-        ytContainerRef.current.innerHTML = '';
-        const inner = document.createElement('div');
-        inner.id = 'yt-player-inner';
-        ytContainerRef.current.appendChild(inner);
-        ytInnerRef.current = inner;
-      }
-      setYtReady(false);
-      setYtUrl('');
-      setYtError('');
-    }
-    setIsPlaying(false);
-    setCurrentTime(0);
-    setDuration(0);
-    setPlaybackSpeed(1);
-    onTimeUpdate?.(0);
-    onDurationChange?.(0);
+      setIsPlaying(false);
+      setCurrentTime(0);
+      setDuration(0);
+      setPlaybackSpeed(1);
+      onTimeUpdate?.(0);
+      onDurationChange?.(0);
       onTitleChange?.('');
       onMediaChange?.(false);
     });
@@ -543,28 +543,28 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
   return (
     <div className="glass rounded-xl sm:rounded-2xl p-3 sm:p-5 space-y-2 sm:space-y-4 animate-fade-in overflow-visible">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-4">
-        <h2 className="text-xs sm:text-sm font-semibold tracking-widest text-zinc-400 flex items-center gap-2 overflow-hidden flex-1 pb-1">
+      <div className="flex flex-row items-center justify-between gap-2 sm:gap-4 mb-2">
+        <h2 className="text-xs sm:text-sm font-semibold tracking-widest text-zinc-400 flex items-center gap-2 overflow-hidden flex-1 pb-0.5 min-w-0">
           <span className="uppercase shrink-0 text-xs sm:text-sm">{t('playerTitle')}</span>
           {mediaTitle && (
             <>
-              <div className="flex items-center gap-1 px-1 py-0.5 bg-zinc-800/40 rounded text-xs">
+              <div className="flex items-center gap-1 px-1.5 py-0.5 rounded text-xs min-w-0 flex-1">
                 <svg className="w-2.5 h-2.5 text-primary shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z" />
                 </svg>
-                <div className="flex-1 overflow-hidden relative" style={{ maskImage: 'linear-gradient(to right, transparent, black 5%, black 95%, transparent)' }}>
-                  <span className="text-primary normal-case tracking-normal animate-marquee">{mediaTitle}</span>
+                <div className="flex-1 min-w-0 overflow-hidden relative" style={{ maskImage: 'linear-gradient(to right, transparent, black 10px, black calc(100% - 10px), transparent)' }}>
+                  <span className="text-primary normal-case tracking-normal animate-marquee inline-block whitespace-nowrap">{mediaTitle}</span>
                 </div>
               </div>
             </>
           )}
         </h2>
         {!hasMedia ? (
-          <div className="flex gap-0.5 bg-zinc-800/60 rounded-lg p-0.5 w-full sm:w-auto order-last sm:order-none">
+          <div className="flex gap-0.5 bg-zinc-800/60 rounded-lg p-0.5 shrink-0 flex-nowrap">
             <button
               id="source-local"
               onClick={() => setSource('local')}
-              className={`flex-1 sm:flex-initial px-2 sm:px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200 cursor-pointer ${source === 'local'
+              className={`px-2 py-1.5 text-[10px] sm:text-xs font-medium rounded-md transition-all duration-200 cursor-pointer ${source === 'local'
                 ? 'bg-primary text-zinc-950 shadow-lg'
                 : 'text-zinc-400 hover:text-zinc-200'
                 }`}
@@ -574,7 +574,7 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
             <button
               id="source-youtube"
               onClick={() => setSource('youtube')}
-              className={`flex-1 sm:flex-initial px-2 sm:px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200 cursor-pointer ${source === 'youtube'
+              className={`px-2 py-1.5 text-[10px] sm:text-xs font-medium rounded-md transition-all duration-200 cursor-pointer ${source === 'youtube'
                 ? 'bg-primary text-zinc-950 shadow-lg'
                 : 'text-zinc-400 hover:text-zinc-200'
                 }`}
@@ -586,10 +586,10 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
           <button
             id="remove-media-btn"
             onClick={removeMedia}
-            className="flex items-center justify-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 text-xs font-medium text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-all duration-200 cursor-pointer flex-shrink-0"
+            className="flex items-center justify-center gap-1 sm:gap-1.5 px-2 py-1.5 text-xs font-medium text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-all duration-200 cursor-pointer shrink-0"
             title={t('remove')}
           >
-            <svg className="w-3 sm:w-3.5 h-3 sm:h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg className="w-3.5 sm:w-4 h-3.5 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
             </svg>
           </button>
@@ -697,7 +697,7 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
               )}
             </button>
 
-            <span className="text-xs text-zinc-400 font-mono w-12 sm:w-[60px] text-right shrink-0">
+            <span className="text-xs text-zinc-400 font-mono tabular-nums w-14 sm:w-[68px] text-right shrink-0">
               {formatTime(currentTime)}
             </span>
 
@@ -710,9 +710,12 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
               value={currentTime}
               onChange={(e) => seek(parseFloat(e.target.value))}
               className="flex-1 min-w-0"
+              style={{
+                background: `linear-gradient(to right, var(--color-primary) ${duration ? (currentTime / duration) * 100 : 0}%, rgba(255, 255, 255, 0.15) ${duration ? (currentTime / duration) * 100 : 0}%)`
+              }}
             />
 
-            <span className="text-xs text-zinc-400 font-mono w-12 sm:w-[60px] text-left shrink-0">
+            <span className="text-xs text-zinc-400 font-mono tabular-nums w-14 sm:w-[68px] text-left shrink-0">
               {formatTime(duration)}
             </span>
 
@@ -819,8 +822,9 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
         isOpen={confirmConfig.isOpen}
         message={confirmConfig.message}
         onConfirm={() => {
-          if (confirmConfig.onConfirm) confirmConfig.onConfirm();
+          const action = confirmConfig.onConfirm;
           setConfirmConfig({ isOpen: false, message: '', onConfirm: null });
+          if (action) setTimeout(action, 0);
         }}
         onCancel={() => setConfirmConfig({ isOpen: false, message: '', onConfirm: null })}
       />
