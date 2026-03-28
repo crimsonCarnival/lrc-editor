@@ -155,37 +155,37 @@ export default function Editor({
   const syncedCount = useMemo(() => lines.filter((l) => l.timestamp != null).length, [lines]);
 
   return (
-    <div className="glass rounded-2xl p-5 flex flex-col h-full animate-fade-in">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <h2 className="text-sm font-semibold uppercase tracking-widest text-zinc-400">
+    <div className="glass rounded-xl sm:rounded-2xl p-3 sm:p-5 flex flex-col h-full animate-fade-in">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-3 mb-3 sm:mb-4">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <h2 className="text-xs sm:text-sm font-semibold uppercase tracking-widest text-zinc-400">
             {syncMode ? t('syncMode') : t('editor')}
           </h2>
         </div>
         {syncMode && (
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
+            <div className="flex items-center gap-2 flex-1 sm:flex-initial">
               <span className="text-xs text-zinc-500">
                 {syncedCount}/{lines.length}
               </span>
-              <div className="h-1.5 w-20 bg-zinc-800 rounded-full overflow-hidden">
+              <div className="h-1.5 w-16 sm:w-20 bg-zinc-800 rounded-full overflow-hidden flex-shrink-0">
                 <div
                   className="h-full bg-gradient-to-r from-primary to-accent-purple rounded-full transition-all duration-300"
                   style={{ width: `${(syncedCount / Math.max(lines.length, 1)) * 100}%` }}
                 />
               </div>
             </div>
-            <div className="w-px h-4 bg-zinc-800 mx-1" />
+            <div className="w-px h-4 bg-zinc-800 mx-1 hidden sm:block" />
             <button
               onClick={() => {
                 setLines([]);
                 setRawText('');
                 setSyncMode(false);
               }}
-              className="p-1.5 hover:bg-red-500/10 rounded-lg text-zinc-500 hover:text-red-400 transition-colors cursor-pointer"
+              className="p-1 sm:p-1.5 hover:bg-red-500/10 rounded-lg text-zinc-500 hover:text-red-400 transition-colors cursor-pointer w-full sm:w-auto text-center"
               title={t('removeAllLyrics')}
             >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg className="w-3 sm:w-4 h-3 sm:h-4 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
               </svg>
             </button>
@@ -195,40 +195,42 @@ export default function Editor({
 
       {/* Edit Mode */}
       {!syncMode && (
-        <div className="flex flex-col flex-1 gap-3 animate-fade-in">
+        <div className="flex flex-col flex-1 gap-2 sm:gap-3 animate-fade-in min-h-0 px-1">
           <textarea
             id="lyrics-textarea"
             value={rawText}
             onChange={(e) => setRawText(e.target.value)}
             placeholder={t('pasteLyricsPlaceholder')}
-            className="flex-1 bg-zinc-800/40 border border-zinc-700/50 rounded-xl p-4 text-sm text-zinc-200 placeholder-zinc-600 resize-none focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/25 transition-all font-mono leading-relaxed"
+            className="flex-1 bg-zinc-800/40 border border-zinc-700/50 rounded-lg sm:rounded-xl p-3 sm:p-4 text-sm text-zinc-200 placeholder-zinc-600 resize-none focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/25 transition-all font-mono leading-relaxed"
           />
-          <div className="flex gap-3">
+          <div className="flex flex-col gap-2 sm:gap-3">
             <button
               id="confirm-lyrics-btn"
               onClick={handleConfirmLyrics}
               disabled={!rawText.trim()}
-              className="flex-1 py-3 bg-primary hover:bg-primary-dim disabled:opacity-30 disabled:cursor-not-allowed text-zinc-950 font-semibold rounded-xl transition-all duration-200 cursor-pointer hover:shadow-lg hover:shadow-primary/20"
+              className="w-full py-2.5 sm:py-3 bg-primary hover:bg-primary-dim disabled:opacity-30 disabled:cursor-not-allowed text-zinc-950 font-semibold rounded-lg sm:rounded-xl transition-all duration-200 cursor-pointer hover:shadow-lg hover:shadow-primary/20 text-sm"
             >
               {t('startSyncing')}
             </button>
-            <input
-              type="file"
-              accept=".lrc,.srt"
-              className="hidden"
-              ref={fileInputRef}
-              onChange={handleFileUpload}
-            />
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="px-4 py-3 bg-zinc-800 border border-zinc-700 hover:bg-zinc-700 hover:border-zinc-600 text-zinc-300 font-semibold rounded-xl transition-all shadow-lg flex items-center justify-center gap-2"
-              title={t('importFile')}
-            >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-              </svg>
-              <span>{t('importFile')}</span>
-            </button>
+            <div className="flex gap-2 sm:gap-3">
+              <input
+                type="file"
+                accept=".lrc,.srt"
+                className="hidden"
+                ref={fileInputRef}
+                onChange={handleFileUpload}
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="flex-1 px-3 sm:px-4 py-2 sm:py-3 bg-zinc-800 border border-zinc-700 hover:bg-zinc-700 hover:border-zinc-600 text-zinc-300 font-semibold rounded-lg sm:rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 text-sm"
+                title={t('importFile')}
+              >
+                <svg className="w-4 sm:w-5 h-4 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                </svg>
+                <span className="hidden sm:inline">{t('importFile')}</span>
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -366,11 +368,11 @@ export default function Editor({
           </div>
 
           {/* Sync controls */}
-          <div className="flex gap-2 pt-2 border-t border-zinc-800/50">
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-2 pt-2 border-t border-zinc-800/50 overflow-x-auto">
             <button
               id="mark-btn"
               onClick={handleMark}
-              className="flex-1 py-2.5 bg-primary hover:bg-primary-dim text-zinc-950 font-bold rounded-xl transition-all duration-200 cursor-pointer hover:scale-[1.02] active:scale-[0.98] glow-primary text-sm"
+              className="flex-1 py-2 sm:py-2.5 bg-primary hover:bg-primary-dim text-zinc-950 font-bold rounded-lg sm:rounded-xl transition-all duration-200 cursor-pointer hover:scale-[1.02] active:scale-[0.98] glow-primary text-sm flex-shrink-0 sm:flex-shrink-1"
             >
               {t('mark')}
             </button>
@@ -378,10 +380,10 @@ export default function Editor({
               id="undo-btn"
               onClick={undo}
               disabled={!canUndo}
-              className="px-2.5 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-xl transition-all duration-200 cursor-pointer text-sm disabled:opacity-30 disabled:cursor-not-allowed"
+              className="px-2 sm:px-2.5 py-2 sm:py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg sm:rounded-xl transition-all duration-200 cursor-pointer text-sm disabled:opacity-30 disabled:cursor-not-allowed flex-shrink-0"
               title={t('undoTitle')}
             >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg className="w-3 sm:w-4 h-3 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h10a5 5 0 015 5v2M3 10l4-4m-4 4l4 4" />
               </svg>
             </button>
@@ -389,17 +391,17 @@ export default function Editor({
               id="redo-btn"
               onClick={redo}
               disabled={!canRedo}
-              className="px-2.5 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-xl transition-all duration-200 cursor-pointer text-sm disabled:opacity-30 disabled:cursor-not-allowed"
+              className="px-2 sm:px-2.5 py-2 sm:py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg sm:rounded-xl transition-all duration-200 cursor-pointer text-sm disabled:opacity-30 disabled:cursor-not-allowed flex-shrink-0"
               title={t('redoTitle')}
             >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg className="w-3 sm:w-4 h-3 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21 10H11a5 5 0 00-5 5v2m15-7l-4-4m4 4l-4 4" />
               </svg>
             </button>
             <button
               id="clear-timestamps-btn"
               onClick={handleClearTimestamps}
-              className="px-3 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-xl transition-all duration-200 cursor-pointer text-sm"
+              className="px-2 sm:px-3 py-2 sm:py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg sm:rounded-xl transition-all duration-200 cursor-pointer text-sm whitespace-nowrap flex-shrink-0"
             >
               {t('clear')}
             </button>

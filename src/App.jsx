@@ -91,30 +91,30 @@ export default function App() {
       </div>
 
 
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 py-4 h-full flex flex-col">
+      <div className="relative z-10 max-w-7xl mx-auto px-2 sm:px-4 lg:px-6 py-2 sm:py-4 h-full flex flex-col">
         {/* Header */}
-        <header className="flex items-center justify-between mb-6 animate-fade-in relative z-50">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-accent-purple flex items-center justify-center shadow-lg shadow-primary/20">
-              <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-2 mb-4 sm:mb-6 animate-fade-in relative z-50">
+          <div className="flex items-center gap-2 sm:gap-3 flex-1 sm:flex-initial">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-primary to-accent-purple flex items-center justify-center shadow-lg shadow-primary/20 flex-shrink-0">
+              <svg className="w-4 sm:w-5 h-4 sm:h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z" />
               </svg>
             </div>
-            <div>
-              <h1 className="text-lg font-bold text-zinc-100 tracking-tight">
+            <div className="overflow-hidden">
+              <h1 className="text-base sm:text-lg font-bold text-zinc-100 tracking-tight truncate">
                 {t('appName')}
               </h1>
-              <p className="text-xs text-zinc-500">
+              <p className="text-xs text-zinc-500 truncate">
                 {t('appSubtitle')}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2 w-full sm:w-auto">
             <select
               value={i18n.resolvedLanguage?.split('-')[0] || 'en'}
               onChange={(e) => i18n.changeLanguage(e.target.value)}
-              className="bg-zinc-800/80 border border-zinc-700/60 rounded-xl px-3 py-2 text-xs font-semibold text-zinc-200 focus:outline-none focus:border-primary/50 transition-all cursor-pointer shadow-lg hover:bg-zinc-700"
+              className="bg-zinc-800/80 border border-zinc-700/60 rounded-lg sm:rounded-xl px-2 sm:px-3 py-1.5 sm:py-2 text-xs font-semibold text-zinc-200 focus:outline-none focus:border-primary/50 transition-all cursor-pointer shadow-lg hover:bg-zinc-700"
             >
               <option value="en">EN</option>
               <option value="es">ES</option>
@@ -122,19 +122,19 @@ export default function App() {
             </select>
 
             {canExport && (
-              <div className="relative">
+              <div className="relative flex-1 sm:flex-initial">
                 <button
                   id="export-btn"
                   onClick={() => setShowExportPanel(!showExportPanel)}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-primary to-primary-dim hover:from-primary-dim hover:to-primary text-zinc-950 font-semibold text-sm rounded-xl transition-all duration-300 hover:scale-105 active:scale-95 cursor-pointer shadow-lg shadow-primary/20"
+                  className="flex items-center justify-center gap-1 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5 bg-gradient-to-r from-primary to-primary-dim hover:from-primary-dim hover:to-primary text-zinc-950 font-semibold text-xs sm:text-sm rounded-lg sm:rounded-xl transition-all duration-300 hover:scale-105 active:scale-95 cursor-pointer shadow-lg shadow-primary/20 w-full sm:w-auto"
                 >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <svg className="w-3 sm:w-4 h-3 sm:h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                   </svg>
-                  {t('export')}
+                  <span className="hidden sm:inline">{t('export')}</span>
                 </button>
                 {showExportPanel && (
-                  <div className="absolute right-0 top-full mt-2 glass rounded-xl p-4 space-y-3 w-72 z-50 animate-fade-in shadow-2xl">
+                  <div className="absolute right-0 top-full mt-2 glass rounded-lg sm:rounded-xl p-3 sm:p-4 space-y-2 sm:space-y-3 w-64 sm:w-72 z-50 animate-fade-in shadow-2xl">  
                     <label className="block mb-2">
                       <span className="text-xs text-zinc-400 font-medium">{t('format')}</span>
                       <select
@@ -188,9 +188,9 @@ export default function App() {
         </header>
 
         {/* 3-Column layout */}
-        <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 min-h-0 overflow-hidden">
+        <div className="flex-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-2 sm:gap-3 lg:gap-4 min-h-0 overflow-hidden">
           {/* Left: Player + Editor */}
-          <div className="lg:col-span-5 flex flex-col gap-4 min-h-0">
+          <div className="md:col-span-1 lg:col-span-5 flex flex-col gap-2 sm:gap-3 lg:gap-4 min-h-0">
             <Player
               mediaTitle={mediaTitle}
               onTitleChange={setMediaTitle}
@@ -227,7 +227,7 @@ export default function App() {
           </div>
 
           {/* Right: Preview */}
-          <div className="lg:col-span-7 min-h-0 flex flex-col">
+          <div className="md:col-span-1 lg:col-span-7 min-h-0 flex flex-col">
             <Preview
               lines={lines}
               setLines={setLines}
