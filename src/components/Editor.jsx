@@ -1,6 +1,9 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { formatTimestamp, parseLrcSrtFile } from '../utils/lrc';
 import { useTranslation } from 'react-i18next';
+import { useSettings } from '../contexts/SettingsContext';
+import ConfirmModal from './ConfirmModal';
+import NumberInput from './NumberInput';
 
 export default function Editor({
   lines,
@@ -17,6 +20,7 @@ export default function Editor({
   canRedo,
 }) {
   const { t } = useTranslation();
+  const { settings } = useSettings();
   const [rawText, setRawText] = useState('');
   const [editingLineIndex, setEditingLineIndex] = useState(null);
   const [editingText, setEditingText] = useState('');
@@ -24,6 +28,12 @@ export default function Editor({
   const [dragOverIndex, setDragOverIndex] = useState(null);
   const [offsetValue, setOffsetValue] = useState('');
   const [selectedLines, setSelectedLines] = useState(new Set());
+  const [confirmConfig, setConfirmConfig] = useState({
+    isOpen: false,
+    message: '',
+    onConfirm: null,
+  });
+
   const lastClickedRef = useRef(null);
   const activeLineRef = useRef(null);
   const listRef = useRef(null);
@@ -87,8 +97,25 @@ export default function Editor({
       };
       return updated;
     });
-    setActiveLineIndex((prev) => Math.min(prev + 1, lines.length - 1));
-  }, [activeLineIndex, lines.length, playbackPosition, playerRef, setLines, setActiveLineIndex]);
+    if (settings.autoAdvance) {
+      // Find the next line index, potentially skipping blank lines
+      let nextIndex = activeLineIndex + 1;
+      if (settings.skipBlankLines) {
+        while (nextIndex < lines.length) {
+          const nextText = lines[nextIndex]?.text?.trim();
+          if (nextText && nextText !== '♪') break;
+          // Auto-stamp the blank line with the same time
+          setLines((prev) => {
+            const updated = [...prev];
+            updated[nextIndex] = { ...updated[nextIndex], timestamp: time };
+            return updated;
+          });
+          nextIndex++;
+        }
+      }
+      setActiveLineIndex(Math.min(nextIndex, lines.length - 1));
+    }
+  }, [activeLineIndex, lines, playbackPosition, playerRef, setLines, setActiveLineIndex, settings.autoAdvance, settings.skipBlankLines]);
 
   // Space to mark
   useEffect(() => {
@@ -101,25 +128,41 @@ export default function Editor({
         handleMark();
       } else if (e.code === 'ArrowLeft') {
         e.preventDefault();
-        shiftTime(activeLineIndex, -0.1);
+        if (selectedLines.size > 0) {
+          setLines((prev) => prev.map((l, idx) =>
+            selectedLines.has(idx) && l.timestamp != null
+              ? { ...l, timestamp: Math.max(0, l.timestamp - settings.nudgeIncrement) }
+              : l
+          ));
+        } else {
+          shiftTime(activeLineIndex, -settings.nudgeIncrement);
+        }
       } else if (e.code === 'ArrowRight') {
         e.preventDefault();
-        shiftTime(activeLineIndex, 0.1);
+        if (selectedLines.size > 0) {
+          setLines((prev) => prev.map((l, idx) =>
+            selectedLines.has(idx) && l.timestamp != null
+              ? { ...l, timestamp: Math.max(0, l.timestamp + settings.nudgeIncrement) }
+              : l
+          ));
+        } else {
+          shiftTime(activeLineIndex, settings.nudgeIncrement);
+        }
       }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [syncMode, activeLineIndex, lines.length, playbackPosition, handleMark, shiftTime]);
+  }, [syncMode, activeLineIndex, lines.length, playbackPosition, handleMark, shiftTime, selectedLines, settings.nudgeIncrement, setLines]);
 
   // Auto-scroll to the active line
   useEffect(() => {
     if (activeLineRef.current && listRef.current) {
       activeLineRef.current.scrollIntoView({
-        behavior: 'smooth',
-        block: 'center',
+        behavior: settings.scrollBehavior,
+        block: settings.scrollBlock,
       });
     }
-  }, [activeLineIndex]);
+  }, [activeLineIndex, settings.scrollBehavior, settings.scrollBlock]);
 
   // Clear a single line's timestamp
   const handleClearLine = (index) => {
@@ -130,10 +173,20 @@ export default function Editor({
     });
   };
 
+  const requestConfirm = (message, action) => {
+    if (settings.confirmDestructive) {
+      setConfirmConfig({ isOpen: true, message, onConfirm: action });
+    } else {
+      action();
+    }
+  };
+
   // Clear all timestamps
   const handleClearTimestamps = () => {
-    setLines((prev) => prev.map((l) => ({ ...l, timestamp: null })));
-    setActiveLineIndex(0);
+    requestConfirm(t('confirmClearTimestamps') || 'Clear all timestamps?', () => {
+      setLines((prev) => prev.map((l) => ({ ...l, timestamp: null })));
+      setActiveLineIndex(0);
+    });
   };
 
   const handleSaveLineText = (index, newText) => {
@@ -145,15 +198,17 @@ export default function Editor({
   };
 
   const handleDeleteLine = (index) => {
-    setLines((prev) => prev.filter((_, i) => i !== index));
-    setEditingLineIndex(null);
-    setActiveLineIndex((prev) => {
-      if (prev > index) return prev - 1;
-      if (prev === index) {
-        // If we deleted the active line, keep it at the same index unless it was the last line
-        return Math.max(0, Math.min(prev, lines.length - 2));
-      }
-      return prev;
+    requestConfirm(t('confirmDeleteLine') || 'Delete this line?', () => {
+      setLines((prev) => prev.filter((_, i) => i !== index));
+      setEditingLineIndex(null);
+      setActiveLineIndex((prev) => {
+        if (prev > index) return prev - 1;
+        if (prev === index) {
+          // If we deleted the active line, keep it at the same index unless it was the last line
+          return Math.max(0, Math.min(prev, lines.length - 2));
+        }
+        return prev;
+      });
     });
   };
 
@@ -216,6 +271,8 @@ export default function Editor({
 
   // ——— Selection logic ———
   const handleLineClick = (i, e) => {
+    setActiveLineIndex(i); // Clicking always makes it the active line (to hear audio)
+
     if (e.shiftKey && lastClickedRef.current != null) {
       // Range select from last clicked to current
       const start = Math.min(lastClickedRef.current, i);
@@ -227,8 +284,8 @@ export default function Editor({
         }
         return next;
       });
-    } else if (e.ctrlKey || e.metaKey) {
-      // Toggle individual line
+    } else {
+      // Toggle individual line directly (always enables selection without Ctrl)
       setSelectedLines((prev) => {
         const next = new Set(prev);
         if (next.has(i)) {
@@ -238,13 +295,8 @@ export default function Editor({
         }
         return next;
       });
-      lastClickedRef.current = i;
-    } else {
-      // Normal click — set active, clear selection
-      setActiveLineIndex(i);
-      setSelectedLines(new Set());
-      lastClickedRef.current = i;
     }
+    lastClickedRef.current = i;
   };
 
   const clearSelection = () => {
@@ -253,23 +305,27 @@ export default function Editor({
 
   // ——— Bulk actions on selected lines ———
   const handleBulkClearTimestamps = () => {
-    setLines((prev) => prev.map((l, idx) =>
-      selectedLines.has(idx) ? { ...l, timestamp: null } : l
-    ));
-    clearSelection();
+    requestConfirm(t('confirmBulkClear') || 'Clear timestamps for selected lines?', () => {
+      setLines((prev) => prev.map((l, idx) =>
+        selectedLines.has(idx) ? { ...l, timestamp: null } : l
+      ));
+      clearSelection();
+    });
   };
 
   const handleBulkDelete = () => {
-    setLines((prev) => prev.filter((_, idx) => !selectedLines.has(idx)));
-    // Adjust activeLineIndex
-    setActiveLineIndex((prev) => {
-      let offset = 0;
-      for (const idx of selectedLines) {
-        if (idx < prev) offset++;
-      }
-      return Math.max(0, prev - offset);
+    requestConfirm(t('confirmBulkDelete') || 'Delete selected lines?', () => {
+      setLines((prev) => prev.filter((_, idx) => !selectedLines.has(idx)));
+      // Adjust activeLineIndex
+      setActiveLineIndex((prev) => {
+        let offset = 0;
+        for (const idx of selectedLines) {
+          if (idx < prev) offset++;
+        }
+        return Math.max(0, prev - offset);
+      });
+      clearSelection();
     });
-    clearSelection();
   };
 
   const handleBulkShift = (delta) => {
@@ -319,9 +375,11 @@ export default function Editor({
             </div>
             <button
               onClick={() => {
-                setLines([]);
-                setRawText('');
-                setSyncMode(false);
+                requestConfirm(t('confirmRemoveAll'), () => {
+                  setLines([]);
+                  setRawText('');
+                  setSyncMode(false);
+                });
               }}
               className="p-1 sm:p-1.5 hover:bg-red-500/10 rounded-lg text-red-400 hover:text-red-300 transition-colors cursor-pointer flex-shrink-0"
               title={t('removeAllLyrics')}
@@ -413,7 +471,7 @@ export default function Editor({
                         : 'text-zinc-600'
                       }`}
                   >
-                    {isSynced ? formatTimestamp(line.timestamp) : '--:--.--'}
+                    {isSynced ? formatTimestamp(line.timestamp, settings.editorTimestampPrecision) : '--:--.--'}
                   </span>
 
                   {/* Lyrics text container (scrollable horizontally if needed) */}
@@ -475,18 +533,18 @@ export default function Editor({
                         {selectedLines.size === 0 && (
                           <>
                             <button
-                              onClick={(e) => { e.stopPropagation(); shiftTime(i, -0.1); }}
+                              onClick={(e) => { e.stopPropagation(); shiftTime(i, -settings.nudgeIncrement); }}
                               className="p-1 hover:bg-zinc-700/60 rounded text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer"
-                              title={t('minusTime')}
+                              title={`-${settings.nudgeIncrement}s`}
                             >
                               <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
                               </svg>
                             </button>
                             <button
-                              onClick={(e) => { e.stopPropagation(); shiftTime(i, 0.1); }}
+                              onClick={(e) => { e.stopPropagation(); shiftTime(i, settings.nudgeIncrement); }}
                               className="p-1 hover:bg-zinc-700/60 rounded text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer"
-                              title={t('plusTime')}
+                              title={`+${settings.nudgeIncrement}s`}
                             >
                               <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5L15.75 12l-7.5 7.5" />
@@ -549,18 +607,18 @@ export default function Editor({
                 </svg>
               </button>
               <button
-                onClick={() => handleBulkShift(-0.1)}
+                onClick={() => handleBulkShift(-settings.nudgeIncrement)}
                 className="p-1.5 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700/60 rounded-md transition-all cursor-pointer"
-                title={t('minusTime')}
+                title={`(-${settings.nudgeIncrement}s)`}
               >
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
                 </svg>
               </button>
               <button
-                onClick={() => handleBulkShift(0.1)}
+                onClick={() => handleBulkShift(settings.nudgeIncrement)}
                 className="p-1.5 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700/60 rounded-md transition-all cursor-pointer"
-                title={t('plusTime')}
+                title={`(+${settings.nudgeIncrement}s)`}
               >
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5L15.75 12l-7.5 7.5" />
@@ -590,65 +648,69 @@ export default function Editor({
           )}
 
           {/* Sync controls */}
-          <div className="flex flex-row gap-2 pt-2 border-t border-zinc-800/50 overflow-x-auto">
+          <div className="flex flex-row gap-2 pt-2 border-t border-zinc-800/50 overflow-x-auto items-center">
             <button
               id="mark-btn"
               onClick={handleMark}
-              className="flex-1 py-2 bg-primary hover:bg-primary-dim text-zinc-950 font-bold rounded-lg transition-all duration-200 cursor-pointer hover:scale-[1.02] active:scale-[0.98] glow-primary text-xs"
+              className="px-4 sm:px-6 h-8 sm:h-9 flex items-center justify-center gap-1.5 bg-primary hover:bg-primary-dim text-zinc-950 font-bold rounded-lg transition-all duration-200 cursor-pointer glow-primary text-xs sm:text-sm flex-shrink-0"
             >
+              <svg className="w-3.5 sm:w-4 h-3.5 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
               {t('mark')}
             </button>
             <button
               id="undo-btn"
               onClick={undo}
               disabled={!canUndo}
-              className="px-2 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg transition-all duration-200 cursor-pointer text-xs disabled:opacity-30 disabled:cursor-not-allowed flex-shrink-0"
+              className="px-2.5 sm:px-3 h-8 sm:h-9 flex items-center justify-center gap-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg transition-all duration-200 cursor-pointer text-xs font-semibold disabled:opacity-30 disabled:cursor-not-allowed flex-shrink-0"
               title={t('undoTitle')}
             >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg className="w-3.5 sm:w-4 h-3.5 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h10a5 5 0 015 5v2M3 10l4-4m-4 4l4 4" />
               </svg>
+              <span className="hidden sm:inline">Undo</span>
             </button>
             <button
               id="redo-btn"
               onClick={redo}
               disabled={!canRedo}
-              className="px-2 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg transition-all duration-200 cursor-pointer text-xs disabled:opacity-30 disabled:cursor-not-allowed flex-shrink-0"
+              className="px-2.5 sm:px-3 h-8 sm:h-9 flex items-center justify-center gap-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg transition-all duration-200 cursor-pointer text-xs font-semibold disabled:opacity-30 disabled:cursor-not-allowed flex-shrink-0"
               title={t('redoTitle')}
             >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg className="w-3.5 sm:w-4 h-3.5 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21 10H11a5 5 0 00-5 5v2m15-7l-4-4m4 4l-4 4" />
               </svg>
+              <span className="hidden sm:inline">Redo</span>
             </button>
             <button
               id="clear-timestamps-btn"
               onClick={handleClearTimestamps}
-              className="px-3 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg transition-all duration-200 cursor-pointer text-xs whitespace-nowrap flex-shrink-0"
+              className="px-2.5 sm:px-3 h-8 sm:h-9 flex items-center justify-center gap-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg transition-all duration-200 cursor-pointer text-xs font-semibold whitespace-nowrap flex-shrink-0"
             >
+              <svg className="w-3.5 sm:w-4 h-3.5 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
               {t('clear')}
             </button>
-          </div>
 
-          {/* Global offset shift */}
-          <div className="flex items-center gap-2 pt-1">
-            <span className="text-xs text-zinc-500 whitespace-nowrap flex-shrink-0">{t('shiftAll')}</span>
-            <input
-              type="number"
-              step="0.1"
-              value={offsetValue}
-              onChange={(e) => setOffsetValue(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleApplyOffset()}
-              placeholder="±0.0s"
-              className="w-20 bg-zinc-800/60 border border-zinc-700 rounded-lg px-2 py-1 text-xs text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-primary/50 transition-all font-mono text-center"
-              title={t('shiftAllTitle')}
-            />
-            <button
-              onClick={handleApplyOffset}
-              disabled={!offsetValue || isNaN(parseFloat(offsetValue))}
-              className="px-2.5 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg transition-all text-xs cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
-            >
-              {t('apply')}
-            </button>
+            {/* Global offset shift */}
+            {settings.showShiftAll && (
+              <div className="flex items-center gap-2 ml-auto">
+                <div className="w-px h-6 bg-zinc-800/80 mx-1 hidden sm:block" />
+                <span className="text-xs text-zinc-500 whitespace-nowrap flex-shrink-0 hidden md:inline">{t('shiftAll')}</span>
+                <NumberInput
+                  step={0.1}
+                  value={offsetValue}
+                  onChange={(e) => setOffsetValue(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleApplyOffset()}
+                  placeholder="±0.0s"
+                  className="w-20"
+                  id="shift-all-input"
+                />
+              </div>
+            )}
           </div>
 
           <p className="text-xs text-zinc-600 text-center">
@@ -658,6 +720,16 @@ export default function Editor({
 
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={confirmConfig.isOpen}
+        message={confirmConfig.message}
+        onConfirm={() => {
+          if (confirmConfig.onConfirm) confirmConfig.onConfirm();
+          setConfirmConfig({ isOpen: false, message: '', onConfirm: null });
+        }}
+        onCancel={() => setConfirmConfig({ isOpen: false, message: '', onConfirm: null })}
+      />
     </div>
   );
 }
