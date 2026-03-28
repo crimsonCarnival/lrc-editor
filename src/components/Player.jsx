@@ -50,7 +50,7 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
       barRadius: 2,
       height: 60,
       normalize: true,
-      interact: true,
+      interact: false,
       media: audioElement,
       backend: 'MediaElement',
     });
@@ -58,6 +58,94 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
     ws.on('seeking', (time) => {
       onTimeUpdate?.(time);
     });
+
+    // Cursor following state
+    let isFollowingCursor = false;
+    let tooltipElement = null;
+
+    const formatWaveTime = (s) => {
+      if (!s || isNaN(s)) return '0:00.00';
+      const m = Math.floor(s / 60);
+      const sec = Math.floor(s % 60);
+      const ms = Math.floor(parseFloat((s % 1).toFixed(3)) * 100);
+      return `${m}:${sec.toString().padStart(2, '0')}.${ms.toString().padStart(2, '0')}`;
+    };
+
+    const createTooltip = () => {
+      if (!tooltipElement) {
+        tooltipElement = document.createElement('div');
+        tooltipElement.style.cssText = `
+          position: absolute;
+          background: rgba(0, 0, 0, 0.85);
+          color: #1DB954;
+          padding: 4px 8px;
+          border-radius: 4px;
+          font-size: 11px;
+          font-family: monospace;
+          pointer-events: none;
+          z-index: 1000;
+          display: none;
+          white-space: nowrap;
+          border: 1px solid rgba(29, 185, 84, 0.3);
+        `;
+        waveContainerRef.current?.appendChild(tooltipElement);
+      }
+      return tooltipElement;
+    };
+
+    const updateTooltip = (e) => {
+      const tooltip = createTooltip();
+      const rect = waveContainerRef.current?.getBoundingClientRect();
+      if (!rect) return;
+
+      const x = e.clientX - rect.left;
+      const percentage = Math.max(0, Math.min(x / rect.width, 1));
+      const time = percentage * (audioElement.duration || 0);
+
+      tooltip.textContent = formatWaveTime(time);
+      tooltip.style.left = (x - tooltip.offsetWidth / 2) + 'px';
+      tooltip.style.top = '-28px';
+      tooltip.style.display = 'block';
+    };
+
+    const handleMouseMove = (e) => {
+      if (isFollowingCursor) {
+        const rect = waveContainerRef.current?.getBoundingClientRect();
+        if (!rect) return;
+
+        const x = e.clientX - rect.left;
+        const percentage = Math.max(0, Math.min(x / rect.width, 1));
+        const time = percentage * (audioElement.duration || 0);
+
+        audioElement.currentTime = time;
+        onTimeUpdate?.(time);
+      }
+      updateTooltip(e);
+    };
+
+    const handleClick = (e) => {
+      const rect = waveContainerRef.current?.getBoundingClientRect();
+      if (!rect) return;
+
+      const x = e.clientX - rect.left;
+      const percentage = Math.max(0, Math.min(x / rect.width, 1));
+      const time = percentage * (audioElement.duration || 0);
+
+      if (!isFollowingCursor) {
+        isFollowingCursor = true;
+        audioElement.currentTime = time;
+        onTimeUpdate?.(time);
+      } else {
+        isFollowingCursor = false;
+      }
+    };
+
+    waveContainerRef.current?.addEventListener('mouseenter', createTooltip);
+    waveContainerRef.current?.addEventListener('mousemove', handleMouseMove, { passive: true });
+    waveContainerRef.current?.addEventListener('mouseleave', () => {
+      if (tooltipElement) tooltipElement.style.display = 'none';
+    });
+    waveContainerRef.current?.addEventListener('click', handleClick);
 
     wavesurferRef.current = ws;
   }, [onTimeUpdate]);
