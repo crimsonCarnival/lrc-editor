@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSettings, DEFAULT_SETTINGS } from '../contexts/SettingsContext';
 import NumberInput from './NumberInput';
@@ -11,14 +11,12 @@ function Toggle({ checked, onChange, id }) {
       role="switch"
       aria-checked={checked}
       onClick={() => onChange(!checked)}
-      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 cursor-pointer flex-shrink-0 ${
-        checked ? 'bg-primary' : 'bg-zinc-700'
-      }`}
+      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 cursor-pointer flex-shrink-0 ${checked ? 'bg-primary' : 'bg-zinc-700'
+        }`}
     >
       <span
-        className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow-sm transition-transform duration-200 ${
-          checked ? 'translate-x-[18px]' : 'translate-x-[3px]'
-        }`}
+        className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow-sm transition-transform duration-200 ${checked ? 'translate-x-[18px]' : 'translate-x-[3px]'
+          }`}
       />
     </button>
   );
@@ -51,7 +49,14 @@ function Section({ title, children }) {
 
 export default function Settings({ isOpen, onClose }) {
   const { t, i18n } = useTranslation();
-  const { settings, updateSetting, resetSettings } = useSettings();
+  const { settings: globalSettings, updateAllSettings, resetSettings } = useSettings();
+  const [settings, setSettings] = useState(globalSettings || DEFAULT_SETTINGS);
+
+  useEffect(() => {
+    if (isOpen) {
+      setSettings(globalSettings);
+    }
+  }, [isOpen, globalSettings]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -67,9 +72,18 @@ export default function Settings({ isOpen, onClose }) {
 
   if (!isOpen) return null;
 
+  const updateSetting = (key, value) => {
+    setSettings((prev) => {
+      const nextSettings = { ...prev, [key]: value };
+      if (nextSettings.autoSaveEnabled || prev.autoSaveEnabled) {
+        updateAllSettings(nextSettings);
+      }
+      return nextSettings;
+    });
+  };
+
   const handleLanguageChange = (lang) => {
     updateSetting('defaultLanguage', lang);
-    i18n.changeLanguage(lang);
   };
 
   return (
@@ -259,6 +273,17 @@ export default function Settings({ isOpen, onClose }) {
                   <option value="nearest">{t('settingsScrollNearest')}</option>
                 </select>
               </SettingRow>
+              <SettingRow label={t('settingsPreviewAlignment')} description={t('settingsPreviewAlignmentDesc')}>
+                <select
+                  value={settings.previewAlignment}
+                  onChange={(e) => updateSetting('previewAlignment', e.target.value)}
+                  className="bg-zinc-900 border border-zinc-700 rounded-lg px-2.5 py-1.5 text-xs text-zinc-200 focus:outline-none focus:border-primary/50 transition-all cursor-pointer"
+                >
+                  <option value="left">{t('settingsAlignLeft')}</option>
+                  <option value="center">{t('settingsAlignCenter')}</option>
+                  <option value="right">{t('settingsAlignRight')}</option>
+                </select>
+              </SettingRow>
             </Section>
 
             {/* ——— ADVANCED ——— */}
@@ -270,6 +295,7 @@ export default function Settings({ isOpen, onClose }) {
                   onChange={(v) => updateSetting('autoSaveEnabled', v)}
                 />
               </SettingRow>
+
               {settings.autoSaveEnabled && (
                 <SettingRow label={t('settingsAutoSaveInterval')} description={t('settingsAutoSaveIntervalDesc')}>
                   <select
@@ -294,17 +320,30 @@ export default function Settings({ isOpen, onClose }) {
             </Section>
           </div>
 
-          {/* Footer — Reset */}
-          <div className="px-6 py-4 border-t border-zinc-800/60 flex-shrink-0">
+          {/* Footer — Apply & Reset */}
+          <div className="px-6 py-4 border-t border-zinc-800/60 flex-shrink-0 flex gap-3">
             <button
               onClick={() => {
-                resetSettings();
-                i18n.changeLanguage(DEFAULT_SETTINGS.defaultLanguage);
+                setSettings(DEFAULT_SETTINGS);
+                if (settings.autoSaveEnabled || DEFAULT_SETTINGS.autoSaveEnabled) {
+                  updateAllSettings(DEFAULT_SETTINGS);
+                }
               }}
-              className="w-full py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-zinc-200 font-medium text-sm rounded-xl transition-all cursor-pointer"
+              className="flex-1 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-zinc-200 font-medium text-sm rounded-xl transition-all cursor-pointer"
             >
-              {t('settingsReset')}
+              {t('settingsReset') || 'Reset Options'}
             </button>
+            {!settings.autoSaveEnabled && (
+              <button
+                onClick={() => {
+                  updateAllSettings(settings);
+                  onClose();
+                }}
+                className="flex-1 py-2.5 bg-primary hover:bg-primary-dim text-zinc-950 font-bold text-sm rounded-xl transition-all cursor-pointer shadow-lg glow-primary"
+              >
+                {t('applyChanges')}
+              </button>
+            )}
           </div>
         </div>
       </div>
