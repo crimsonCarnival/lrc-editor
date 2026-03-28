@@ -19,6 +19,8 @@ export default function useHistory(initial) {
   const setState = useCallback((updater) => {
     setStateRaw((prev) => {
       const next = typeof updater === 'function' ? updater(prev) : updater;
+      // Skip history push if nothing actually changed
+      if (next === prev) return prev;
       // Push current state onto past stack
       pastRef.current = [...pastRef.current.slice(-(MAX_HISTORY - 1)), prev];
       futureRef.current = [];
