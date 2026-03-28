@@ -3,36 +3,45 @@
  */
 
 /**
- * Formats a number of seconds into LRC timestamp format [mm:ss.xx]
+ * Formats a number of seconds into LRC timestamp format [mm:ss.xx] or [mm:ss.xxx]
+ * @param {number} seconds
+ * @param {'hundredths'|'thousandths'} precision
  */
-export function formatTimestamp(seconds) {
-  if (seconds == null || seconds < 0) return '[00:00.00]';
+export function formatTimestamp(seconds, precision = 'hundredths') {
+  if (seconds == null || seconds < 0) {
+    return precision === 'thousandths' ? '[00:00.000]' : '[00:00.00]';
+  }
   const mins = Math.floor(seconds / 60);
   const secs = seconds % 60;
   const mm = String(mins).padStart(2, '0');
-  const ss = secs.toFixed(2).padStart(5, '0');
+  const decimals = precision === 'thousandths' ? 3 : 2;
+  const padLen = decimals + 3; // "ss." + decimals
+  const ss = secs.toFixed(decimals).padStart(padLen, '0');
   return `[${mm}:${ss}]`;
 }
 
 /**
- * Parses an LRC timestamp string like "[01:23.45]" into seconds
+ * Parses an LRC timestamp string like "[01:23.45]" or "[01:23.456]" into seconds
  */
 export function parseTimestamp(str) {
-  const match = str.match(/\[(\d{2}):(\d{2}\.\d{2})\]/);
+  const match = str.match(/\[(\d{2}):(\d{2}\.\d{2,3})\]/);
   if (!match) return null;
   return parseInt(match[1], 10) * 60 + parseFloat(match[2]);
 }
 
 /**
  * Compiles an array of { text, timestamp } into a valid .lrc string
+ * @param {Array} lines
+ * @param {boolean} includeTranslations
+ * @param {'hundredths'|'thousandths'} precision
  */
-export function compileLRC(lines, includeTranslations = false) {
+export function compileLRC(lines, includeTranslations = false, precision = 'hundredths') {
   return lines
     .map((line) => {
       if (line.timestamp != null) {
-        let output = `${formatTimestamp(line.timestamp)} ${line.text}`;
+        let output = `${formatTimestamp(line.timestamp, precision)} ${line.text}`;
         if (includeTranslations && line.translation) {
-          output += `\n${formatTimestamp(line.timestamp)} ${line.translation}`;
+          output += `\n${formatTimestamp(line.timestamp, precision)} ${line.translation}`;
         }
         return output;
       }
