@@ -24,6 +24,13 @@ export default function KeyboardHelp({ isOpen, onClose }) {
       { keys: ['←'], desc: t('shortcutNudgeLeft') },
       { keys: ['→'], desc: t('shortcutNudgeRight') },
     ]},
+    { section: t('shortcutSelectionSection'), items: [
+      { keys: ['Shift', t('shortcutClick')], desc: t('shortcutRangeSelect') },
+      { keys: ['Ctrl', t('shortcutClick')], desc: t('shortcutToggleSelect') },
+      { keys: ['Esc'], desc: t('shortcutDeselect') },
+      { keys: ['Del'], desc: t('shortcutDeleteSelected') },
+      { keys: [t('shortcutDblClick')], desc: t('shortcutEditLine') },
+    ]},
     { section: t('global'), items: [
       { keys: ['Ctrl', 'Z'], desc: t('shortcutUndo') },
       { keys: ['Ctrl', 'Y'], desc: t('shortcutRedo') },
