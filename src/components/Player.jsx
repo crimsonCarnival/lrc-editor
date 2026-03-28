@@ -334,9 +334,13 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
           <span className="uppercase shrink-0">{t('playerTitle')}</span>
           {mediaTitle && (
             <>
-              <span className="text-zinc-600 shrink-0">•</span>
-              <div className="flex-1 overflow-hidden relative" style={{ maskImage: 'linear-gradient(to right, transparent, black 5%, black 95%, transparent)' }}>
-                <span className="text-primary normal-case tracking-normal animate-marquee">{mediaTitle}</span>
+              <div className="flex items-center gap-2 px-3 py-2 bg-zinc-800/40 rounded-lg">
+                <svg className="w-4 h-4 text-primary shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z" />
+                </svg>
+                <div className="flex-1 overflow-hidden relative" style={{ maskImage: 'linear-gradient(to right, transparent, black 5%, black 95%, transparent)' }}>
+                  <span className="text-primary normal-case tracking-normal animate-marquee">{localFile?.name}</span>
+                </div>          
               </div>
             </>
           )}
@@ -347,8 +351,8 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
               id="source-local"
               onClick={() => setSource('local')}
               className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200 cursor-pointer ${source === 'local'
-                  ? 'bg-primary text-zinc-950 shadow-lg'
-                  : 'text-zinc-400 hover:text-zinc-200'
+                ? 'bg-primary text-zinc-950 shadow-lg'
+                : 'text-zinc-400 hover:text-zinc-200'
                 }`}
             >
               {t('localFile')}
@@ -357,8 +361,8 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
               id="source-youtube"
               onClick={() => setSource('youtube')}
               className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200 cursor-pointer ${source === 'youtube'
-                  ? 'bg-primary text-zinc-950 shadow-lg'
-                  : 'text-zinc-400 hover:text-zinc-200'
+                ? 'bg-primary text-zinc-950 shadow-lg'
+                : 'text-zinc-400 hover:text-zinc-200'
                 }`}
             >
               {t('youtube')}
@@ -403,13 +407,6 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
       )}
       {source === 'local' && localUrl && (
         <div className="animate-fade-in space-y-3">
-          <div className="flex items-center gap-2 px-3 py-2 bg-zinc-800/40 rounded-lg">
-            <svg className="w-4 h-4 text-primary shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z" />
-            </svg>
-            <span className="text-sm text-zinc-300 truncate">{localFile?.name}</span>
-          </div>
-
           {/* Waveform container */}
           <div
             ref={waveContainerRef}
@@ -502,8 +499,8 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
                 onClick={toggleVocalIsolation}
                 title={vocalIsolation ? t('disableVocals') : t('focusVocals')}
                 className={`w-9 h-9 flex items-center justify-center rounded-full transition-all duration-200 cursor-pointer shrink-0 ${vocalIsolation
-                    ? 'bg-accent-purple text-white shadow-lg shadow-accent-purple/30 scale-110'
-                    : 'bg-zinc-800 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700'
+                  ? 'bg-accent-purple text-white shadow-lg shadow-accent-purple/30 scale-110'
+                  : 'bg-zinc-800 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700'
                   }`}
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
