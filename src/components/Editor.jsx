@@ -141,9 +141,9 @@ export default function Editor({
 
   const handleDeleteLine = (index) => {
     setLines((prev) => prev.filter((_, i) => i !== index));
+    setEditingLineIndex(null);
     setActiveLineIndex((prev) => {
       if (prev > index) return prev - 1;
-      setEditingLineIndex(null);
       if (prev === index) {
         // If we deleted the active line, keep it at the same index unless it was the last line
         return Math.max(0, Math.min(prev, lines.length - 2));
