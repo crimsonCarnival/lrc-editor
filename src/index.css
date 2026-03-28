@@ -18,10 +18,15 @@ html, body, #root {
 }
 
 /* Scrollbar */
-::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar { width: 0px; height: 0px; display: none; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 9999px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25); }
+::-webkit-scrollbar-thumb { background: transparent; border-radius: 9999px; }
+::-webkit-scrollbar-thumb:hover { background: transparent; }
+
+/* For Firefox, hide scrollbar */
+* {
+  scrollbar-width: none;
+}
 
 /* Smooth scroll for preview */
 .scroll-smooth { scroll-behavior: smooth; }
