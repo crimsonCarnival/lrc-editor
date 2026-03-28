@@ -13,12 +13,6 @@ const resources = {
       includeTranslations: 'Include translations',
       download: 'Download',
       footerText: 'Lyrics Syncer — Runs entirely in your browser. No data leaves your device.',
-      sessionRestored: 'Previous session restored',
-      autoSyncRequiresAudio: 'Auto-sync requires a local audio file to be loaded.',
-
-      whisperLoading: 'Loading AI model…',
-      whisperTranscribing: 'Transcribing audio…',
-      whisperInitializing: 'Initializing…',
 
       playerTitle: 'Player',
       localFile: 'Local File',
@@ -49,8 +43,6 @@ const resources = {
       plusTime: '+0.1s',
       clearTimestamp: 'Clear timestamp',
       markInstruction: 'Press Space or click Mark to stamp the highlighted line',
-      autoSyncAi: 'Auto-Sync (AI)',
-      autoSync: 'Auto-Sync',
 
       previewTitle: 'Preview',
       previewPlaceholder: 'Start syncing to see the karaoke preview...',
@@ -76,12 +68,7 @@ const resources = {
       includeTranslations: 'Incluir traducciones',
       download: 'Descargar',
       footerText: 'Lyrics Syncer — Se ejecuta íntegramente en el navegador. Ningún dato sale de tu dispositivo.',
-      sessionRestored: 'Sesión anterior restaurada',
-      autoSyncRequiresAudio: 'La sincronización automática requiere un archivo de audio local.',
 
-      whisperLoading: 'Cargando modelo de IA…',
-      whisperTranscribing: 'Transcribiendo audio…',
-      whisperInitializing: 'Inicializando…',
 
       playerTitle: 'Reproductor',
       localFile: 'Archivo Local',
@@ -112,8 +99,6 @@ const resources = {
       plusTime: '+0.1s',
       clearTimestamp: 'Borrar marca de tiempo',
       markInstruction: 'Presiona Espacio o haz clic en Marcar para el tiempo de la línea',
-      autoSyncAi: 'Auto-Sincronización (IA)',
-      autoSync: 'Auto-Sincronización',
 
       previewTitle: 'Previsualización',
       previewPlaceholder: 'Empieza a sincronizar para ver la vista previa de karaoke...',
@@ -139,12 +124,7 @@ const resources = {
       includeTranslations: '翻訳を含める',
       download: 'ダウンロード',
       footerText: 'Lyrics Syncer — ブラウザ上で完全に動作します。データはデバイスから送信されません。',
-      sessionRestored: '以前のセッションを復元しました',
-      autoSyncRequiresAudio: '自動同期にはローカルの音声ファイルが必要です。',
 
-      whisperLoading: 'AIモデルをロード中…',
-      whisperTranscribing: 'テキストを文字起こし中…',
-      whisperInitializing: '初期化中…',
 
       playerTitle: 'プレイヤー',
       localFile: 'ローカルファイル',
@@ -175,8 +155,6 @@ const resources = {
       plusTime: '+0.1s',
       clearTimestamp: 'タイムスタンプをクリア',
       markInstruction: 'Spaceキーを押すか、マークをクリックして時間を記録します',
-      autoSyncAi: '自動同期 (AI)',
-      autoSync: '自動同期',
 
       previewTitle: 'プレビュー',
       previewPlaceholder: '歌詞の同期を開始すると、カラオケプレビューが表示されます...',
