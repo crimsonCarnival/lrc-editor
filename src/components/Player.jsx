@@ -2,6 +2,10 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { createVocalIsolation } from '../utils/audioProcessing';
 import { useTranslation } from 'react-i18next';
 
+const SPEED_PRESETS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3];
+const MIN_SPEED = 0.1;
+const MAX_SPEED = 4;
+
 export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, playerRef, mediaTitle, onTitleChange }) {
   const { t } = useTranslation();
   const [source, setSource] = useState('local'); // 'local' | 'youtube'
@@ -13,16 +17,23 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [vocalIsolation, setVocalIsolation] = useState(false);
+  const [playbackSpeed, setPlaybackSpeed] = useState(1);
+  const [showSpeedMenu, setShowSpeedMenu] = useState(false);
+  const [customSpeedInput, setCustomSpeedInput] = useState('');
+  const [ytError, setYtError] = useState('');
 
   const audioRef = useRef(null);
   const ytPlayerRef = useRef(null);
   const ytContainerRef = useRef(null);
+  const ytInnerRef = useRef(null);
   const rafIdRef = useRef(null);
   const apiLoadedRef = useRef(false);
   const wavesurferRef = useRef(null);
   const waveContainerRef = useRef(null);
   const vocalIsolationRef = useRef(null);
   const localBlobRef = useRef(null);
+  const speedMenuRef = useRef(null);
+  const speedBtnRef = useRef(null);
 
   // Whether media is currently loaded
   const hasMedia = (source === 'local' && localUrl) || (source === 'youtube' && ytReady);
@@ -172,15 +183,25 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
       setVocalIsolation(false);
     } else if (source === 'youtube') {
       if (ytPlayerRef.current) {
-        ytPlayerRef.current.destroy();
+        try { ytPlayerRef.current.destroy(); } catch (e) { /* ignore */ }
         ytPlayerRef.current = null;
+      }
+      // Recreate the inner div for future use
+      if (ytContainerRef.current) {
+        ytContainerRef.current.innerHTML = '';
+        const inner = document.createElement('div');
+        inner.id = 'yt-player-inner';
+        ytContainerRef.current.appendChild(inner);
+        ytInnerRef.current = inner;
       }
       setYtReady(false);
       setYtUrl('');
+      setYtError('');
     }
     setIsPlaying(false);
     setCurrentTime(0);
     setDuration(0);
+    setPlaybackSpeed(1);
     onTimeUpdate?.(0);
     onDurationChange?.(0);
     onTitleChange?.('');
@@ -270,14 +291,37 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
     apiLoadedRef.current = true;
   }, []);
 
+  // Create inner div for YT player on mount
+  useEffect(() => {
+    if (ytContainerRef.current && !ytInnerRef.current) {
+      const inner = document.createElement('div');
+      inner.id = 'yt-player-inner';
+      ytContainerRef.current.appendChild(inner);
+      ytInnerRef.current = inner;
+    }
+  }, []);
+
   const loadYouTube = () => {
     const videoId = extractVideoId(ytUrl);
-    if (!videoId) return;
+    if (!videoId) {
+      setYtError(t('invalidUrl') || 'Invalid YouTube URL');
+      return;
+    }
+    setYtError('');
 
     // Destroy existing player
     if (ytPlayerRef.current) {
-      ytPlayerRef.current.destroy();
+      try { ytPlayerRef.current.destroy(); } catch (e) { /* ignore */ }
       ytPlayerRef.current = null;
+    }
+
+    // Recreate the inner element
+    if (ytContainerRef.current) {
+      ytContainerRef.current.innerHTML = '';
+      const inner = document.createElement('div');
+      inner.id = 'yt-player-inner';
+      ytContainerRef.current.appendChild(inner);
+      ytInnerRef.current = inner;
     }
 
     setYtReady(false);
@@ -285,7 +329,8 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
     setCurrentTime(0);
 
     const initPlayer = () => {
-      ytPlayerRef.current = new window.YT.Player(ytContainerRef.current, {
+      if (!ytInnerRef.current) return;
+      ytPlayerRef.current = new window.YT.Player(ytInnerRef.current, {
         videoId,
         height: '100%',
         width: '100%',
@@ -294,6 +339,7 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
           controls: 1,
           modestbranding: 1,
           rel: 0,
+          origin: window.location.origin,
         },
         events: {
           onReady: (e) => {
@@ -308,6 +354,17 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
           },
           onStateChange: (e) => {
             setIsPlaying(e.data === window.YT.PlayerState.PLAYING);
+          },
+          onError: (e) => {
+            const errorCodes = {
+              2: 'Invalid video ID',
+              5: 'HTML5 player error',
+              100: 'Video not found or private',
+              101: 'Video cannot be embedded',
+              150: 'Video cannot be embedded',
+            };
+            setYtError(errorCodes[e.data] || `YouTube error (code ${e.data})`);
+            setYtReady(false);
           },
         },
       });
@@ -377,6 +434,39 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
     }
   };
 
+  const applySpeed = useCallback((speed) => {
+    const clamped = Math.min(MAX_SPEED, Math.max(MIN_SPEED, parseFloat(speed) || 1));
+    setPlaybackSpeed(clamped);
+    if (source === 'local' && audioRef.current) {
+      audioRef.current.playbackRate = clamped;
+    } else if (source === 'youtube' && ytPlayerRef.current?.setPlaybackRate) {
+      ytPlayerRef.current.setPlaybackRate(clamped);
+    }
+    setShowSpeedMenu(false);
+  }, [source]);
+
+  const handleCustomSpeedSubmit = useCallback(() => {
+    const val = parseFloat(customSpeedInput);
+    if (!isNaN(val) && val >= MIN_SPEED && val <= MAX_SPEED) {
+      applySpeed(val);
+      setCustomSpeedInput('');
+    }
+  }, [customSpeedInput, applySpeed]);
+
+  // Close speed menu on outside click
+  useEffect(() => {
+    if (!showSpeedMenu) return;
+    const handler = (e) => {
+      const inMenu = speedMenuRef.current && speedMenuRef.current.contains(e.target);
+      const inBtn = speedBtnRef.current && speedBtnRef.current.contains(e.target);
+      if (!inMenu && !inBtn) {
+        setShowSpeedMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showSpeedMenu]);
+
   // Expose player API via ref
   useEffect(() => {
     if (playerRef) {
@@ -415,7 +505,7 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
   };
 
   return (
-    <div className="glass rounded-xl sm:rounded-2xl p-3 sm:p-5 space-y-2 sm:space-y-4 animate-fade-in">
+    <div className="glass rounded-xl sm:rounded-2xl p-3 sm:p-5 space-y-2 sm:space-y-4 animate-fade-in overflow-visible">
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-4">
         <h2 className="text-xs sm:text-sm font-semibold tracking-widest text-zinc-400 flex items-center gap-2 overflow-hidden flex-1 pb-1">
@@ -520,10 +610,10 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
               id="youtube-url-input"
               type="text"
               value={ytUrl}
-              onChange={(e) => setYtUrl(e.target.value)}
+              onChange={(e) => { setYtUrl(e.target.value); setYtError(''); }}
               onKeyDown={(e) => e.key === 'Enter' && loadYouTube()}
               placeholder={t('pasteUrl')}
-              className="flex-1 bg-zinc-800/60 border border-zinc-700 rounded-lg px-4 py-2.5 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/25 transition-all"
+              className={`flex-1 bg-zinc-800/60 border rounded-lg px-4 py-2.5 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-1 transition-all ${ytError ? 'border-red-500/70 focus:border-red-500 focus:ring-red-500/25' : 'border-zinc-700 focus:border-primary/50 focus:ring-primary/25'}`}
             />
             <button
               id="load-youtube-btn"
@@ -533,6 +623,14 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
               {t('load')}
             </button>
           </div>
+          {ytError && (
+            <p className="text-xs text-red-400 flex items-center gap-1.5 animate-fade-in">
+              <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.664-.833-2.464 0L4.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+              {ytError}
+            </p>
+          )}
         </div>
       )}
       <div
@@ -596,6 +694,81 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
                 </svg>
               </button>
             )}
+
+            {/* Speed Control Dropdown */}
+            <div className="relative">
+              <button
+                ref={speedBtnRef}
+                id="speed-btn"
+                onClick={() => {
+                  setShowSpeedMenu(prev => !prev);
+                }}
+                title={t('speed')}
+                className={`h-8 sm:h-9 px-2 sm:px-2.5 flex items-center gap-1 rounded-full transition-all duration-200 cursor-pointer flex-shrink-0 text-xs font-mono font-semibold ${
+                  playbackSpeed !== 1
+                    ? 'bg-accent-blue text-white shadow-lg shadow-accent-blue/30'
+                    : 'bg-zinc-800 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700'
+                }`}
+              >
+                {playbackSpeed}x
+                <svg className={`w-2.5 h-2.5 transition-transform duration-200 ${showSpeedMenu ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {showSpeedMenu && speedBtnRef.current && (() => {
+                const rect = speedBtnRef.current.getBoundingClientRect();
+                return (
+                  <div
+                    ref={speedMenuRef}
+                    className="fixed w-44 bg-zinc-900 border border-zinc-700/80 rounded-xl shadow-2xl shadow-black/50 overflow-hidden animate-fade-in z-[9999]"
+                    style={{
+                      bottom: window.innerHeight - rect.top + 8,
+                      right: window.innerWidth - rect.right,
+                    }}
+                  >
+                    <div className="p-1.5 max-h-52 overflow-y-auto speed-menu-scroll">
+                      {SPEED_PRESETS.map((speed) => (
+                        <button
+                          key={speed}
+                          onClick={() => applySpeed(speed)}
+                          className={`w-full text-left px-3 py-1.5 text-xs font-mono rounded-lg transition-all duration-150 cursor-pointer ${
+                            playbackSpeed === speed
+                              ? 'bg-accent-blue/20 text-accent-blue font-bold'
+                              : 'text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100'
+                          }`}
+                        >
+                          {speed}x {speed === 1 && <span className="text-zinc-500 font-sans">(normal)</span>}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="border-t border-zinc-700/60 p-2">
+                      <label className="text-[10px] text-zinc-500 font-medium uppercase tracking-wider mb-1 block">{t('customSpeed') || 'Custom'} ({MIN_SPEED}–{MAX_SPEED}x)</label>
+                      <div className="flex gap-1.5">
+                        <input
+                          id="custom-speed-input"
+                          type="number"
+                          min={MIN_SPEED}
+                          max={MAX_SPEED}
+                          step={0.05}
+                          value={customSpeedInput}
+                          onChange={(e) => setCustomSpeedInput(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && handleCustomSpeedSubmit()}
+                          placeholder="e.g. 1.3"
+                          className="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-2.5 py-1.5 text-xs text-zinc-100 font-mono placeholder-zinc-600 focus:outline-none focus:border-accent-blue/50 focus:ring-1 focus:ring-accent-blue/25 transition-all w-0"
+                        />
+                        <button
+                          onClick={handleCustomSpeedSubmit}
+                          disabled={!customSpeedInput || isNaN(parseFloat(customSpeedInput)) || parseFloat(customSpeedInput) < MIN_SPEED || parseFloat(customSpeedInput) > MAX_SPEED}
+                          className="px-2.5 py-1.5 bg-accent-blue hover:bg-accent-blue/80 disabled:bg-zinc-800 disabled:text-zinc-600 text-white text-xs font-semibold rounded-lg transition-all cursor-pointer disabled:cursor-not-allowed"
+                        >
+                          ✓
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
           </div>
         </div>
       )}
