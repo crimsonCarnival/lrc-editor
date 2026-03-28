@@ -134,18 +134,19 @@ export default function App() {
                   <span className="hidden sm:inline">{t('export')}</span>
                 </button>
                 {showExportPanel && (
-                  <div className="absolute right-0 top-full mt-2 glass rounded-lg sm:rounded-xl p-3 sm:p-4 space-y-2 sm:space-y-3 w-64 sm:w-72 z-50 animate-fade-in shadow-2xl">  
+                  <div className="absolute right-0 top-full mt-2 rounded-lg sm:rounded-xl p-3 sm:p-4 space-y-2 sm:space-y-3 w-64 sm:w-72 z-50 animate-fade-in shadow-2xl bg-zinc-900 border border-zinc-700">
                     <label className="block mb-2">
                       <span className="text-xs text-zinc-400 font-medium">{t('format')}</span>
                       <select
                         value={exportFormat}
                         onChange={(e) => setExportFormat(e.target.value)}
-                        className="mt-1 w-full bg-zinc-800/60 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-primary/50 transition-all"
+                        className="mt-1 w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-primary/50 transition-all"
                       >
                         <option value="lrc">.lrc (Lyrics)</option>
                         <option value="srt">.srt (Subtitles)</option>
                       </select>
                     </label>
+
                     <label className="block">
                       <span className="text-xs text-zinc-400 font-medium">{t('filename')}</span>
                       <div className="flex items-center gap-1 mt-1">
@@ -156,12 +157,12 @@ export default function App() {
                           onChange={(e) => setExportFilename(e.target.value)}
                           onKeyDown={(e) => e.key === 'Enter' && handleExport()}
                           placeholder="lyrics"
-                          className="flex-1 bg-zinc-800/60 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/25 transition-all w-0"
+                          className="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/25 transition-all w-0"
                         />
                         <span className="text-sm text-zinc-500 min-w-8">.{exportFormat}</span>
                       </div>
                     </label>
-                    {/* Include translations checkbox */}
+
                     {exportFormat === 'lrc' && lines.some(l => l.translation) && (
                       <label className="flex items-center gap-2 cursor-pointer">
                         <input
@@ -173,6 +174,7 @@ export default function App() {
                         <span className="text-xs text-zinc-400">{t('includeTranslations')}</span>
                       </label>
                     )}
+
                     <button
                       id="export-confirm-btn"
                       onClick={handleExport}
