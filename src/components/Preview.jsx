@@ -1,8 +1,10 @@
 import { useEffect, useRef, useMemo, useState, useLayoutEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useSettings } from '../contexts/SettingsContext';
 
 export default function Preview({ lines, setLines, playbackPosition, playerRef }) {
   const { t } = useTranslation();
+  const { settings } = useSettings();
   const containerRef = useRef(null);
   const activeRef = useRef(null);
   const [containerHeight, setContainerHeight] = useState(0);
@@ -38,11 +40,11 @@ export default function Preview({ lines, setLines, playbackPosition, playerRef }
   useEffect(() => {
     if (activeRef.current && containerRef.current) {
       activeRef.current.scrollIntoView({
-        behavior: 'smooth',
-        block: 'center',
+        behavior: settings.scrollBehavior,
+        block: settings.scrollBlock,
       });
     }
-  }, [currentIndex]);
+  }, [currentIndex, settings.scrollBehavior, settings.scrollBlock]);
 
   const syncedLines = lines.filter((l) => l.timestamp != null);
   const hasSyncedLines = syncedLines.length > 0;
@@ -97,7 +99,7 @@ export default function Preview({ lines, setLines, playbackPosition, playerRef }
                   }}
                   className="w-full text-left px-3 py-2 hover:bg-zinc-800 rounded-lg transition-colors cursor-pointer"
                 >
-                  {t('secondaryRomaji')}
+                  {t('secondaryLyrics')}
                 </button>
                 <button
                   onClick={() => {
@@ -120,7 +122,7 @@ export default function Preview({ lines, setLines, playbackPosition, playerRef }
         <div className="flex-1 flex flex-col gap-2 sm:gap-3 min-h-0 animate-fade-in overflow-hidden">
           <div className="flex items-center justify-between bg-zinc-800/40 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg">
             <span className="text-xs sm:text-sm font-medium text-primary">
-              {t('paste')} {pastingType === 'secondary' ? t('secondaryRomaji') : t('translation')} {t('lyricsHeader')}
+              {t('paste')} {pastingType === 'secondary' ? t('secondaryLyrics') : t('translation')} {t('lyricsHeader')}
             </span>
             <button
               onClick={() => setPastingType(null)}
