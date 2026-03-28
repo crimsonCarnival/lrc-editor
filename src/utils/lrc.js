@@ -84,7 +84,7 @@ export function formatSrtTimestamp(seconds) {
 /**
  * Compiles an array of { text, timestamp } into a valid .srt string
  */
-export function compileSRT(lines, duration) {
+export function compileSRT(lines, duration, includeTranslations = false) {
   const synced = lines.filter((l) => l.timestamp != null);
   if (synced.length === 0) return '';
   
@@ -99,9 +99,9 @@ export function compileSRT(lines, duration) {
     }
     
     return `${i + 1}\n${formatSrtTimestamp(start)} --> ${formatSrtTimestamp(end)}\n${
-      line.secondary ? line.secondary + '\n' : ''
+      (includeTranslations && line.secondary) ? line.secondary + '\n' : ''
     }${line.text}${
-      line.translation ? '\n' + line.translation : ''
+      (includeTranslations && line.translation) ? '\n' + line.translation : ''
     }\n`;
   }).join('\n');
 }
