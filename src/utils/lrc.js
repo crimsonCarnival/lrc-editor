@@ -140,11 +140,42 @@ export function parseLrcSrtFile(content, filename) {
         const text = match[3].trim();
         parsedLines.push({ text, timestamp: m * 60 + s });
       } else if (line.trim() !== '') {
-        // Fallback for lines without timestamps if user just uploads plain text
         parsedLines.push({ text: line.trim(), timestamp: null });
       }
     });
   }
   
-  return parsedLines;
+  const mergedLines = [];
+  for (const line of parsedLines) {
+    if (line.timestamp == null) {
+      mergedLines.push(line);
+      continue;
+    }
+
+    let existingIndex = -1;
+    for (let i = 0; i < mergedLines.length; i++) {
+      if (
+        mergedLines[i].timestamp != null &&
+        Math.abs(mergedLines[i].timestamp - line.timestamp) < 0.01
+      ) {
+        existingIndex = i;
+        break;
+      }
+    }
+
+    if (existingIndex !== -1) {
+      const existing = mergedLines[existingIndex];
+      if (!existing.translation) {
+        existing.translation = line.text;
+      } else if (!existing.secondary) {
+        existing.secondary = existing.text;
+        existing.text = existing.translation;
+        existing.translation = line.text;
+      }
+    } else {
+      mergedLines.push({ ...line });
+    }
+  }
+
+  return mergedLines;
 }
