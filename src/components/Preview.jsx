@@ -1,8 +1,9 @@
 import { useEffect, useRef, useMemo, useState, useLayoutEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSettings } from '../contexts/SettingsContext';
+import { compileLRC, compileSRT, downloadLRC } from '../utils/lrc';
 
-export default function Preview({ lines, setLines, playbackPosition, playerRef }) {
+export default function Preview({ lines, setLines, playbackPosition, playerRef, duration, mediaTitle }) {
   const { t } = useTranslation();
   const { settings } = useSettings();
   const containerRef = useRef(null);
@@ -12,6 +13,61 @@ export default function Preview({ lines, setLines, playbackPosition, playerRef }
   const [showMenu, setShowMenu] = useState(false);
   const [pastingType, setPastingType] = useState(null); // 'secondary' | 'translation'
   const [pasteText, setPasteText] = useState('');
+  
+  // Custom Export states
+  const [exportFilename, setExportFilename] = useState('lyrics');
+  const [showExportPanel, setShowExportPanel] = useState(false);
+  const [includeTranslations, setIncludeTranslations] = useState(false);
+  const [showTranslationsInPreview, setShowTranslationsInPreview] = useState(true);
+  const [wasCopied, setWasCopied] = useState(false);
+  const exportPanelRef = useRef(null);
+
+  // Auto-fill filename from media title
+  useEffect(() => {
+    if (settings.defaultFilenamePattern === 'media' && mediaTitle) {
+      setExportFilename(mediaTitle);
+    }
+  }, [mediaTitle, settings.defaultFilenamePattern]);
+
+  // Close export panel on outside click
+  useEffect(() => {
+    if (!showExportPanel) return;
+    const handler = (e) => {
+      if (exportPanelRef.current && !exportPanelRef.current.contains(e.target)) {
+        setShowExportPanel(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showExportPanel]);
+
+  const handleExport = () => {
+    const name = exportFilename.trim() || 'lyrics';
+    if (settings.downloadFormat === 'srt') {
+      const srt = compileSRT(lines, duration, includeTranslations);
+      downloadLRC(srt, `${name}.srt`);
+    } else {
+      const lrc = compileLRC(lines, includeTranslations, settings.timestampPrecision);
+      downloadLRC(lrc, `${name}.lrc`);
+    }
+    setShowExportPanel(false);
+  };
+
+  const handleCopy = async () => {
+    let content = '';
+    if (settings.copyFormat === 'srt') {
+      content = compileSRT(lines, duration, includeTranslations);
+    } else {
+      content = compileLRC(lines, includeTranslations, settings.timestampPrecision);
+    }
+    try {
+      await navigator.clipboard.writeText(content);
+      setWasCopied(true);
+      setTimeout(() => setWasCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy', err);
+    }
+  };
 
   // Find the current line index based on playback position
   const currentIndex = useMemo(() => {
@@ -78,19 +134,89 @@ export default function Preview({ lines, setLines, playbackPosition, playerRef }
           <span className="uppercase shrink-0 text-xs sm:text-sm">{t('previewTitle')}</span>
         </h2>
         {hasSyncedLines && (
-          <div className="relative">
-            <button
-              onClick={() => setShowMenu(!showMenu)}
-              className="p-1 sm:p-1.5 hover:bg-zinc-800 rounded-lg text-zinc-400 hover:text-zinc-200 transition-colors flex-shrink-0"
-            >
-              <svg className="w-4 sm:w-5 h-4 sm:h-5" fill="currentColor" viewBox="0 0 24 24">
-                <circle cx="5" cy="12" r="2" />
-                <circle cx="12" cy="12" r="2" />
-                <circle cx="19" cy="12" r="2" />
-              </svg>
-            </button>
+          <div className="relative flex items-center gap-1 text-zinc-300">
+            {lines.some(l => l.translation) && (
+              <button
+                onClick={() => setShowTranslationsInPreview(!showTranslationsInPreview)}
+                className={`p-1 sm:p-1.5 rounded-lg transition-colors flex-shrink-0 hover:bg-zinc-800 ${showTranslationsInPreview ? 'text-primary hover:text-primary-dim bg-zinc-800/50' : 'text-zinc-400 hover:text-zinc-200'}`}
+                title={t('toggleTranslations') || 'Toggle Translations'}
+              >
+                <svg className="w-4 sm:w-5 h-4 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+                </svg>
+              </button>
+            )}
+            <div className="relative" ref={exportPanelRef}>
+              <button
+                onClick={() => setShowExportPanel(!showExportPanel)}
+                className={`p-1 sm:p-1.5 rounded-lg transition-colors flex-shrink-0 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 ${showExportPanel ? 'bg-zinc-800 text-zinc-100' : ''}`}
+                title={t('export') || 'Export File'}
+              >
+                <svg className="w-4 sm:w-5 h-4 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+              </button>
+              {showExportPanel && (
+                <div className="absolute right-0 top-full mt-2 rounded-lg sm:rounded-xl p-3 sm:p-4 space-y-2 sm:space-y-3 w-64 sm:w-72 z-50 animate-fade-in shadow-2xl bg-zinc-900 border border-zinc-700 font-sans text-left">
+                  <label className="block">
+                    <span className="text-xs text-zinc-400 font-medium">{t('filename')}</span>
+                    <div className="flex items-center gap-1 mt-1">
+                      <input
+                        type="text"
+                        value={exportFilename}
+                        onChange={(e) => setExportFilename(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleExport()}
+                        placeholder="lyrics"
+                        className="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/25 transition-all w-0"
+                      />
+                      <span className="text-sm text-zinc-500 min-w-8">.{settings.downloadFormat}</span>
+                    </div>
+                  </label>
+
+                  {lines.some(l => l.translation || l.secondary) && (
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={includeTranslations}
+                        onChange={(e) => setIncludeTranslations(e.target.checked)}
+                        className="w-4 h-4 rounded border-zinc-600 bg-zinc-800 text-primary focus:ring-primary/25 accent-primary cursor-pointer"
+                      />
+                      <span className="text-xs text-zinc-400">{t('includeTranslations')}</span>
+                    </label>
+                  )}
+
+                  <div className="flex gap-2 w-full mt-2">
+                    <button
+                      onClick={handleCopy}
+                      className="flex-1 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-semibold text-sm rounded-lg transition-all cursor-pointer"
+                    >
+                      {wasCopied ? `${t('copied')} ${settings.copyFormat.toUpperCase()}!` : t('copyToClipboard')}
+                    </button>
+                    <button
+                      onClick={handleExport}
+                      className="flex-1 py-2.5 bg-primary hover:bg-primary-dim text-zinc-950 font-semibold text-sm rounded-lg transition-all cursor-pointer"
+                    >
+                      {t('download')}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            {/* Menu */}
+            <div className="relative">
+              <button
+                onClick={() => setShowMenu(!showMenu)}
+                className={`p-1 sm:p-1.5 rounded-lg transition-colors flex-shrink-0 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 ${showMenu ? 'bg-zinc-800 text-zinc-100' : ''}`}
+              >
+                <svg className="w-4 sm:w-5 h-4 sm:h-5" fill="currentColor" viewBox="0 0 24 24">
+                  <circle cx="5" cy="12" r="2" />
+                  <circle cx="12" cy="12" r="2" />
+                  <circle cx="19" cy="12" r="2" />
+                </svg>
+              </button>
             {showMenu && (
-              <div className="absolute right-0 top-full mt-2 w-48 sm:w-56 glass bg-zinc-900/95 border border-zinc-800 rounded-lg sm:rounded-xl shadow-2xl p-2 z-50 animate-fade-in text-xs sm:text-sm text-zinc-300">
+              <div className="absolute right-0 top-full mt-2 w-36 sm:w-48 glass bg-zinc-900/95 border border-zinc-800 rounded-lg sm:rounded-xl shadow-2xl p-2 z-50 animate-fade-in text-xs sm:text-sm text-zinc-300">
                 <button
                   onClick={() => {
                     setPastingType('secondary');
@@ -113,6 +239,7 @@ export default function Preview({ lines, setLines, playbackPosition, playerRef }
                 </button>
               </div>
             )}
+            </div>
           </div>
         )}
       </div>
@@ -150,7 +277,7 @@ export default function Preview({ lines, setLines, playbackPosition, playerRef }
       ) : (
         <div
           ref={containerRef}
-          className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 scroll-smooth"
+          className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 scroll-smooth mask-edges"
         >
           {!lines.length ? (
             <div className="flex items-center justify-center h-full">
@@ -177,14 +304,20 @@ export default function Preview({ lines, setLines, playbackPosition, playerRef }
                     ref={isActive ? activeRef : null}
                     onClick={() => handleLineClick(line)}
                     title={line.timestamp != null ? t('clickToSeek') : ''}
-                    className={`group px-2 sm:px-4 py-1 sm:py-2 rounded-lg transition-all duration-500 ease-out flex flex-col items-start cursor-pointer select-none relative ${isActive
+                    className={`group px-2 sm:px-4 py-1 sm:py-2 rounded-lg transition-all duration-500 ease-out flex flex-col cursor-pointer select-none relative ${
+                      settings.previewAlignment === 'right' ? 'items-end text-right' :
+                      settings.previewAlignment === 'center' ? 'items-center text-center' :
+                      'items-start text-left'
+                    } ${isActive
                       ? 'scale-y-105 origin-center my-1 sm:my-2 bg-zinc-800/10'
                       : 'hover:bg-zinc-800/30'
                       }`}
                   >
                     {/* Play cursor on hover (only for synced lines) */}
                     {line.timestamp != null && (
-                      <div className="absolute left-0 top-1/2 -translate-x-full -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-primary pointer-events-none pr-2">
+                      <div className={`absolute top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-primary pointer-events-none ${
+                        settings.previewAlignment === 'right' ? 'right-0 translate-x-full pl-2' : 'left-0 -translate-x-full pr-2'
+                      }`}>
                         <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                           <path d="M8 5v14l11-7z" />
                         </svg>
@@ -215,7 +348,7 @@ export default function Preview({ lines, setLines, playbackPosition, playerRef }
                     </p>
 
                     {/* Translation Track */}
-                    {line.translation && (
+                    {(line.translation && showTranslationsInPreview) && (
                       <p
                         className={`transition-all duration-300 w-full ${isActive
                           ? 'text-lg sm:text-2xl text-zinc-500 font-medium my-0.5 sm:my-1'
