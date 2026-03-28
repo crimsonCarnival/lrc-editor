@@ -200,6 +200,14 @@ export default function App() {
               <option value="ja">日本語</option>
             </select>
 
+            <button
+              onClick={() => setShowKeyboardHelp(prev => !prev)}
+              className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-lg sm:rounded-xl bg-zinc-800/80 border border-zinc-700/60 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700 transition-all cursor-pointer shadow-lg flex-shrink-0"
+              title={t('keyboardShortcuts')}
+            >
+              <kbd className="text-xs font-mono font-bold">?</kbd>
+            </button>
+
             {canExport && (
               <div className="relative flex-1 sm:flex-initial" ref={exportPanelRef}>
                 <button
