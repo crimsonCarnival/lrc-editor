@@ -26,6 +26,7 @@ export const DEFAULT_SETTINGS = {
   defaultLanguage: 'en',
   scrollBehavior: 'smooth', // 'smooth' | 'instant'
   scrollBlock: 'center', // 'center' | 'nearest'
+  previewAlignment: 'left', // 'left' | 'center' | 'right'
 
   // Advanced
   autoSaveEnabled: true,
@@ -63,12 +64,16 @@ export function SettingsProvider({ children }) {
     setSettings((prev) => ({ ...prev, [key]: value }));
   }, []);
 
+  const updateAllSettings = useCallback((newSettings) => {
+    setSettings(newSettings);
+  }, []);
+
   const resetSettings = useCallback(() => {
     setSettings({ ...DEFAULT_SETTINGS });
   }, []);
 
   return (
-    <SettingsContext.Provider value={{ settings, updateSetting, resetSettings }}>
+    <SettingsContext.Provider value={{ settings, updateSetting, updateAllSettings, resetSettings }}>
       {children}
     </SettingsContext.Provider>
   );
