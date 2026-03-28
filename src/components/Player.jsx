@@ -1,14 +1,23 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { createVocalIsolation } from '../utils/audioProcessing';
 import { useTranslation } from 'react-i18next';
+import { useSettings } from '../contexts/SettingsContext';
+import ConfirmModal from './ConfirmModal';
+import NumberInput from './NumberInput';
 
-const SPEED_PRESETS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.25, 2.5, 2.75, 3];
-const MIN_SPEED = 0.1;
-const MAX_SPEED = 5;
+const ALL_SPEED_PRESETS = [0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1, 1.05, 1.1, 1.15, 1.2, 1.25, 1.3, 1.35, 1.4, 1.45, 1.5, 1.75, 2, 2.25, 2.5, 2.75, 3, 3.5, 4, 4.5, 5];
 
 export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, playerRef, mediaTitle, onTitleChange }) {
   const { t } = useTranslation();
+  const { settings } = useSettings();
+
+  const MIN_SPEED = settings.minSpeed;
+  const MAX_SPEED = settings.maxSpeed;
+  const SPEED_PRESETS = useMemo(() =>
+    ALL_SPEED_PRESETS.filter(s => s >= settings.minSpeed && s <= settings.maxSpeed),
+    [settings.minSpeed, settings.maxSpeed]
+  );
   const [source, setSource] = useState('local'); // 'local' | 'youtube'
   const [localFile, setLocalFile] = useState(null);
   const [localUrl, setLocalUrl] = useState(null);
@@ -23,6 +32,19 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
   const [speedMenuPos, setSpeedMenuPos] = useState(null);
   const [customSpeedInput, setCustomSpeedInput] = useState('');
   const [ytError, setYtError] = useState('');
+  const [confirmConfig, setConfirmConfig] = useState({
+    isOpen: false,
+    message: '',
+    onConfirm: null,
+  });
+
+  const requestConfirm = (message, action) => {
+    if (settings.confirmDestructive) {
+      setConfirmConfig({ isOpen: true, message, onConfirm: action });
+    } else {
+      action();
+    }
+  };
 
   const audioRef = useRef(null);
   const ytPlayerRef = useRef(null);
@@ -168,8 +190,9 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
   // ——————— REMOVE MEDIA ———————
 
   const removeMedia = () => {
-    if (source === 'local') {
-      if (audioRef.current) audioRef.current.pause();
+    requestConfirm(t('confirmRemoveMedia') || 'Remove currently loaded media?', () => {
+      if (source === 'local') {
+        if (audioRef.current) audioRef.current.pause();
       if (localUrl) URL.revokeObjectURL(localUrl);
       setLocalFile(null);
       setLocalUrl(null);
@@ -208,8 +231,9 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
     setPlaybackSpeed(1);
     onTimeUpdate?.(0);
     onDurationChange?.(0);
-    onTitleChange?.('');
-    onMediaChange?.(false);
+      onTitleChange?.('');
+      onMediaChange?.(false);
+    });
   };
 
   // ——————— LOCAL AUDIO ———————
@@ -229,6 +253,14 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
 
   // Initialize waveform when localUrl changes
   useEffect(() => {
+    if (!settings.showWaveform) {
+      // Destroy if waveform was hidden while active
+      if (wavesurferRef.current) {
+        wavesurferRef.current.destroy();
+        wavesurferRef.current = null;
+      }
+      return;
+    }
     if (localUrl && audioRef.current && waveContainerRef.current) {
       // Small delay to ensure audio element has loaded
       const timer = setTimeout(() => {
@@ -236,7 +268,7 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
       }, 100);
       return () => clearTimeout(timer);
     }
-  }, [localUrl, initWaveform]);
+  }, [localUrl, initWaveform, settings.showWaveform]);
 
   const handleLocalTimeUpdate = useCallback(() => {
     if (audioRef.current) {
@@ -447,7 +479,7 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
       ytPlayerRef.current.setPlaybackRate(clamped);
     }
     setShowSpeedMenu(false);
-  }, [source]);
+  }, [source, MIN_SPEED, MAX_SPEED]);
 
   const handleCustomSpeedSubmit = useCallback(() => {
     const val = parseFloat(customSpeedInput);
@@ -455,7 +487,7 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
       applySpeed(val);
       setCustomSpeedInput('');
     }
-  }, [customSpeedInput, applySpeed]);
+  }, [customSpeedInput, applySpeed, MIN_SPEED, MAX_SPEED]);
 
   // Close speed menu on outside click
   useEffect(() => {
@@ -590,10 +622,12 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
       {source === 'local' && localUrl && (
         <div className="animate-fade-in space-y-3">
           {/* Waveform container */}
-          <div
-            ref={waveContainerRef}
-            className="w-full rounded-lg overflow-hidden bg-zinc-900/40 border border-zinc-800/50 cursor-pointer"
-          />
+          {settings.showWaveform && (
+            <div
+              ref={waveContainerRef}
+              className="w-full rounded-lg overflow-hidden bg-zinc-900/40 border border-zinc-800/50 cursor-pointer"
+            />
+          )}
 
           <audio
             ref={audioRef}
@@ -682,8 +716,8 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
               {formatTime(duration)}
             </span>
 
-            {/* Vocal Isolation Toggle — only for local audio */}
-            {source === 'local' && localUrl && (
+            {/* Vocal Isolation Toggle — only for local audio, if enabled in settings */}
+            {settings.showEQ && source === 'local' && localUrl && (
               <button
                 id="vocal-isolation-btn"
                 onClick={toggleVocalIsolation}
@@ -753,9 +787,8 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
                   <div className="border-t border-zinc-700/60 p-2">
                     <label className="text-[10px] text-zinc-500 font-medium uppercase tracking-wider mb-1 block">{t('customSpeed') || 'Custom'} ({MIN_SPEED}–{MAX_SPEED}x)</label>
                     <div className="flex gap-1.5">
-                      <input
+                      <NumberInput
                         id="custom-speed-input"
-                        type="number"
                         min={MIN_SPEED}
                         max={MAX_SPEED}
                         step={0.05}
@@ -763,7 +796,7 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
                         onChange={(e) => setCustomSpeedInput(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && handleCustomSpeedSubmit()}
                         placeholder="e.g. 1.3"
-                        className="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-2.5 py-1.5 text-xs text-zinc-100 font-mono placeholder-zinc-600 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/25 transition-all w-0"
+                        className="flex-1 w-0"
                       />
                       <button
                         onClick={handleCustomSpeedSubmit}
@@ -781,6 +814,16 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={confirmConfig.isOpen}
+        message={confirmConfig.message}
+        onConfirm={() => {
+          if (confirmConfig.onConfirm) confirmConfig.onConfirm();
+          setConfirmConfig({ isOpen: false, message: '', onConfirm: null });
+        }}
+        onCancel={() => setConfirmConfig({ isOpen: false, message: '', onConfirm: null })}
+      />
     </div>
   );
 }
