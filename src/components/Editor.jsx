@@ -18,6 +18,8 @@ export default function Editor({
 }) {
   const { t } = useTranslation();
   const [rawText, setRawText] = useState('');
+  const [editingLineIndex, setEditingLineIndex] = useState(null);
+  const [editingText, setEditingText] = useState('');
   const activeLineRef = useRef(null);
   const listRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -124,10 +126,25 @@ export default function Editor({
     setActiveLineIndex(0);
   };
 
-  // Go back to editing
-  const handleBackToEdit = () => {
-    setSyncMode(false);
-    setRawText(lines.map((l) => l.text).join('\n'));
+  const handleSaveLineText = (index, newText) => {
+    setLines((prev) => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], text: newText };
+      return updated;
+    });
+  };
+
+  const handleDeleteLine = (index) => {
+    setLines((prev) => prev.filter((_, i) => i !== index));
+    setActiveLineIndex((prev) => {
+      if (prev > index) return prev - 1;
+      setEditingLineIndex(null);
+      if (prev === index) {
+        // If we deleted the active line, keep it at the same index unless it was the last line
+        return Math.max(0, Math.min(prev, lines.length - 2));
+      }
+      return prev;
+    });
   };
 
   const syncedCount = useMemo(() => lines.filter((l) => l.timestamp != null).length, [lines]);
@@ -243,65 +260,101 @@ export default function Editor({
                   </span>
 
                   {/* Lyrics text container (scrollable horizontally if needed) */}
-                  <div className="flex-1 min-w-0 overflow-x-auto whitespace-nowrap scrollbar-hide pb-0.5 mt-0.5">
-                    <p
-                      className={`text-sm transition-colors ${isActive
-                        ? 'text-zinc-100 font-medium'
-                        : isSynced
-                          ? 'text-zinc-300'
-                          : 'text-zinc-500'
-                        }`}
-                    >
-                      {line.text || '♪'}
-                    </p>
-                  </div>
-                  {isSynced && (
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (playerRef?.current?.seek) {
-                            playerRef.current.seek(line.timestamp);
-                            if (playerRef.current.play) playerRef.current.play();
+                  <div className="flex-1 min-w-0 overflow-x-auto whitespace-nowrap scrollbar-hide pb-0.5 mt-0.5" onDoubleClick={() => {
+                    setEditingLineIndex(i);
+                    setEditingText(line.text);
+                  }}>
+                    {editingLineIndex === i ? (
+                      <input
+                        type="text"
+                        autoFocus
+                        value={editingText}
+                        onChange={(e) => setEditingText(e.target.value)}
+                        onBlur={() => {
+                          handleSaveLineText(i, editingText);
+                          setEditingLineIndex(null);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            handleSaveLineText(i, editingText);
+                            setEditingLineIndex(null);
+                          } else if (e.key === 'Escape') {
+                            setEditingLineIndex(null);
                           }
                         }}
-                        className="p-1 hover:bg-primary/20 rounded text-zinc-500 hover:text-primary transition-colors cursor-pointer mr-2"
-                        title={t('jumpSync')}
+                        className="w-full bg-zinc-800 border border-primary/50 rounded px-2 py-1 text-sm text-zinc-100 focus:outline-none"
+                      />
+                    ) : (
+                      <p
+                        className={`text-sm transition-colors ${isActive
+                          ? 'text-zinc-100 font-medium'
+                          : isSynced
+                            ? 'text-zinc-300'
+                            : 'text-zinc-500'
+                          }`}
                       >
-                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M8 5v14l11-7z" />
-                        </svg>
-                      </button>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); shiftTime(i, -0.1); }}
-                        className="p-1 hover:bg-zinc-700/60 rounded text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer"
-                        title={t('minusTime')}
-                      >
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M20 12H4" />
-                        </svg>
-                      </button>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); shiftTime(i, 0.1); }}
-                        className="p-1 hover:bg-zinc-700/60 rounded text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer"
-                        title={t('plusTime')}
-                      >
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                        </svg>
-                      </button>
-                      <div className="w-px h-4 bg-zinc-700/50 mx-1" />
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleClearLine(i); }}
-                        className="p-1 text-zinc-500 hover:text-red-400 transition-all duration-150 cursor-pointer rounded hover:bg-red-500/10"
-                        title={t('clearTimestamp')}
-                      >
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
-                    </div>
-                  )}
+                        {line.text || '♪'}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                    {isSynced && (
+                      <>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (playerRef?.current?.seek) {
+                              playerRef.current.seek(line.timestamp);
+                              if (playerRef.current.play) playerRef.current.play();
+                            }
+                          }}
+                          className="p-1 hover:bg-primary/20 rounded text-zinc-500 hover:text-primary transition-colors cursor-pointer mr-2"
+                          title={t('jumpSync')}
+                        >
+                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M8 5v14l11-7z" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); shiftTime(i, -0.1); }}
+                          className="p-1 hover:bg-zinc-700/60 rounded text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer"
+                          title={t('minusTime')}
+                        >
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M20 12H4" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); shiftTime(i, 0.1); }}
+                          className="p-1 hover:bg-zinc-700/60 rounded text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer"
+                          title={t('plusTime')}
+                        >
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                          </svg>
+                        </button>
+                        <div className="w-px h-4 bg-zinc-700/50 mx-1" />
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleClearLine(i); }}
+                          className="p-1 text-zinc-500 hover:text-orange-400 transition-all duration-150 cursor-pointer rounded hover:bg-orange-500/10"
+                          title={t('clearTimestamp')}
+                        >
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </>
+                    )}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleDeleteLine(i); }}
+                      className="p-1 text-zinc-500 hover:text-red-400 transition-all duration-150 cursor-pointer rounded hover:bg-red-500/10"
+                      title={t('removeLine')}
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
               );
             })}
@@ -344,13 +397,6 @@ export default function Editor({
               className="px-3 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-xl transition-all duration-200 cursor-pointer text-sm"
             >
               {t('clear')}
-            </button>
-            <button
-              id="back-to-edit-btn"
-              onClick={handleBackToEdit}
-              className="px-3 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-xl transition-all duration-200 cursor-pointer text-sm"
-            >
-              {t('edit')}
             </button>
           </div>
 
