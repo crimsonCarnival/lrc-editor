@@ -1,10 +1,11 @@
-import { useEffect, useRef, useMemo, useState } from 'react';
+import { useEffect, useRef, useMemo, useState, useLayoutEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 
 export default function Preview({ lines, setLines, playbackPosition, playerRef }) {
   const { t } = useTranslation();
   const containerRef = useRef(null);
   const activeRef = useRef(null);
+  const [containerHeight, setContainerHeight] = useState(0);
 
   const [showMenu, setShowMenu] = useState(false);
   const [pastingType, setPastingType] = useState(null); // 'secondary' | 'translation'
@@ -21,6 +22,17 @@ export default function Preview({ lines, setLines, playbackPosition, playerRef }
     }
     return idx;
   }, [lines, playbackPosition]);
+
+  // Track container height for dynamic padding
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(([entry]) => {
+      setContainerHeight(entry.contentRect.height);
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   // Auto-scroll to current line
   useEffect(() => {
@@ -151,7 +163,7 @@ export default function Preview({ lines, setLines, playbackPosition, playerRef }
               </p>
             </div>
           ) : (
-            <div className="space-y-1 py-4 sm:py-8 overflow-x-hidden px-1 sm:px-0">
+            <div className="space-y-1 overflow-x-hidden px-1 sm:px-0">
               {lines.map((line, i) => {
                 const isActive = i === currentIndex;
                 const isPast =
@@ -164,8 +176,8 @@ export default function Preview({ lines, setLines, playbackPosition, playerRef }
                     onClick={() => handleLineClick(line)}
                     title={line.timestamp != null ? t('clickToSeek') : ''}
                     className={`group px-2 sm:px-4 py-1 sm:py-2 rounded-lg transition-all duration-500 ease-out flex flex-col items-start cursor-pointer select-none relative ${isActive
-                        ? 'scale-y-105 origin-center my-1 sm:my-2 bg-zinc-800/10'
-                        : 'hover:bg-zinc-800/30'
+                      ? 'scale-y-105 origin-center my-1 sm:my-2 bg-zinc-800/10'
+                      : 'hover:bg-zinc-800/30'
                       }`}
                   >
                     {/* Play cursor on hover (only for synced lines) */}
@@ -180,8 +192,8 @@ export default function Preview({ lines, setLines, playbackPosition, playerRef }
                     {line.secondary && (
                       <p
                         className={`transition-all duration-300 w-full ${isActive
-                            ? 'text-xs sm:text-sm text-zinc-400 font-medium'
-                            : 'text-xs text-zinc-600'
+                          ? 'text-xs sm:text-sm text-zinc-400 font-medium'
+                          : 'text-xs text-zinc-600'
                           }`}
                       >
                         {line.secondary}
@@ -191,10 +203,10 @@ export default function Preview({ lines, setLines, playbackPosition, playerRef }
                     {/* Main Track */}
                     <p
                       className={`transition-all duration-500 ease-out w-full break-words ${isActive
-                          ? 'text-lg sm:text-2xl font-bold text-primary glow-line my-0.5 sm:my-1'
-                          : isPast
-                            ? 'text-sm sm:text-lg text-zinc-500'
-                            : 'text-sm sm:text-lg text-zinc-600'
+                        ? 'text-lg sm:text-2xl font-bold text-primary glow-line my-0.5 sm:my-1'
+                        : isPast
+                          ? 'text-sm sm:text-lg text-zinc-500'
+                          : 'text-sm sm:text-lg text-zinc-600'
                         }`}
                     >
                       {line.text || '♪'}
@@ -204,8 +216,8 @@ export default function Preview({ lines, setLines, playbackPosition, playerRef }
                     {line.translation && (
                       <p
                         className={`transition-all duration-300 w-full ${isActive
-                            ? 'text-lg sm:text-2xl text-zinc-500 font-medium my-0.5 sm:my-1'
-                            : 'text-sm sm:text-lg text-zinc-600'
+                          ? 'text-lg sm:text-2xl text-zinc-500 font-medium my-0.5 sm:my-1'
+                          : 'text-sm sm:text-lg text-zinc-600'
                           }`}
                       >
                         {line.translation}
