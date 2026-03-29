@@ -1,14 +1,13 @@
-import { useEffect, useRef, useMemo, useState, useLayoutEffect } from 'react';
+import { useEffect, useRef, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useSettings } from '../contexts/SettingsContext';
+import { useSettings } from '../contexts/useSettings';
 import { compileLRC, compileSRT, downloadLRC } from '../utils/lrc';
 
-export default function Preview({ lines, setLines, playbackPosition, playerRef, duration, mediaTitle }) {
+export default function Preview({ lines, setLines, playbackPosition, playerRef, duration, mediaTitle, editorMode }) {
   const { t } = useTranslation();
   const { settings } = useSettings();
   const containerRef = useRef(null);
   const activeRef = useRef(null);
-  const [containerHeight, setContainerHeight] = useState(0);
 
   const [showMenu, setShowMenu] = useState(false);
   const [pastingType, setPastingType] = useState(null); // 'secondary' | 'translation'
@@ -25,9 +24,48 @@ export default function Preview({ lines, setLines, playbackPosition, playerRef, 
   // Auto-fill filename from media title
   useEffect(() => {
     if (settings.defaultFilenamePattern === 'media' && mediaTitle) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setExportFilename(mediaTitle);
     }
   }, [mediaTitle, settings.defaultFilenamePattern]);
+
+  const sizeOption = settings.fontSize || 'normal';
+  const spacingOption = settings.spacing || 'normal';
+
+  const activeFontSizes = {
+    small: 'text-base sm:text-lg',
+    normal: 'text-lg sm:text-2xl',
+    large: 'text-xl sm:text-3xl',
+    xlarge: 'text-2xl sm:text-4xl'
+  };
+  const inactiveFontSizes = {
+    small: 'text-xs sm:text-sm',
+    normal: 'text-sm sm:text-lg',
+    large: 'text-base sm:text-xl',
+    xlarge: 'text-lg sm:text-2xl'
+  };
+  const activeSecondarySizes = {
+    small: 'text-[10px] sm:text-xs',
+    normal: 'text-xs sm:text-sm',
+    large: 'text-sm sm:text-base',
+    xlarge: 'text-base sm:text-lg'
+  };
+  const inactiveSecondarySizes = {
+    small: 'text-[9px] sm:text-[10px]',
+    normal: 'text-xs',
+    large: 'text-sm',
+    xlarge: 'text-sm sm:text-base'
+  };
+  const wrapperSpacing = {
+    compact: 'space-y-0',
+    normal: 'space-y-1',
+    relaxed: 'space-y-3'
+  };
+  const activeMargin = {
+    compact: 'my-0.5 sm:my-1',
+    normal: 'my-1 sm:my-2',
+    relaxed: 'my-2 sm:my-4'
+  };
 
   // Close export panel on outside click
   useEffect(() => {
@@ -72,6 +110,23 @@ export default function Preview({ lines, setLines, playbackPosition, playerRef, 
   // Find the current line index based on playback position
   const currentIndex = useMemo(() => {
     if (!lines.length) return -1;
+
+    if (editorMode === 'srt') {
+      // SRT: active if playback is within [start, end)
+      for (let i = lines.length - 1; i >= 0; i--) {
+        const line = lines[i];
+        if (line.timestamp != null && line.endTime != null) {
+          if (playbackPosition >= line.timestamp && playbackPosition < line.endTime) {
+            return i;
+          }
+        } else if (line.timestamp != null && line.timestamp <= playbackPosition) {
+          return i;
+        }
+      }
+      return -1;
+    }
+
+    // LRC: nearest start
     let idx = -1;
     for (let i = 0; i < lines.length; i++) {
       if (lines[i].timestamp != null && lines[i].timestamp <= playbackPosition) {
@@ -79,18 +134,7 @@ export default function Preview({ lines, setLines, playbackPosition, playerRef, 
       }
     }
     return idx;
-  }, [lines, playbackPosition]);
-
-  // Track container height for dynamic padding
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    const observer = new ResizeObserver(([entry]) => {
-      setContainerHeight(entry.contentRect.height);
-    });
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
+  }, [lines, playbackPosition, editorMode]);
 
   // Auto-scroll to current line
   useEffect(() => {
@@ -292,7 +336,7 @@ export default function Preview({ lines, setLines, playbackPosition, playerRef, 
               </p>
             </div>
           ) : (
-            <div className="space-y-1 overflow-x-hidden px-1 sm:px-0">
+            <div className={`overflow-x-hidden px-1 sm:px-0 scroll-smooth ${wrapperSpacing[spacingOption] || 'space-y-1'}`}>
               {lines.map((line, i) => {
                 const isActive = i === currentIndex;
                 const isPast =
@@ -309,7 +353,7 @@ export default function Preview({ lines, setLines, playbackPosition, playerRef, 
                       settings.previewAlignment === 'center' ? 'items-center text-center' :
                       'items-start text-left'
                     } ${isActive
-                      ? 'scale-y-105 origin-center my-1 sm:my-2 bg-zinc-800/10'
+                      ? `scale-y-105 origin-center bg-zinc-800/10 ${activeMargin[spacingOption] || 'my-1 sm:my-2'}`
                       : 'hover:bg-zinc-800/30'
                       }`}
                   >
@@ -327,8 +371,8 @@ export default function Preview({ lines, setLines, playbackPosition, playerRef, 
                     {line.secondary && (
                       <p
                         className={`transition-all duration-300 w-full ${isActive
-                          ? 'text-xs sm:text-sm text-zinc-400 font-medium'
-                          : 'text-xs text-zinc-600'
+                          ? `${activeSecondarySizes[sizeOption]} text-zinc-400 font-medium`
+                          : `${inactiveSecondarySizes[sizeOption]} text-zinc-600`
                           }`}
                       >
                         {line.secondary}
@@ -338,10 +382,10 @@ export default function Preview({ lines, setLines, playbackPosition, playerRef, 
                     {/* Main Track */}
                     <p
                       className={`transition-all duration-500 ease-out w-full break-words ${isActive
-                        ? 'text-lg sm:text-2xl font-bold text-primary glow-line my-0.5 sm:my-1'
+                        ? `${activeFontSizes[sizeOption]} font-bold text-primary glow-line ${spacingOption === 'compact' ? 'my-0' : 'my-0.5 sm:my-1'}`
                         : isPast
-                          ? 'text-sm sm:text-lg text-zinc-500'
-                          : 'text-sm sm:text-lg text-zinc-600'
+                          ? `${inactiveFontSizes[sizeOption]} text-zinc-500`
+                          : `${inactiveFontSizes[sizeOption]} text-zinc-600`
                         }`}
                     >
                       {line.text || '♪'}
@@ -351,8 +395,8 @@ export default function Preview({ lines, setLines, playbackPosition, playerRef, 
                     {(line.translation && showTranslationsInPreview) && (
                       <p
                         className={`transition-all duration-300 w-full ${isActive
-                          ? 'text-lg sm:text-2xl text-zinc-500 font-medium my-0.5 sm:my-1'
-                          : 'text-sm sm:text-lg text-zinc-600'
+                          ? `${activeFontSizes[sizeOption]} text-zinc-500 font-medium ${spacingOption === 'compact' ? 'my-0' : 'my-0.5 sm:my-1'}`
+                          : `${inactiveFontSizes[sizeOption]} text-zinc-600`
                           }`}
                       >
                         {line.translation}

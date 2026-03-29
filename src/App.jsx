@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import Player from './components/Player';
 import Editor from './components/Editor';
 import Preview from './components/Preview';
@@ -6,7 +6,9 @@ import Settings from './components/Settings';
 import useHistory from './utils/useHistory';
 import KeyboardHelp from './components/KeyboardHelp';
 import { useTranslation } from 'react-i18next';
-import { SettingsProvider, useSettings } from './contexts/SettingsContext';
+import { SettingsProvider } from './contexts/SettingsContext';
+import { useSettings } from './contexts/useSettings';
+import { inferEndTimes } from './utils/lrc';
 
 function AppInner() {
   const { t, i18n } = useTranslation();
@@ -23,30 +25,29 @@ function AppInner() {
   const [hasMedia, setHasMedia] = useState(false);
   const [showKeyboardHelp, setShowKeyboardHelp] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [isRestoring, setIsRestoring] = useState(true);
-  const [pendingSession, setPendingSession] = useState(null);
+  const [isRestoring] = useState(() => {
+    const saved = localStorage.getItem('lrc-syncer-session');
+    return !saved;
+  });
+  const [pendingSession, setPendingSession] = useState(() => {
+    try {
+      const saved = localStorage.getItem('lrc-syncer-session');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.lines && parsed.lines.length > 0) {
+          return parsed;
+        }
+      }
+    } catch (e) {
+      console.error('Failed to parse session data', e);
+    }
+    return null;
+  });
   const [showLangMenu, setShowLangMenu] = useState(false);
+  const [editorMode, setEditorModeRaw] = useState('lrc'); // 'lrc' | 'srt'
 
   const playerRef = useRef(null);
   const langMenuRef = useRef(null);
-
-
-
-  // ——— Auto-Save / Session Recovery ———
-  useEffect(() => {
-    const saved = localStorage.getItem('lrc-syncer-session');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (parsed.lines && parsed.lines.length > 0) {
-          setPendingSession(parsed);
-        }
-      } catch (e) {
-        console.error('Failed to parse session data', e);
-      }
-    }
-    setIsRestoring(false);
-  }, []);
 
   const handleManualSave = useCallback(() => {
     localStorage.setItem('lrc-syncer-session', JSON.stringify({
@@ -56,6 +57,15 @@ function AppInner() {
       timestamp: Date.now()
     }));
   }, [lines, syncMode, activeLineIndex]);
+
+  // Mode switching with end-time inference
+  const setEditorMode = useCallback((mode) => {
+    if (mode === 'srt' && editorMode !== 'srt') {
+      // LRC → SRT: infer missing end times
+      setLines(prev => inferEndTimes(prev, duration));
+    }
+    setEditorModeRaw(mode);
+  }, [editorMode, duration, setLines]);
 
   useEffect(() => {
     if (isRestoring || !lines.length || !settings.autoSaveEnabled) return;
@@ -97,7 +107,6 @@ function AppInner() {
       setPlaybackPosition(0);
       setDuration(0);
       setMediaTitle('');
-      setShowExportPanel(false);
     }
   }, [setLines, settings.confirmDestructive]);
 
@@ -262,6 +271,9 @@ function AppInner() {
                   redo={redo}
                   canUndo={canUndo}
                   canRedo={canRedo}
+                  editorMode={editorMode}
+                  setEditorMode={setEditorMode}
+                  duration={duration}
                 />
               ) : (
                 <div className="glass rounded-2xl p-5 flex flex-col items-center justify-center h-full animate-fade-in">
@@ -283,6 +295,7 @@ function AppInner() {
               mediaTitle={mediaTitle}
               playerRef={playerRef}
               duration={duration}
+              editorMode={editorMode}
             />
           </div>
         </div>
