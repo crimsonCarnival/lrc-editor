@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Inter", "Shippori Mincho", "Noto Sans SC", "Noto Sans KR", "Noto Sans TC", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Inter", "Noto Serif JP", ui-sans-serif, system-ui, sans-serif;
   --color-primary: #1DB954;
   --color-primary-dim: #1aa34a;
   --color-surface: rgba(255, 255, 255, 0.04);
