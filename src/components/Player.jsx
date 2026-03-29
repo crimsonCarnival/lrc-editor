@@ -1,22 +1,21 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { createVocalIsolation } from '../utils/audioProcessing';
 import { useTranslation } from 'react-i18next';
 import { useSettings } from '../contexts/useSettings';
 import ConfirmModal from './ConfirmModal';
 import NumberInput from './NumberInput';
 
-const ALL_SPEED_PRESETS = [0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1, 1.05, 1.1, 1.15, 1.2, 1.25, 1.3, 1.35, 1.4, 1.45, 1.5, 1.75, 2, 2.25, 2.5, 2.75, 3, 3.5, 4, 4.5, 5];
+const ALL_SPEED_PRESETS = [0.25, 0.5, 0.75, 1, 1.25, 1.5];
 
 export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, playerRef, mediaTitle, onTitleChange }) {
   const { t } = useTranslation();
-  const { settings } = useSettings();
+  const { settings, updateSetting } = useSettings();
 
-  const MIN_SPEED = settings.minSpeed;
-  const MAX_SPEED = settings.maxSpeed;
+  const MIN_SPEED = settings.playback?.speedBounds?.min ?? 0.25;
+  const MAX_SPEED = settings.playback?.speedBounds?.max ?? 3;
   const SPEED_PRESETS = useMemo(() =>
-    ALL_SPEED_PRESETS.filter(s => s >= settings.minSpeed && s <= settings.maxSpeed),
-    [settings.minSpeed, settings.maxSpeed]
+    (settings.playback?.speedPresets || ALL_SPEED_PRESETS).filter(s => s >= MIN_SPEED && s <= MAX_SPEED),
+    [MIN_SPEED, MAX_SPEED, settings.playback?.speedPresets]
   );
   const [source, setSource] = useState('local'); // 'local' | 'youtube'
   const [localUrl, setLocalUrl] = useState(null);
@@ -25,7 +24,6 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [vocalIsolation, setVocalIsolation] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
   const [speedMenuPos, setSpeedMenuPos] = useState(null);
@@ -38,7 +36,7 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
   });
 
   const requestConfirm = (message, action) => {
-    if (settings.confirmDestructive) {
+    if (settings.advanced?.confirmDestructive) {
       setConfirmConfig({ isOpen: true, message, onConfirm: action });
     } else {
       action();
@@ -53,7 +51,6 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
   const apiLoadedRef = useRef(false);
   const wavesurferRef = useRef(null);
   const waveContainerRef = useRef(null);
-  const vocalIsolationRef = useRef(null);
   const localBlobRef = useRef(null);
   const speedMenuRef = useRef(null);
   const speedBtnRef = useRef(null);
@@ -200,12 +197,6 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
           wavesurferRef.current.destroy();
           wavesurferRef.current = null;
         }
-        // Destroy vocal isolation
-        if (vocalIsolationRef.current) {
-          vocalIsolationRef.current.destroy();
-          vocalIsolationRef.current = null;
-        }
-        setVocalIsolation(false);
       } else if (source === 'youtube') {
         if (ytPlayerRef.current) {
           try { ytPlayerRef.current.destroy(); } catch { /* ignore */ }
@@ -236,21 +227,22 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
 
   // ——————— LOCAL AUDIO ———————
 
-  const handleFileChange = (e) => {
-    const file = e.target.files?.[0];
+  const handleFileChange = useCallback((e) => {
+    const file = e.type === 'change' ? e.target.files?.[0] : e;
     if (!file) return;
     localBlobRef.current = file;
     const url = URL.createObjectURL(file);
+    setSource('local');
     setLocalUrl(url);
     setIsPlaying(false);
     setCurrentTime(0);
     onTitleChange?.(file.name.replace(/\.[^/.]+$/, ""));
     onMediaChange?.(true);
-  };
+  }, [onTitleChange, onMediaChange]);
 
   // Initialize waveform when localUrl changes
   useEffect(() => {
-    if (!settings.showWaveform) {
+    if (!settings.playback?.showWaveform) {
       // Destroy if waveform was hidden while active
       if (wavesurferRef.current) {
         wavesurferRef.current.destroy();
@@ -265,7 +257,7 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
       }, 100);
       return () => clearTimeout(timer);
     }
-  }, [localUrl, initWaveform, settings.showWaveform]);
+  }, [localUrl, initWaveform, settings.playback?.showWaveform]);
 
   const handleLocalTimeUpdate = useCallback(() => {
     if (audioRef.current) {
@@ -280,23 +272,19 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
       const d = audioRef.current.duration;
       setDuration(d);
       onDurationChange?.(d);
-      audioRef.current.volume = settings.defaultVolume;
+      audioRef.current.volume = settings.playback.muted ? 0 : settings.playback.volume;
     }
   };
 
-  // ——————— VOCAL ISOLATION ———————
-
-  const toggleVocalIsolation = () => {
-    if (!audioRef.current) return;
-
-    if (!vocalIsolationRef.current) {
-      vocalIsolationRef.current = createVocalIsolation(audioRef.current);
-      vocalIsolationRef.current.init();
+  // Sync volume state when settings change
+  useEffect(() => {
+    if (source === 'local' && audioRef.current) {
+      audioRef.current.volume = settings.playback.muted ? 0 : settings.playback.volume;
+    } else if (source === 'youtube' && ytPlayerRef.current?.setVolume) {
+      ytPlayerRef.current.setVolume(settings.playback.muted ? 0 : (settings.playback.volume * 100));
     }
+  }, [settings.playback.volume, settings.playback.muted, source, ytReady]);
 
-    vocalIsolationRef.current.toggle();
-    setVocalIsolation(vocalIsolationRef.current.isEnabled());
-  };
 
   // ——————— YOUTUBE ———————
 
@@ -381,7 +369,7 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
             const d = e.target.getDuration();
             setDuration(d);
             onDurationChange?.(d);
-            e.target.setVolume(settings.defaultVolume * 100);
+            e.target.setVolume(settings.playback.muted ? 0 : (settings.playback.volume * 100));
 
             const title = e.target.getVideoData()?.title;
             if (title) onTitleChange?.(title);
@@ -390,11 +378,11 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
           onStateChange: (e) => {
             const playing = e.data === window.YT.PlayerState.PLAYING;
             setIsPlaying(playing);
-            if (e.data === window.YT.PlayerState.PAUSED && settings.autoRewindOnPause > 0) {
+            if (e.data === window.YT.PlayerState.PAUSED && settings.playback?.autoRewindOnPause?.enabled) {
               const current = ytPlayerRef.current.getCurrentTime();
               const dur = ytPlayerRef.current.getDuration();
               if (current > 0 && current < dur) {
-                const newTime = Math.max(0, current - settings.autoRewindOnPause);
+                const newTime = Math.max(0, current - (settings.playback?.autoRewindOnPause?.seconds || 2));
                 ytPlayerRef.current.seekTo(newTime, true);
                 setCurrentTime(newTime);
                 onTimeUpdate?.(newTime);
@@ -538,9 +526,12 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
         getAudioBlob: () => {
           return localBlobRef.current || null;
         },
+        loadLocalAudio: (file) => {
+          handleFileChange(file);
+        }
       };
     }
-  }, [source, isPlaying, playerRef, togglePlay, seek]);
+  }, [source, isPlaying, playerRef, togglePlay, seek, handleFileChange]);
 
   const formatTime = (s) => {
     if (!s || isNaN(s)) return '0:00.00';
@@ -551,9 +542,9 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
   };
 
   const handleLocalPause = () => {
-    if (settings.autoRewindOnPause > 0 && audioRef.current && audioRef.current.currentTime > 0) {
+    if (settings.playback?.autoRewindOnPause?.enabled && audioRef.current && audioRef.current.currentTime > 0) {
       if (audioRef.current.currentTime < audioRef.current.duration) {
-        const newTime = Math.max(0, audioRef.current.currentTime - settings.autoRewindOnPause);
+        const newTime = Math.max(0, audioRef.current.currentTime - (settings.playback?.autoRewindOnPause?.seconds || 2));
         audioRef.current.currentTime = newTime;
         setCurrentTime(newTime);
         onTimeUpdate?.(newTime);
@@ -643,7 +634,7 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
       {source === 'local' && localUrl && (
         <div className="animate-fade-in space-y-3">
           {/* Waveform container */}
-          {settings.showWaveform && (
+          {settings.playback?.showWaveform && (
             <div
               ref={waveContainerRef}
               className="w-full rounded-lg overflow-hidden bg-zinc-900/40 border border-zinc-800/50 cursor-pointer"
@@ -741,22 +732,45 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
               {formatTime(duration)}
             </span>
 
-            {/* Vocal Isolation Toggle — only for local audio, if enabled in settings */}
-            {settings.showEQ && source === 'local' && localUrl && (
+            {/* Volume Control */}
+            <div className="flex items-center gap-1 sm:gap-1.5 group/volume relative">
               <button
-                id="vocal-isolation-btn"
-                onClick={toggleVocalIsolation}
-                title={vocalIsolation ? t('disableVocals') : t('focusVocals')}
-                className={`w-8 sm:w-9 h-8 sm:h-9 flex items-center justify-center rounded-full transition-all duration-200 cursor-pointer flex-shrink-0 ${vocalIsolation
-                  ? 'bg-primary text-zinc-950 shadow-lg shadow-primary/30 scale-110'
-                  : 'bg-zinc-800 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700'
-                  }`}
+                onClick={() => updateSetting('playback.muted', !settings.playback.muted)}
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-zinc-800/80 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700 transition-all cursor-pointer flex-shrink-0"
+                title={settings.playback.muted ? t('unmute') || 'Unmute' : t('mute') || 'Mute'}
               >
-                <svg className="w-3 sm:w-4 h-3 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                </svg>
+                {settings.playback.muted || settings.playback.volume === 0 ? (
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 9.75L19.5 12m0 0l2.25 2.25M19.5 12l2.25-2.25M19.5 12l-2.25 2.25m-10.5-6.75h-2.25A2.25 2.25 0 002.25 9.75v4.5a2.25 2.25 0 002.25 2.25h2.25l6.75 6.75V3.75l-6.75 6.75z" />
+                  </svg>
+                ) : (
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.114 5.636a9 9 0 010 12.728M16.463 8.288a5.25 5.25 0 010 7.424M6.75 8.25l4.72-4.72a.75.75 0 011.28.53v15.88a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 012.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75z" />
+                  </svg>
+                )}
               </button>
-            )}
+              <div className="overflow-hidden w-0 group-hover/volume:w-24 focus-within/volume:w-24 transition-all duration-300 flex items-center">
+                <input
+                  type="range"
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  value={settings.playback.volume}
+                  onChange={(e) => {
+                    const val = parseFloat(e.target.value);
+                    updateSetting('playback.volume', val);
+                    if (val > 0 && settings.playback.muted) {
+                      updateSetting('playback.muted', false);
+                    }
+                  }}
+                  className="w-20 mx-2"
+                  style={{
+                    background: `linear-gradient(to right, var(--color-primary) ${settings.playback.volume * 100}%, rgba(255, 255, 255, 0.15) ${settings.playback.volume * 100}%)`
+                  }}
+                />
+              </div>
+            </div>
+
 
             {/* Speed Control Dropdown */}
             <div className="relative">
