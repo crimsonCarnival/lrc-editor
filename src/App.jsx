@@ -8,7 +8,7 @@ import KeyboardHelp from './components/KeyboardHelp';
 import { useTranslation } from 'react-i18next';
 import { SettingsProvider } from './contexts/SettingsContext';
 import { useSettings } from './contexts/useSettings';
-import { inferEndTimes } from './utils/lrc';
+import { inferEndTimes, parseLrcSrtFile } from './utils/lrc';
 
 function AppInner() {
   const { t, i18n } = useTranslation();
@@ -19,9 +19,9 @@ function AppInner() {
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
 
     const updateTheme = () => {
-      if (settings.theme === 'light') {
+      if (settings.interface.theme === 'light') {
         root.classList.remove('dark');
-      } else if (settings.theme === 'system') {
+      } else if (settings.interface.theme === 'system') {
         if (mediaQuery.matches) {
           root.classList.add('dark');
         } else {
@@ -36,10 +36,13 @@ function AppInner() {
     mediaQuery.addEventListener('change', updateTheme);
 
     return () => mediaQuery.removeEventListener('change', updateTheme);
-  }, [settings.theme]);
+  }, [settings.interface.theme]);
 
   // Lines state with undo/redo
-  const [lines, setLines, undo, redo, canUndo, canRedo] = useHistory([]);
+  const [lines, setLines, undo, redo, canUndo, canRedo] = useHistory([], {
+    limit: settings.advanced?.history?.limit || 50,
+    groupingThresholdMs: settings.advanced?.history?.groupingThresholdMs || 500
+  });
 
   const [syncMode, setSyncMode] = useState(false);
   const [activeLineIndex, setActiveLineIndex] = useState(0);
@@ -69,6 +72,8 @@ function AppInner() {
   });
   const [showLangMenu, setShowLangMenu] = useState(false);
   const [editorMode, setEditorModeRaw] = useState('lrc'); // 'lrc' | 'srt'
+  const [isDraggingFile, setIsDraggingFile] = useState(false);
+  const maxDragDepth = useRef(0);
 
   const playerRef = useRef(null);
   const langMenuRef = useRef(null);
@@ -86,13 +91,13 @@ function AppInner() {
   const setEditorMode = useCallback((mode) => {
     if (mode === 'srt' && editorMode !== 'srt') {
       // LRC → SRT: infer missing end times
-      setLines(prev => inferEndTimes(prev, duration));
+      setLines(prev => inferEndTimes(prev, duration, settings.editor?.srt));
     }
     setEditorModeRaw(mode);
   }, [editorMode, duration, setLines]);
 
   useEffect(() => {
-    if (isRestoring || !lines.length || !settings.autoSaveEnabled) return;
+    if (isRestoring || !lines.length || !settings.advanced.autoSave.enabled) return;
     const timeoutId = setTimeout(() => {
       localStorage.setItem('lrc-syncer-session', JSON.stringify({
         lines,
@@ -100,9 +105,9 @@ function AppInner() {
         activeLineIndex,
         timestamp: Date.now()
       }));
-    }, settings.autoSaveInterval);
+    }, settings.advanced.autoSave.interval);
     return () => clearTimeout(timeoutId);
-  }, [lines, syncMode, activeLineIndex, isRestoring, settings.autoSaveEnabled, settings.autoSaveInterval]);
+  }, [lines, syncMode, activeLineIndex, isRestoring, settings.advanced.autoSave.enabled, settings.advanced.autoSave.interval]);
 
   const handleRestoreSession = () => {
     if (pendingSession) {
@@ -122,7 +127,7 @@ function AppInner() {
   const handleMediaChange = useCallback((loaded) => {
     setHasMedia(loaded);
     if (!loaded) {
-      if (settings.confirmDestructive) {
+      if (settings.advanced.confirmDestructive) {
         // No confirm needed when media is simply removed — data is auto-saved
       }
       setLines([]);
@@ -132,7 +137,7 @@ function AppInner() {
       setDuration(0);
       setMediaTitle('');
     }
-  }, [setLines, settings.confirmDestructive]);
+  }, [setLines, settings.advanced.confirmDestructive]);
 
   // ——— Global Undo/Redo keyboard shortcut ———
   useEffect(() => {
@@ -174,7 +179,92 @@ function AppInner() {
     setDuration(d);
   }, []);
 
+  // Loop Current Line logic
+  useEffect(() => {
+    if (!settings.playback?.loopCurrentLine || !syncMode || !lines[activeLineIndex] || lines[activeLineIndex].timestamp == null) return;
+    
+    const currentLine = lines[activeLineIndex];
+    let endMark = currentLine.endTime;
 
+    if (editorMode !== 'srt' || endMark == null) {
+      const nextLine = lines.slice(activeLineIndex + 1).find(l => l.timestamp != null);
+      if (nextLine) endMark = nextLine.timestamp;
+    }
+
+    if (endMark != null && playbackPosition >= endMark) {
+      playerRef.current?.seek(currentLine.timestamp);
+    }
+  }, [playbackPosition, settings.playback?.loopCurrentLine, syncMode, lines, activeLineIndex, editorMode]);
+
+  const handleDragEnter = useCallback((e) => {
+    e.preventDefault();
+    maxDragDepth.current += 1;
+    if (e.dataTransfer?.types?.includes('Files')) {
+      setIsDraggingFile(true);
+    }
+  }, []);
+
+  const handleDragLeave = useCallback((e) => {
+    e.preventDefault();
+    maxDragDepth.current -= 1;
+    if (maxDragDepth.current === 0) {
+      setIsDraggingFile(false);
+    }
+  }, []);
+
+  const handleDragOver = useCallback((e) => {
+    e.preventDefault();
+  }, []);
+
+  const handleDrop = useCallback(async (e) => {
+    e.preventDefault();
+    maxDragDepth.current = 0;
+    setIsDraggingFile(false);
+    
+    const file = e.dataTransfer?.files?.[0];
+    if (!file) return;
+
+    if (file.type.startsWith('audio/')) {
+      if (playerRef.current?.loadLocalAudio) {
+        playerRef.current.loadLocalAudio(file);
+      }
+      return;
+    }
+
+    const extension = file.name.split('.').pop().toLowerCase();
+    
+    if (['lrc', 'srt', 'txt'].includes(extension)) {
+      try {
+        const text = await file.text();
+        const parsedLines = parseLrcSrtFile(text, file.name);
+        
+        if (lines.length > 0 && settings.advanced.confirmDestructive) {
+          if (!window.confirm(t('confirmRemoveAll') || 'Replace existing lyrics?')) {
+            return;
+          }
+        }
+        
+        setLines(parsedLines);
+        setEditorModeRaw(extension === 'srt' ? 'srt' : 'lrc');
+      } catch (err) {
+        console.error('Failed to parse dropped lyrics file', err);
+      }
+    }
+  }, [lines.length, setLines, settings.advanced.confirmDestructive, t]);
+
+  useEffect(() => {
+    window.addEventListener('dragenter', handleDragEnter);
+    window.addEventListener('dragleave', handleDragLeave);
+    window.addEventListener('dragover', handleDragOver);
+    window.addEventListener('drop', handleDrop);
+    
+    return () => {
+      window.removeEventListener('dragenter', handleDragEnter);
+      window.removeEventListener('dragleave', handleDragLeave);
+      window.removeEventListener('dragover', handleDragOver);
+      window.removeEventListener('drop', handleDrop);
+    };
+  }, [handleDragEnter, handleDragLeave, handleDragOver, handleDrop]);
 
   return (
     <div className="min-h-screen lg:h-screen bg-zinc-950 relative overflow-x-hidden flex flex-col">
@@ -185,6 +275,17 @@ function AppInner() {
         <div className="absolute top-1/3 -right-40 w-80 h-80 bg-accent-purple/5 rounded-full blur-3xl" />
         <div className="absolute -bottom-40 left-1/3 w-96 h-96 bg-accent-blue/5 rounded-full blur-3xl" />
       </div>
+
+      {isDraggingFile && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm pointer-events-none transition-all">
+          <div className="flex flex-col items-center gap-4 text-primary animate-bounce">
+            <svg className="w-20 h-20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+            </svg>
+            <h2 className="text-3xl font-bold tracking-tight text-center px-4">{t('dropAudio') || 'Drop your audio or lyrics file here'}</h2>
+          </div>
+        </div>
+      )}
 
 
       <header className="relative z-50 flex flex-row items-center justify-between gap-2 w-full px-4 sm:px-6 lg:px-8 py-3 sm:py-5 animate-fade-in">
@@ -218,8 +319,7 @@ function AppInner() {
                 <div className="absolute right-0 top-full mt-2 w-28 bg-zinc-900 border border-zinc-700/80 rounded-lg sm:rounded-xl shadow-2xl py-1.5 z-50 animate-fade-in flex flex-col items-stretch">
                   {[
                     { code: 'en', label: 'EN' },
-                    { code: 'es', label: 'ES' },
-                    { code: 'ja', label: 'JA' }
+                    { code: 'es', label: 'ES' }
                   ].map(lang => (
                     <button
                       key={lang.code}
