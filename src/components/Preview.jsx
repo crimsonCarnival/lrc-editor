@@ -22,14 +22,14 @@ export default function Preview({ lines, setLines, playbackPosition, playerRef, 
   const [metadata, setMetadata] = useState({ ti: '', ar: '', al: '', lg: '' });
 
   useEffect(() => {
-  if (settings.defaultFilenamePattern === 'media' && mediaTitle) {
+  if (settings.export?.defaultFilenamePattern === 'media' && mediaTitle) {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setExportFilename(mediaTitle);
   }
-}, [mediaTitle, settings.defaultFilenamePattern]);
+}, [mediaTitle, settings.export?.defaultFilenamePattern]);
 
-  const sizeOption = settings.fontSize || 'normal';
-  const spacingOption = settings.spacing || 'normal';
+  const sizeOption = settings.interface?.fontSize || 'normal';
+  const spacingOption = settings.interface?.spacing || 'normal';
 
   const activeFontSizes = {
     small: 'text-base sm:text-lg',
@@ -79,12 +79,12 @@ export default function Preview({ lines, setLines, playbackPosition, playerRef, 
 
   const handleExport = () => {
     const name = exportFilename.trim() || 'lyrics';
-    if (settings.downloadFormat === 'srt') {
-      const srt = compileSRT(lines, duration, includeTranslations, settings.lineEndings);
+    if (settings.export?.downloadFormat === 'srt') {
+      const srt = compileSRT(lines, duration, includeTranslations, settings.export?.lineEndings, settings.editor?.srt);
       downloadLRC(srt, `${name}.srt`);
     } else {
       const filteredMetadata = Object.fromEntries(Object.entries(metadata).filter(([, v]) => v.trim() !== ''));
-      const lrc = compileLRC(lines, includeTranslations, settings.timestampPrecision, filteredMetadata, settings.lineEndings);
+      const lrc = compileLRC(lines, includeTranslations, settings.export?.timestampPrecision, filteredMetadata, settings.export?.lineEndings);
       downloadLRC(lrc, `${name}.lrc`);
     }
     setShowExportPanel(false);
@@ -92,11 +92,11 @@ export default function Preview({ lines, setLines, playbackPosition, playerRef, 
 
   const handleCopy = async () => {
     let content = '';
-    if (settings.copyFormat === 'srt') {
-      content = compileSRT(lines, duration, includeTranslations, settings.lineEndings);
+    if (settings.export?.copyFormat === 'srt') {
+      content = compileSRT(lines, duration, includeTranslations, settings.export?.lineEndings, settings.editor?.srt);
     } else {
       const filteredMetadata = Object.fromEntries(Object.entries(metadata).filter(([, v]) => v.trim() !== ''));
-      content = compileLRC(lines, includeTranslations, settings.timestampPrecision, filteredMetadata, settings.lineEndings);
+      content = compileLRC(lines, includeTranslations, settings.export?.timestampPrecision, filteredMetadata, settings.export?.lineEndings);
     }
     try {
       await navigator.clipboard.writeText(content);
@@ -134,13 +134,37 @@ export default function Preview({ lines, setLines, playbackPosition, playerRef, 
   }, [lines, playbackPosition, editorMode]);
 
   useEffect(() => {
-    if (activeRef.current && containerRef.current) {
-      activeRef.current.scrollIntoView({
-        behavior: settings.scrollBehavior,
-        block: settings.scrollBlock,
+    if (activeRef.current && containerRef.current && settings.editor?.scroll?.alignment !== 'none') {
+      const container = containerRef.current;
+      const element = activeRef.current;
+      
+      const containerRect = container.getBoundingClientRect();
+      const elementRect = element.getBoundingClientRect();
+      
+      const elementTop = elementRect.top - containerRect.top + container.scrollTop;
+      let scrollTo = container.scrollTop;
+
+      if (settings.editor?.scroll?.alignment === 'center') {
+        scrollTo = elementTop - (containerRect.height / 2) + (elementRect.height / 2);
+      } else if (settings.editor?.scroll?.alignment === 'start') {
+        scrollTo = elementTop;
+      } else if (settings.editor?.scroll?.alignment === 'end') {
+        scrollTo = elementTop - containerRect.height + elementRect.height;
+      } else {
+        // nearest
+        if (elementRect.top < containerRect.top) {
+          scrollTo = elementTop;
+        } else if (elementRect.bottom > containerRect.bottom) {
+          scrollTo = elementTop - containerRect.height + elementRect.height;
+        }
+      }
+
+      container.scrollTo({
+        top: scrollTo,
+        behavior: settings.editor?.scroll?.mode || 'smooth',
       });
     }
-  }, [currentIndex, settings.scrollBehavior, settings.scrollBlock]);
+  }, [currentIndex, settings.editor?.scroll?.mode, settings.editor?.scroll?.alignment]);
 
   const syncedLines = lines.filter((l) => l.timestamp != null);
   const hasSyncedLines = syncedLines.length > 0;
@@ -209,11 +233,11 @@ export default function Preview({ lines, setLines, playbackPosition, playerRef, 
                         placeholder="lyrics"
                         className="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/25 transition-all w-0"
                       />
-                      <span className="text-sm text-zinc-500 min-w-8">.{settings.downloadFormat}</span>
+                      <span className="text-sm text-zinc-500 min-w-8">.{settings.export?.downloadFormat}</span>
                     </div>
                   </label>
 
-                  {settings.downloadFormat === 'lrc' && (
+                  {settings.export?.downloadFormat === 'lrc' && (
                     <div className="space-y-2 pt-2 border-t border-zinc-700/50">
                       <span className="text-xs text-zinc-400 font-medium">{t('exportMetadata', 'LRC Metadata')}</span>
                       {['ti', 'ar', 'al', 'lg'].map((key) => {
@@ -251,7 +275,7 @@ export default function Preview({ lines, setLines, playbackPosition, playerRef, 
                       onClick={handleCopy}
                       className="flex-1 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-semibold text-sm rounded-lg transition-all cursor-pointer"
                     >
-                      {wasCopied ? `${t('copied')} ${settings.copyFormat.toUpperCase()}!` : t('copyToClipboard')}
+                      {wasCopied ? `${t('copied')} ${settings.export?.copyFormat.toUpperCase()}!` : t('copyToClipboard')}
                     </button>
                     <button
                       onClick={handleExport}
@@ -352,32 +376,62 @@ export default function Preview({ lines, setLines, playbackPosition, playerRef, 
                 {t('previewPlaceholder')}
               </p>
             </div>
-          ) : (
-            <div className={`overflow-x-hidden px-1 sm:px-0 scroll-smooth ${wrapperSpacing[spacingOption] || 'space-y-1'}`}>
-              {lines.map((line, i) => {
-                const isActive = i === currentIndex;
-                const isPast =
-                  line.timestamp != null && line.timestamp < playbackPosition && !isActive;
+          ) : (() => {
+            const isDualLine = settings.editor?.display?.dualLine;
+            const showNextLine = settings.editor?.display?.showNextLine !== false;
 
-                return (
-                  <div
-                    key={i}
-                    ref={isActive ? activeRef : null}
+            let displayLines = lines.map((l, i) => ({ line: l, originalIndex: i }));
+            
+            if (isDualLine) {
+              if (currentIndex === -1) {
+                 const firstSynced = lines.findIndex(l => l.timestamp != null);
+                 displayLines = firstSynced !== -1 
+                   ? [{ line: lines[firstSynced], originalIndex: firstSynced }]
+                   : [{ line: lines[0], originalIndex: 0 }];
+                 
+                 if (showNextLine && displayLines[0].originalIndex + 1 < lines.length) {
+                    const idx = displayLines[0].originalIndex + 1;
+                    displayLines.push({ line: lines[idx], originalIndex: idx });
+                 }
+              } else {
+                 displayLines = [{ line: lines[currentIndex], originalIndex: currentIndex }];
+                 if (showNextLine) {
+                    let nextIdx = currentIndex + 1;
+                    while (nextIdx < lines.length && lines[nextIdx].timestamp == null) {
+                       nextIdx++;
+                    }
+                    if (nextIdx < lines.length) {
+                       displayLines.push({ line: lines[nextIdx], originalIndex: nextIdx });
+                    }
+                 }
+              }
+            }
+
+            return (
+              <div className={`overflow-x-hidden px-1 sm:px-0 scroll-smooth ${isDualLine ? 'h-full flex flex-col justify-center items-center gap-4 sm:gap-8' : wrapperSpacing[spacingOption] || 'space-y-1'}`}>
+                {displayLines.map(({ line, originalIndex: i }) => {
+                  const isActive = i === currentIndex || (isDualLine && i === displayLines[0].originalIndex);
+                  const isPast =
+                    line.timestamp != null && line.timestamp < playbackPosition && !isActive;
+
+                  return (
+                    <div
+                      key={i}
+                      ref={isActive && !isDualLine ? activeRef : null}
                     onClick={() => handleLineClick(line)}
                     title={line.timestamp != null ? t('clickToSeek') : ''}
                     className={`group px-2 sm:px-4 py-1 sm:py-2 rounded-lg transition-all duration-500 ease-out flex flex-col cursor-pointer select-none relative ${
-                      settings.previewAlignment === 'right' ? 'items-end text-right' :
-                      settings.previewAlignment === 'center' ? 'items-center text-center' :
+                      settings.interface?.previewAlignment === 'right' ? 'items-end text-right' :
+                      settings.interface?.previewAlignment === 'center' ? 'items-center text-center' :
                       'items-start text-left'
                     } ${isActive
-                      ? `${settings.activeLineHighlight === 'zoom' ? 'scale-y-105' : ''} origin-center bg-zinc-800/10 ${activeMargin[spacingOption] || 'my-1 sm:my-2'}`
+                      ? `${settings.editor?.display?.activeHighlight === 'zoom' ? 'scale-y-105' : ''} origin-center bg-zinc-800/10 ${activeMargin[spacingOption] || 'my-1 sm:my-2'}`
                       : 'hover:bg-zinc-800/30'
                       }`}
                   >
-                    {/* Play cursor on hover (only for synced lines) */}
                     {line.timestamp != null && (
                       <div className={`absolute top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-primary pointer-events-none ${
-                        settings.previewAlignment === 'right' ? 'right-0 translate-x-full pl-2' : 'left-0 -translate-x-full pr-2'
+                        settings.interface?.previewAlignment === 'right' ? 'right-0 translate-x-full pl-2' : 'left-0 -translate-x-full pr-2'
                       }`}>
                         <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                           <path d="M8 5v14l11-7z" />
@@ -399,10 +453,10 @@ export default function Preview({ lines, setLines, playbackPosition, playerRef, 
                     {/* Main Track */}
                     <p
                       className={`transition-all duration-500 ease-out w-full break-words ${isActive
-                        ? `${activeFontSizes[sizeOption]} font-bold ${settings.activeLineHighlight === 'glow' ? 'text-primary glow-line' : settings.activeLineHighlight === 'color' ? 'text-primary' : settings.activeLineHighlight === 'dim' ? 'text-zinc-100' : 'text-primary'} ${spacingOption === 'compact' ? 'my-0' : 'my-0.5 sm:my-1'}`
+                        ? `${activeFontSizes[sizeOption]} font-bold ${settings.editor?.display?.activeHighlight === 'glow' ? 'text-primary glow-line' : settings.editor?.display?.activeHighlight === 'color' ? 'text-primary' : settings.editor?.display?.activeHighlight === 'dim' ? 'text-zinc-100' : 'text-primary'} ${spacingOption === 'compact' ? 'my-0' : 'my-0.5 sm:my-1'}`
                         : isPast
-                          ? `${inactiveFontSizes[sizeOption]} ${settings.activeLineHighlight === 'dim' ? 'text-zinc-700' : 'text-zinc-500'}`
-                          : `${inactiveFontSizes[sizeOption]} ${settings.activeLineHighlight === 'dim' ? 'text-zinc-800' : 'text-zinc-600'}`
+                          ? `${inactiveFontSizes[sizeOption]} ${settings.editor?.display?.activeHighlight === 'dim' ? 'text-zinc-700' : 'text-zinc-500'}`
+                          : `${inactiveFontSizes[sizeOption]} ${settings.editor?.display?.activeHighlight === 'dim' ? 'text-zinc-800' : 'text-zinc-600'}`
                         }`}
                     >
                       {line.text || '♪'}
@@ -423,7 +477,8 @@ export default function Preview({ lines, setLines, playbackPosition, playerRef, 
                 );
               })}
             </div>
-          )}
+          );
+        })()}
         </div>
       )}
     </div>

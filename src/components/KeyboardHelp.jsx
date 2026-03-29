@@ -37,9 +37,9 @@ export default function KeyboardHelp({ isOpen, onClose }) {
 
   const shortcuts = [
     { section: t('syncModeOnly'), items: [
-      { keys: [formatKeyName(settings.shortcutMark || 'Space')], desc: t('shortcutMark') },
-      { keys: [formatKeyName(settings.shortcutNudgeLeft || 'ArrowLeft')], desc: t('shortcutNudgeLeft', { val: settings.nudgeIncrement || 0.1 }) },
-      { keys: [formatKeyName(settings.shortcutNudgeRight || 'ArrowRight')], desc: t('shortcutNudgeRight', { val: settings.nudgeIncrement || 0.1 }) },
+      { keys: [formatKeyName(settings.shortcuts?.mark?.[0] || 'Space')], desc: t('shortcutMark') },
+      { keys: [formatKeyName(settings.shortcuts?.nudgeLeft?.[0] || 'ArrowLeft')], desc: t('shortcutNudgeLeft', { val: settings.editor?.nudge?.default || 0.1 }) },
+      { keys: [formatKeyName(settings.shortcuts?.nudgeRight?.[0] || 'ArrowRight')], desc: t('shortcutNudgeRight', { val: settings.editor?.nudge?.default || 0.1 }) },
     ]},
     { section: t('shortcutSelectionSection'), items: [
       { keys: ['Shift', t('shortcutClick')], desc: t('shortcutRangeSelect') },
