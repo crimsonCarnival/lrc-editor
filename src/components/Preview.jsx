@@ -8,26 +8,25 @@ export default function Preview({ lines, setLines, playbackPosition, playerRef, 
   const { settings } = useSettings();
   const containerRef = useRef(null);
   const activeRef = useRef(null);
+  const exportPanelRef = useRef(null); // ✅ FIX
 
   const [showMenu, setShowMenu] = useState(false);
   const [pastingType, setPastingType] = useState(null); // 'secondary' | 'translation'
   const [pasteText, setPasteText] = useState('');
   
-  // Custom Export states
   const [exportFilename, setExportFilename] = useState('lyrics');
   const [showExportPanel, setShowExportPanel] = useState(false);
   const [includeTranslations, setIncludeTranslations] = useState(false);
   const [showTranslationsInPreview, setShowTranslationsInPreview] = useState(true);
   const [wasCopied, setWasCopied] = useState(false);
-  const exportPanelRef = useRef(null);
+  const [metadata, setMetadata] = useState({ ti: '', ar: '', al: '', lg: '' });
 
-  // Auto-fill filename from media title
   useEffect(() => {
-    if (settings.defaultFilenamePattern === 'media' && mediaTitle) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setExportFilename(mediaTitle);
-    }
-  }, [mediaTitle, settings.defaultFilenamePattern]);
+  if (settings.defaultFilenamePattern === 'media' && mediaTitle) {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setExportFilename(mediaTitle);
+  }
+}, [mediaTitle, settings.defaultFilenamePattern]);
 
   const sizeOption = settings.fontSize || 'normal';
   const spacingOption = settings.spacing || 'normal';
@@ -67,7 +66,6 @@ export default function Preview({ lines, setLines, playbackPosition, playerRef, 
     relaxed: 'my-2 sm:my-4'
   };
 
-  // Close export panel on outside click
   useEffect(() => {
     if (!showExportPanel) return;
     const handler = (e) => {
@@ -82,10 +80,11 @@ export default function Preview({ lines, setLines, playbackPosition, playerRef, 
   const handleExport = () => {
     const name = exportFilename.trim() || 'lyrics';
     if (settings.downloadFormat === 'srt') {
-      const srt = compileSRT(lines, duration, includeTranslations);
+      const srt = compileSRT(lines, duration, includeTranslations, settings.lineEndings);
       downloadLRC(srt, `${name}.srt`);
     } else {
-      const lrc = compileLRC(lines, includeTranslations, settings.timestampPrecision);
+      const filteredMetadata = Object.fromEntries(Object.entries(metadata).filter(([, v]) => v.trim() !== ''));
+      const lrc = compileLRC(lines, includeTranslations, settings.timestampPrecision, filteredMetadata, settings.lineEndings);
       downloadLRC(lrc, `${name}.lrc`);
     }
     setShowExportPanel(false);
@@ -94,9 +93,10 @@ export default function Preview({ lines, setLines, playbackPosition, playerRef, 
   const handleCopy = async () => {
     let content = '';
     if (settings.copyFormat === 'srt') {
-      content = compileSRT(lines, duration, includeTranslations);
+      content = compileSRT(lines, duration, includeTranslations, settings.lineEndings);
     } else {
-      content = compileLRC(lines, includeTranslations, settings.timestampPrecision);
+      const filteredMetadata = Object.fromEntries(Object.entries(metadata).filter(([, v]) => v.trim() !== ''));
+      content = compileLRC(lines, includeTranslations, settings.timestampPrecision, filteredMetadata, settings.lineEndings);
     }
     try {
       await navigator.clipboard.writeText(content);
@@ -107,12 +107,10 @@ export default function Preview({ lines, setLines, playbackPosition, playerRef, 
     }
   };
 
-  // Find the current line index based on playback position
   const currentIndex = useMemo(() => {
     if (!lines.length) return -1;
 
     if (editorMode === 'srt') {
-      // SRT: active if playback is within [start, end)
       for (let i = lines.length - 1; i >= 0; i--) {
         const line = lines[i];
         if (line.timestamp != null && line.endTime != null) {
@@ -126,7 +124,6 @@ export default function Preview({ lines, setLines, playbackPosition, playerRef, 
       return -1;
     }
 
-    // LRC: nearest start
     let idx = -1;
     for (let i = 0; i < lines.length; i++) {
       if (lines[i].timestamp != null && lines[i].timestamp <= playbackPosition) {
@@ -136,7 +133,6 @@ export default function Preview({ lines, setLines, playbackPosition, playerRef, 
     return idx;
   }, [lines, playbackPosition, editorMode]);
 
-  // Auto-scroll to current line
   useEffect(() => {
     if (activeRef.current && containerRef.current) {
       activeRef.current.scrollIntoView({
@@ -216,6 +212,27 @@ export default function Preview({ lines, setLines, playbackPosition, playerRef, 
                       <span className="text-sm text-zinc-500 min-w-8">.{settings.downloadFormat}</span>
                     </div>
                   </label>
+
+                  {settings.downloadFormat === 'lrc' && (
+                    <div className="space-y-2 pt-2 border-t border-zinc-700/50">
+                      <span className="text-xs text-zinc-400 font-medium">{t('exportMetadata', 'LRC Metadata')}</span>
+                      {['ti', 'ar', 'al', 'lg'].map((key) => {
+                        const labels = { ti: t('metaTitle', 'Title'), ar: t('metaArtist', 'Artist'), al: t('metaAlbum', 'Album'), lg: t('metaLanguage', 'Language') };
+                        return (
+                          <div key={key} className="flex items-center gap-2">
+                            <span className="text-xs text-zinc-500 w-16">{labels[key]}</span>
+                            <input
+                              type="text"
+                              value={metadata[key]}
+                              onChange={(e) => setMetadata(prev => ({ ...prev, [key]: e.target.value }))}
+                              placeholder={labels[key]}
+                              className="flex-1 bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-xs text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-primary/50"
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
 
                   {lines.some(l => l.translation || l.secondary) && (
                     <label className="flex items-center gap-2 cursor-pointer">
@@ -353,7 +370,7 @@ export default function Preview({ lines, setLines, playbackPosition, playerRef, 
                       settings.previewAlignment === 'center' ? 'items-center text-center' :
                       'items-start text-left'
                     } ${isActive
-                      ? `scale-y-105 origin-center bg-zinc-800/10 ${activeMargin[spacingOption] || 'my-1 sm:my-2'}`
+                      ? `${settings.activeLineHighlight === 'zoom' ? 'scale-y-105' : ''} origin-center bg-zinc-800/10 ${activeMargin[spacingOption] || 'my-1 sm:my-2'}`
                       : 'hover:bg-zinc-800/30'
                       }`}
                   >
@@ -382,10 +399,10 @@ export default function Preview({ lines, setLines, playbackPosition, playerRef, 
                     {/* Main Track */}
                     <p
                       className={`transition-all duration-500 ease-out w-full break-words ${isActive
-                        ? `${activeFontSizes[sizeOption]} font-bold text-primary glow-line ${spacingOption === 'compact' ? 'my-0' : 'my-0.5 sm:my-1'}`
+                        ? `${activeFontSizes[sizeOption]} font-bold ${settings.activeLineHighlight === 'glow' ? 'text-primary glow-line' : settings.activeLineHighlight === 'color' ? 'text-primary' : settings.activeLineHighlight === 'dim' ? 'text-zinc-100' : 'text-primary'} ${spacingOption === 'compact' ? 'my-0' : 'my-0.5 sm:my-1'}`
                         : isPast
-                          ? `${inactiveFontSizes[sizeOption]} text-zinc-500`
-                          : `${inactiveFontSizes[sizeOption]} text-zinc-600`
+                          ? `${inactiveFontSizes[sizeOption]} ${settings.activeLineHighlight === 'dim' ? 'text-zinc-700' : 'text-zinc-500'}`
+                          : `${inactiveFontSizes[sizeOption]} ${settings.activeLineHighlight === 'dim' ? 'text-zinc-800' : 'text-zinc-600'}`
                         }`}
                     >
                       {line.text || '♪'}

@@ -172,6 +172,21 @@ export default {
     "confirmRemoveMedia": "¿Eliminar el contenido multimedia cargado?",
     "confirmAction": "¡Uy, espera!",
     "confirm": "Confirmar",
-    "cancel": "Cancelar"
+    "cancel": "Cancelar",
+    "settingsShortcuts": "Atajos",
+    "settingsShortcutMarkLabel": "Marcar tiempo",
+    "settingsShortcutMarkDesc": "Tecla para marcar tiempos de inicio/fin",
+    "settingsShortcutNudgeLeftLabel": "Ajustar a la izquierda",
+    "settingsShortcutNudgeLeftDesc": "Restar {{val}}s al tiempo",
+    "settingsShortcutNudgeRightLabel": "Ajustar a la derecha",
+    "settingsShortcutNudgeRightDesc": "Sumar {{val}}s al tiempo",
+    "settingsShortcutAddLineLabel": "Añadir línea",
+    "settingsShortcutAddLineDesc": "Añadir línea debajo de la actual",
+    "settingsShortcutDeleteLineLabel": "Borrar línea",
+    "settingsShortcutDeleteLineDesc": "Borrar línea actual (o selección)",
+    "settingsShortcutClearTimestampLabel": "Limpiar tiempo",
+    "settingsShortcutClearTimestampDesc": "Eliminar tiempo de la línea actual",
+    "settingsShortcutSwitchModeLabel": "Cambiar modo",
+    "settingsShortcutSwitchModeDesc": "Alternar modo editor LRC/SRT"
   }
 };

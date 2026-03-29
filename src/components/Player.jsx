@@ -280,6 +280,7 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
       const d = audioRef.current.duration;
       setDuration(d);
       onDurationChange?.(d);
+      audioRef.current.volume = settings.defaultVolume;
     }
   };
 
@@ -380,13 +381,25 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
             const d = e.target.getDuration();
             setDuration(d);
             onDurationChange?.(d);
+            e.target.setVolume(settings.defaultVolume * 100);
 
             const title = e.target.getVideoData()?.title;
             if (title) onTitleChange?.(title);
             onMediaChange?.(true);
           },
           onStateChange: (e) => {
-            setIsPlaying(e.data === window.YT.PlayerState.PLAYING);
+            const playing = e.data === window.YT.PlayerState.PLAYING;
+            setIsPlaying(playing);
+            if (e.data === window.YT.PlayerState.PAUSED && settings.autoRewindOnPause > 0) {
+              const current = ytPlayerRef.current.getCurrentTime();
+              const dur = ytPlayerRef.current.getDuration();
+              if (current > 0 && current < dur) {
+                const newTime = Math.max(0, current - settings.autoRewindOnPause);
+                ytPlayerRef.current.seekTo(newTime, true);
+                setCurrentTime(newTime);
+                onTimeUpdate?.(newTime);
+              }
+            }
           },
           onError: (e) => {
             const errorCodes = {
@@ -537,6 +550,17 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
     return `${m}:${sec.toString().padStart(2, '0')}.${ms.toString().padStart(2, '0')}`;
   };
 
+  const handleLocalPause = () => {
+    if (settings.autoRewindOnPause > 0 && audioRef.current && audioRef.current.currentTime > 0) {
+      if (audioRef.current.currentTime < audioRef.current.duration) {
+        const newTime = Math.max(0, audioRef.current.currentTime - settings.autoRewindOnPause);
+        audioRef.current.currentTime = newTime;
+        setCurrentTime(newTime);
+        onTimeUpdate?.(newTime);
+      }
+    }
+  };
+
   return (
     <div className="glass rounded-xl sm:rounded-2xl p-2.5 sm:p-4 space-y-1.5 sm:space-y-3 animate-fade-in overflow-visible">
       {/* Header */}
@@ -631,6 +655,7 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
             src={localUrl}
             onTimeUpdate={handleLocalTimeUpdate}
             onLoadedMetadata={handleLocalLoadedMetadata}
+            onPause={handleLocalPause}
             className="hidden"
             crossOrigin="anonymous"
           />
@@ -670,7 +695,7 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
       )}
       <div
         ref={ytContainerRef}
-        className={`w-full rounded-lg overflow-hidden bg-zinc-900 transition-all duration-300 ${source === 'youtube' && ytReady ? 'aspect-video' : 'hidden'
+        className={`fixed -top-[9999px] -left-[9999px] w-0 h-0 opacity-0 pointer-events-none ${source === 'youtube' && ytReady ? '' : 'hidden'
           }`}
       />
 

@@ -14,6 +14,30 @@ function AppInner() {
   const { t, i18n } = useTranslation();
   const { settings } = useSettings();
 
+  useEffect(() => {
+    const root = document.documentElement;
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+
+    const updateTheme = () => {
+      if (settings.theme === 'light') {
+        root.classList.remove('dark');
+      } else if (settings.theme === 'system') {
+        if (mediaQuery.matches) {
+          root.classList.add('dark');
+        } else {
+          root.classList.remove('dark');
+        }
+      } else {
+        root.classList.add('dark');
+      }
+    };
+
+    updateTheme();
+    mediaQuery.addEventListener('change', updateTheme);
+
+    return () => mediaQuery.removeEventListener('change', updateTheme);
+  }, [settings.theme]);
+
   // Lines state with undo/redo
   const [lines, setLines, undo, redo, canUndo, canRedo] = useHistory([]);
 

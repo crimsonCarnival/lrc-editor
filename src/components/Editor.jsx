@@ -116,6 +116,10 @@ export default function Editor({
     if (activeLineIndex >= lines.length) return;
     const time = playerRef?.current?.getCurrentTime?.() ?? playbackPosition;
 
+    if (settings.autoPauseOnMark) {
+      playerRef?.current?.pause?.();
+    }
+
     // If a timestamp is focused, mark that specific timestamp
     if (focusedTimestamp) {
       setLines((prev) => {
@@ -211,7 +215,7 @@ export default function Editor({
         setActiveLineIndex(Math.min(nextIndex, lines.length - 1));
       }
     }
-  }, [activeLineIndex, lines, playbackPosition, playerRef, setLines, setActiveLineIndex, settings.autoAdvance, settings.skipBlankLines, editorMode, awaitingEndMark, focusedTimestamp]);
+  }, [activeLineIndex, lines, playbackPosition, playerRef, setLines, setActiveLineIndex, settings.autoAdvance, settings.skipBlankLines, editorMode, awaitingEndMark, focusedTimestamp, settings.autoPauseOnMark]);
 
   // Shortcuts
   useEffect(() => {

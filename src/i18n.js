@@ -4,12 +4,10 @@ import LanguageDetector from 'i18next-browser-languagedetector';
 
 import en from './locales/en.js';
 import es from './locales/es.js';
-import ja from './locales/ja.js';
 
 const resources = {
   en,
-  es,
-  ja
+  es
 };
 
 i18n

@@ -1,11 +1,14 @@
 export const DEFAULT_SETTINGS = {
   // Playback
+  defaultVolume: 1,
+  autoRewindOnPause: 0,
   minSpeed: 0.25,
   maxSpeed: 3,
   showEQ: true,
   showWaveform: true,
 
   // Editor
+  autoPauseOnMark: false,
   nudgeIncrement: 0.1,
   autoAdvance: true,
   skipBlankLines: false,
@@ -13,12 +16,15 @@ export const DEFAULT_SETTINGS = {
   editorTimestampPrecision: 'hundredths', // 'hundredths' | 'thousandths'
 
   // Export
+  lineEndings: 'lf',
   copyFormat: 'lrc',
   downloadFormat: 'lrc',
   timestampPrecision: 'hundredths', // 'hundredths' | 'thousandths'
   defaultFilenamePattern: 'fixed', // 'fixed' | 'media'
 
   // Interface
+  theme: 'dark',
+  activeLineHighlight: 'glow',
   defaultLanguage: 'en',
   scrollBehavior: 'smooth', // 'smooth' | 'instant'
   scrollBlock: 'center', // 'center' | 'nearest'

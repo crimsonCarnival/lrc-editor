@@ -35,8 +35,14 @@ export function parseTimestamp(str) {
  * @param {boolean} includeTranslations
  * @param {'hundredths'|'thousandths'} precision
  */
-export function compileLRC(lines, includeTranslations = false, precision = 'hundredths') {
-  return lines
+export function compileLRC(lines, includeTranslations = false, precision = 'hundredths', metadata = {}, lineEndings = 'lf') {
+  let header = '';
+  if (metadata.ti) header += `[ti:${metadata.ti}]\n`;
+  if (metadata.ar) header += `[ar:${metadata.ar}]\n`;
+  if (metadata.al) header += `[al:${metadata.al}]\n`;
+  if (metadata.lg) header += `[lg:${metadata.lg}]\n`;
+
+  const body = lines
     .map((line) => {
       if (line.timestamp != null) {
         let output = `${formatTimestamp(line.timestamp, precision)} ${line.text}`;
@@ -48,6 +54,9 @@ export function compileLRC(lines, includeTranslations = false, precision = 'hund
       return line.text;
     })
     .join('\n');
+    
+  let result = header + body;
+  return lineEndings === 'crlf' ? result.replace(/\n/g, '\r\n') : result;
 }
 
 /**
@@ -84,11 +93,11 @@ export function formatSrtTimestamp(seconds) {
 /**
  * Compiles an array of { text, timestamp } into a valid .srt string
  */
-export function compileSRT(lines, duration, includeTranslations = false) {
+export function compileSRT(lines, duration, includeTranslations = false, lineEndings = 'lf') {
   const synced = lines.filter((l) => l.timestamp != null);
   if (synced.length === 0) return '';
-  
-  return synced.map((line, i) => {
+
+  const body = synced.map((line, i) => {
     const start = line.timestamp;
     let end;
     if (line.endTime != null) {
@@ -102,13 +111,15 @@ export function compileSRT(lines, duration, includeTranslations = false) {
         end = Math.max(start + 2, duration);
       }
     }
-    
+
     return `${i + 1}\n${formatSrtTimestamp(start)} --> ${formatSrtTimestamp(end)}\n${
       (includeTranslations && line.secondary) ? line.secondary + '\n' : ''
     }${line.text}${
       (includeTranslations && line.translation) ? '\n' + line.translation : ''
     }\n`;
   }).join('\n');
+  
+  return lineEndings === 'crlf' ? body.replace(/\n/g, '\r\n') : body;
 }
 
 export function parseLrcSrtFile(content, filename) {
