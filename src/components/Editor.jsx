@@ -116,7 +116,7 @@ export default function Editor({
     if (activeLineIndex >= lines.length) return;
     const time = playerRef?.current?.getCurrentTime?.() ?? playbackPosition;
 
-    if (settings.autoPauseOnMark) {
+    if (settings.editor?.autoPauseOnMark) {
       playerRef?.current?.pause?.();
     }
 
@@ -139,22 +139,34 @@ export default function Editor({
     }
 
     if (editorMode === 'srt') {
-      // SRT double-space logic
-      if (awaitingEndMark === activeLineIndex) {
-        // Second space: set end time for this line
+      if (settings.editor?.srt?.snapToNextLine) {
         setLines((prev) => {
           const updated = [...prev];
+
+          let lastSyncedIndex = activeLineIndex - 1;
+          while (lastSyncedIndex >= 0 && updated[lastSyncedIndex].timestamp == null) {
+            lastSyncedIndex--;
+          }
+          if (lastSyncedIndex >= 0 && updated[lastSyncedIndex].endTime == null) {
+            updated[lastSyncedIndex] = {
+              ...updated[lastSyncedIndex],
+              endTime: Math.max(
+                updated[lastSyncedIndex].timestamp ?? 0,
+                time - (settings.editor?.srt?.minSubtitleGap || 0)
+              )
+            };
+          }
+
           updated[activeLineIndex] = {
             ...updated[activeLineIndex],
-            endTime: Math.max(updated[activeLineIndex].timestamp ?? 0, time),
+            timestamp: time,
           };
           return updated;
         });
-        setAwaitingEndMark(null);
-        // Now advance
-        if (settings.autoAdvance) {
+
+        if (settings.editor?.autoAdvance?.enabled) {
           let nextIndex = activeLineIndex + 1;
-          if (settings.skipBlankLines) {
+          if (settings.editor?.autoAdvance?.skipBlank) {
             while (nextIndex < lines.length) {
               const nextText = lines[nextIndex]?.text?.trim();
               if (nextText && nextText !== '♪') break;
@@ -173,16 +185,50 @@ export default function Editor({
           setActiveLineIndex(Math.min(nextIndex, lines.length - 1));
         }
       } else {
-        // First space: set start time
-        setLines((prev) => {
-          const updated = [...prev];
-          updated[activeLineIndex] = {
-            ...updated[activeLineIndex],
-            timestamp: time,
-          };
-          return updated;
-        });
-        setAwaitingEndMark(activeLineIndex);
+        // SRT double-space logic
+        if (awaitingEndMark === activeLineIndex) {
+          // Second space: set end time for this line
+          setLines((prev) => {
+            const updated = [...prev];
+            updated[activeLineIndex] = {
+              ...updated[activeLineIndex],
+              endTime: Math.max(updated[activeLineIndex].timestamp ?? 0, time),
+            };
+            return updated;
+          });
+          setAwaitingEndMark(null);
+          if (settings.editor?.autoAdvance?.enabled) {
+            let nextIndex = activeLineIndex + 1;
+            if (settings.editor?.autoAdvance?.skipBlank) {
+              while (nextIndex < lines.length) {
+                const nextText = lines[nextIndex]?.text?.trim();
+                if (nextText && nextText !== '♪') break;
+                nextIndex++;
+              }
+              if (nextIndex > activeLineIndex + 1) {
+                setLines((prev) => {
+                  const updated = [...prev];
+                  for (let i = activeLineIndex + 1; i < nextIndex; i++) {
+                    updated[i] = { ...updated[i], timestamp: time, endTime: time };
+                  }
+                  return updated;
+                });
+              }
+            }
+            setActiveLineIndex(Math.min(nextIndex, lines.length - 1));
+          }
+        } else {
+          // First space: set start time
+          setLines((prev) => {
+            const updated = [...prev];
+            updated[activeLineIndex] = {
+              ...updated[activeLineIndex],
+              timestamp: time,
+            };
+            return updated;
+          });
+          setAwaitingEndMark(activeLineIndex);
+        }
       }
     } else {
       // LRC mode: original behavior
@@ -194,9 +240,9 @@ export default function Editor({
         };
         return updated;
       });
-      if (settings.autoAdvance) {
+      if (settings.editor?.autoAdvance?.enabled) {
         let nextIndex = activeLineIndex + 1;
-        if (settings.skipBlankLines) {
+        if (settings.editor?.autoAdvance?.skipBlank) {
           while (nextIndex < lines.length) {
             const nextText = lines[nextIndex]?.text?.trim();
             if (nextText && nextText !== '♪') break;
@@ -215,7 +261,7 @@ export default function Editor({
         setActiveLineIndex(Math.min(nextIndex, lines.length - 1));
       }
     }
-  }, [activeLineIndex, lines, playbackPosition, playerRef, setLines, setActiveLineIndex, settings.autoAdvance, settings.skipBlankLines, editorMode, awaitingEndMark, focusedTimestamp, settings.autoPauseOnMark]);
+  }, [activeLineIndex, lines, playbackPosition, playerRef, setLines, setActiveLineIndex, settings.editor?.autoAdvance?.enabled, settings.editor?.autoAdvance?.skipBlank, editorMode, awaitingEndMark, focusedTimestamp, settings.editor?.autoPauseOnMark]);
 
   // Shortcuts
   useEffect(() => {
@@ -239,35 +285,35 @@ export default function Editor({
       // Don't intercept if user is typing in an input/textarea
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
-      if (matchKey(e, settings.shortcutMark || 'Space')) {
+      const handleNudge = (delta) => {
+        if (focusedTimestamp) {
+          shiftTime(focusedTimestamp.lineIndex, delta);
+        } else if (selectedLines.size > 0) {
+          setLines((prev) => prev.map((l, idx) =>
+            selectedLines.has(idx) && l.timestamp != null
+              ? { ...l, timestamp: Math.max(0, l.timestamp + delta) }
+              : l
+          ));
+        } else {
+          shiftTime(activeLineIndex, delta);
+        }
+      };
+
+      if (matchKey(e, settings.shortcuts?.mark?.[0] || 'Space')) {
         e.preventDefault();
         handleMark();
-      } else if (matchKey(e, settings.shortcutNudgeLeft || 'ArrowLeft')) {
+      } else if (matchKey(e, settings.shortcuts?.nudgeLeftFine?.[0] || 'Shift+ArrowLeft')) {
         e.preventDefault();
-        if (focusedTimestamp) {
-          shiftTime(focusedTimestamp.lineIndex, -settings.nudgeIncrement);
-        } else if (selectedLines.size > 0) {
-          setLines((prev) => prev.map((l, idx) =>
-            selectedLines.has(idx) && l.timestamp != null
-              ? { ...l, timestamp: Math.max(0, l.timestamp - settings.nudgeIncrement) }
-              : l
-          ));
-        } else {
-          shiftTime(activeLineIndex, -settings.nudgeIncrement);
-        }
-      } else if (matchKey(e, settings.shortcutNudgeRight || 'ArrowRight')) {
+        handleNudge(-(settings.editor?.nudge?.fine || 0.01));
+      } else if (matchKey(e, settings.shortcuts?.nudgeRightFine?.[0] || 'Shift+ArrowRight')) {
         e.preventDefault();
-        if (focusedTimestamp) {
-          shiftTime(focusedTimestamp.lineIndex, settings.nudgeIncrement);
-        } else if (selectedLines.size > 0) {
-          setLines((prev) => prev.map((l, idx) =>
-            selectedLines.has(idx) && l.timestamp != null
-              ? { ...l, timestamp: Math.max(0, l.timestamp + settings.nudgeIncrement) }
-              : l
-          ));
-        } else {
-          shiftTime(activeLineIndex, settings.nudgeIncrement);
-        }
+        handleNudge((settings.editor?.nudge?.fine || 0.01));
+      } else if (matchKey(e, settings.shortcuts?.nudgeLeft?.[0] || 'ArrowLeft')) {
+        e.preventDefault();
+        handleNudge(-(settings.editor?.nudge?.default || 0.1));
+      } else if (matchKey(e, settings.shortcuts?.nudgeRight?.[0] || 'ArrowRight')) {
+        e.preventDefault();
+        handleNudge((settings.editor?.nudge?.default || 0.1));
       } else if (e.key === 'Escape') {
         if (focusedTimestamp) {
           e.preventDefault();
@@ -277,17 +323,41 @@ export default function Editor({
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [syncMode, activeLineIndex, lines.length, playbackPosition, handleMark, shiftTime, selectedLines, settings.nudgeIncrement, setLines, focusedTimestamp, settings.shortcutMark, settings.shortcutNudgeLeft, settings.shortcutNudgeRight]);
+  }, [syncMode, activeLineIndex, lines.length, playbackPosition, handleMark, shiftTime, selectedLines, settings.editor?.nudge?.default, settings.editor?.nudge?.fine, setLines, focusedTimestamp, settings.shortcuts?.mark, settings.shortcuts?.nudgeLeft, settings.shortcuts?.nudgeRight, settings.shortcuts?.nudgeLeftFine, settings.shortcuts?.nudgeRightFine]);
 
   // Auto-scroll to the active line
   useEffect(() => {
-    if (activeLineRef.current && listRef.current && settings.scrollBlock !== 'none') {
-      activeLineRef.current.scrollIntoView({
-        behavior: settings.scrollBehavior,
-        block: settings.scrollBlock,
+    if (activeLineRef.current && listRef.current && settings.editor?.scroll?.alignment !== 'none') {
+      const container = listRef.current;
+      const element = activeLineRef.current;
+
+      const containerRect = container.getBoundingClientRect();
+      const elementRect = element.getBoundingClientRect();
+
+      const elementTop = elementRect.top - containerRect.top + container.scrollTop;
+      let scrollTo = container.scrollTop;
+
+      if (settings.editor?.scroll?.alignment === 'center') {
+        scrollTo = elementTop - (containerRect.height / 2) + (elementRect.height / 2);
+      } else if (settings.editor?.scroll?.alignment === 'start') {
+        scrollTo = elementTop;
+      } else if (settings.editor?.scroll?.alignment === 'end') {
+        scrollTo = elementTop - containerRect.height + elementRect.height;
+      } else {
+        // nearest
+        if (elementRect.top < containerRect.top) {
+          scrollTo = elementTop;
+        } else if (elementRect.bottom > containerRect.bottom) {
+          scrollTo = elementTop - containerRect.height + elementRect.height;
+        }
+      }
+
+      container.scrollTo({
+        top: scrollTo,
+        behavior: settings.editor?.scroll?.mode || 'smooth',
       });
     }
-  }, [activeLineIndex, settings.scrollBehavior, settings.scrollBlock]);
+  }, [activeLineIndex, settings.editor?.scroll?.mode, settings.editor?.scroll?.alignment]);
 
   // Clear a single line's timestamp
   const handleClearLine = useCallback((index) => {
@@ -299,12 +369,12 @@ export default function Editor({
   }, [setLines, editorMode]);
 
   const requestConfirm = useCallback((message, action) => {
-    if (settings.confirmDestructive) {
+    if (settings.advanced?.confirmDestructive) {
       setConfirmConfig({ isOpen: true, message, onConfirm: action });
     } else {
       action();
     }
-  }, [settings.confirmDestructive]);
+  }, [settings.advanced?.confirmDestructive]);
 
   // Clear all timestamps
   const handleClearTimestamps = () => {
@@ -494,7 +564,7 @@ export default function Editor({
         return;
       }
 
-      if (matchKey(e, settings.shortcutDeleteLine || 'Delete')) {
+      if (matchKey(e, settings.shortcuts?.deleteLine?.[0] || 'Delete')) {
         e.preventDefault();
         if (selectedLines.size > 0) {
           handleBulkDelete();
@@ -506,27 +576,27 @@ export default function Editor({
           });
           clearSelection();
         }
-      } else if (matchKey(e, settings.shortcutAddLine || 'Insert')) {
+      } else if (matchKey(e, settings.shortcuts?.addLine?.[0] || 'Insert')) {
         e.preventDefault();
         handleAddLine(activeLineIndex);
-      } else if (matchKey(e, settings.shortcutClearTimestamp || 'Backspace')) {
+      } else if (matchKey(e, settings.shortcuts?.clearTimestamp?.[0] || 'Backspace')) {
         e.preventDefault();
         if (selectedLines.size > 0) {
           handleBulkClearTimestamps();
         } else {
           handleClearLine(activeLineIndex);
         }
-      } else if (matchKey(e, settings.shortcutSwitchMode || 'Tab')) {
+      } else if (matchKey(e, settings.shortcuts?.switchMode?.[0] || 'Tab')) {
         e.preventDefault();
         const nextMode = editorMode === 'lrc' ? 'srt' : 'lrc';
         setEditorMode(nextMode);
-        updateSetting('copyFormat', nextMode);
-        updateSetting('downloadFormat', nextMode);
+        updateSetting('export.copyFormat', nextMode);
+        updateSetting('export.downloadFormat', nextMode);
       }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [selectedLines, handleBulkDelete, clearSelection, settings.shortcutDeleteLine, settings.shortcutAddLine, settings.shortcutClearTimestamp, settings.shortcutSwitchMode, activeLineIndex, lines.length, handleAddLine, handleBulkClearTimestamps, handleClearLine, editorMode, setEditorMode, updateSetting, setLines, setActiveLineIndex]);
+  }, [selectedLines, handleBulkDelete, clearSelection, settings.shortcuts?.deleteLine, settings.shortcuts?.addLine, settings.shortcuts?.clearTimestamp, settings.shortcuts?.switchMode, activeLineIndex, lines.length, handleAddLine, handleBulkClearTimestamps, handleClearLine, editorMode, setEditorMode, updateSetting, setLines, setActiveLineIndex]);
 
   return (
     <div className="glass rounded-xl sm:rounded-2xl p-3 sm:p-5 flex flex-col h-full animate-fade-in">
@@ -540,12 +610,12 @@ export default function Editor({
             <button
               onClick={() => {
                 setEditorMode('lrc');
-                updateSetting('copyFormat', 'lrc');
-                updateSetting('downloadFormat', 'lrc');
+                updateSetting('export.copyFormat', 'lrc');
+                updateSetting('export.downloadFormat', 'lrc');
               }}
               className={`px-2.5 py-1 text-[10px] sm:text-xs font-bold transition-all cursor-pointer ${editorMode === 'lrc'
-                  ? 'bg-primary text-zinc-950'
-                  : 'text-zinc-400 hover:text-zinc-200'
+                ? 'bg-primary text-zinc-950'
+                : 'text-zinc-400 hover:text-zinc-200'
                 }`}
             >
               {t('editorModeLRC')}
@@ -553,12 +623,12 @@ export default function Editor({
             <button
               onClick={() => {
                 setEditorMode('srt');
-                updateSetting('copyFormat', 'srt');
-                updateSetting('downloadFormat', 'srt');
+                updateSetting('export.copyFormat', 'srt');
+                updateSetting('export.downloadFormat', 'srt');
               }}
               className={`px-2.5 py-1 text-[10px] sm:text-xs font-bold transition-all cursor-pointer ${editorMode === 'srt'
-                  ? 'bg-primary text-zinc-950'
-                  : 'text-zinc-400 hover:text-zinc-200'
+                ? 'bg-primary text-zinc-950'
+                : 'text-zinc-400 hover:text-zinc-200'
                 }`}
             >
               {t('editorModeSRT')}
@@ -719,25 +789,25 @@ export default function Editor({
                         <span
                           onClick={() => setFocusedTimestamp(focusedTimestamp?.lineIndex === i && focusedTimestamp?.type === 'start' ? null : { lineIndex: i, type: 'start' })}
                           className={`cursor-pointer px-1 py-0.5 rounded transition-all ${focusedTimestamp?.lineIndex === i && focusedTimestamp?.type === 'start'
-                              ? 'bg-primary/40 ring-1 ring-primary/60 text-primary font-semibold'
-                              : 'hover:bg-zinc-700/40'
+                            ? 'bg-primary/40 ring-1 ring-primary/60 text-primary font-semibold'
+                            : 'hover:bg-zinc-700/40'
                             }`}
                         >
-                          {isSynced ? formatTimestamp(line.timestamp, settings.editorTimestampPrecision) : '--:--.--'}
+                          {isSynced ? formatTimestamp(line.timestamp, settings.editor?.timestampPrecision || 'hundredths') : '--:--.--'}
                         </span>
                         <span className="text-zinc-600 mx-2">→</span>
                         <span
                           onClick={() => setFocusedTimestamp(focusedTimestamp?.lineIndex === i && focusedTimestamp?.type === 'end' ? null : { lineIndex: i, type: 'end' })}
                           className={`cursor-pointer px-1 py-0.5 rounded transition-all ${focusedTimestamp?.lineIndex === i && focusedTimestamp?.type === 'end'
-                              ? 'bg-primary/40 ring-1 ring-primary/60 font-semibold'
-                              : 'hover:bg-zinc-700/40'
+                            ? 'bg-primary/40 ring-1 ring-primary/60 font-semibold'
+                            : 'hover:bg-zinc-700/40'
                             }`}
                         >
                           {line.endTime != null
                             ? (() => {
                               const isOverlap = i < lines.length - 1 && lines[i + 1].timestamp != null && line.endTime > lines[i + 1].timestamp;
                               const colorClass = isOverlap ? 'text-red-400 font-bold underline decoration-wavy decoration-red-500/50' : 'text-accent-blue';
-                              return <span className={`${awaitingEndMark === i ? 'animate-pulse-glow text-primary' : colorClass}`} title={isOverlap ? 'Overlap Warning' : ''}>{formatTimestamp(line.endTime, settings.editorTimestampPrecision)}</span>;
+                              return <span className={`${awaitingEndMark === i ? 'animate-pulse-glow text-primary' : colorClass}`} title={isOverlap ? 'Overlap Warning' : ''}>{formatTimestamp(line.endTime, settings.editor?.timestampPrecision || 'hundredths')}</span>;
                             })()
                             : <span className={awaitingEndMark === i ? 'animate-pulse-glow text-zinc-400' : 'text-zinc-600'}>--:--.--</span>
                           }
@@ -747,11 +817,11 @@ export default function Editor({
                       <span
                         onClick={() => setFocusedTimestamp(focusedTimestamp?.lineIndex === i && focusedTimestamp?.type === 'start' ? null : { lineIndex: i, type: 'start' })}
                         className={`cursor-pointer px-1 py-0.5 rounded transition-all inline-block ${focusedTimestamp?.lineIndex === i && focusedTimestamp?.type === 'start'
-                            ? 'bg-primary/40 ring-1 ring-primary/60 text-primary font-semibold'
-                            : 'hover:bg-zinc-700/40'
+                          ? 'bg-primary/40 ring-1 ring-primary/60 text-primary font-semibold'
+                          : 'hover:bg-zinc-700/40'
                           }`}
                       >
-                        {isSynced ? formatTimestamp(line.timestamp, settings.editorTimestampPrecision) : '--:--.--'}
+                        {isSynced ? formatTimestamp(line.timestamp, settings.editor?.timestampPrecision || 'hundredths') : '--:--.--'}
                       </span>
                     )}
                   </span>

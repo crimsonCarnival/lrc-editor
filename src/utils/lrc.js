@@ -93,7 +93,10 @@ export function formatSrtTimestamp(seconds) {
 /**
  * Compiles an array of { text, timestamp } into a valid .srt string
  */
-export function compileSRT(lines, duration, includeTranslations = false, lineEndings = 'lf') {
+export function compileSRT(lines, duration, includeTranslations = false, lineEndings = 'lf', srtConfig = {}) {
+  const minGap = srtConfig.minSubtitleGap || 0.05;
+  const defaultDur = srtConfig.defaultSubtitleDuration || 5;
+
   const synced = lines.filter((l) => l.timestamp != null);
   if (synced.length === 0) return '';
 
@@ -104,9 +107,9 @@ export function compileSRT(lines, duration, includeTranslations = false, lineEnd
       end = line.endTime;
     } else {
       const nextLine = synced[i + 1];
-      end = start + 5; // Default 5 seconds duration
+      end = start + defaultDur; 
       if (nextLine && nextLine.timestamp != null) {
-        end = nextLine.timestamp;
+        end = Math.max(start + minGap, nextLine.timestamp - minGap);
       } else if (duration) {
         end = Math.max(start + 2, duration);
       }
@@ -218,7 +221,10 @@ export function parseLrcSrtFile(content, filename) {
  * @param {number} duration - total media duration
  * @returns {Array} new array with endTime populated
  */
-export function inferEndTimes(lines, duration) {
+export function inferEndTimes(lines, duration, srtConfig = {}) {
+  const minGap = srtConfig.minSubtitleGap || 0.05;
+  const defaultDur = srtConfig.defaultSubtitleDuration || 5;
+
   return lines.map((line, i) => {
     // If already has an endTime, keep it
     if (line.endTime != null) return line;
@@ -235,13 +241,12 @@ export function inferEndTimes(lines, duration) {
     }
 
     let endTime;
-    const MIN_DURATION = 0.05;
     if (nextStart != null) {
-      endTime = Math.max(line.timestamp + MIN_DURATION, nextStart - 0.05);
+      endTime = Math.max(line.timestamp + minGap, nextStart - minGap);
     } else if (duration) {
-      endTime = Math.max(line.timestamp + MIN_DURATION, Math.max(line.timestamp + 2, duration));
+      endTime = Math.max(line.timestamp + minGap, Math.max(line.timestamp + 2, duration));
     } else {
-      endTime = line.timestamp + 5;
+      endTime = line.timestamp + defaultDur;
     }
 
     return { ...line, endTime };
