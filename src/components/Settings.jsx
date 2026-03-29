@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
+import useDraggable from '../utils/useDraggable';
 import { useTranslation } from 'react-i18next';
-import { useSettings, DEFAULT_SETTINGS } from '../contexts/SettingsContext';
+import { useSettings } from '../contexts/useSettings';
+import { DEFAULT_SETTINGS } from '../contexts/settingsDefaults';
 import NumberInput from './NumberInput';
 
 function Toggle({ checked, onChange, id }) {
@@ -47,13 +49,58 @@ function Section({ title, children }) {
   );
 }
 
+function ShortcutInput({ value, onChange, onValidate }) {
+  const [recording, setRecording] = useState(false);
+  const [error, setError] = useState(false);
+
+  const handleKeyDown = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.key === 'Escape') {
+      setRecording(false);
+      return;
+    }
+    if (['Control', 'Alt', 'Shift', 'Meta'].includes(e.key)) return; // don't record just modifiers
+
+    let keyName = e.code === 'Space' ? 'Space' : e.key.length === 1 ? e.key.toUpperCase() : e.key;
+    const parts = [];
+    if (e.ctrlKey || e.metaKey) parts.push('Ctrl');
+    if (e.altKey) parts.push('Alt');
+    if (e.shiftKey) parts.push('Shift');
+    parts.push(keyName);
+    const newKey = parts.join('+');
+
+    if (onValidate && !onValidate(newKey)) {
+      setError(true);
+      setTimeout(() => setError(false), 800);
+      setRecording(false);
+      return;
+    }
+    onChange(newKey);
+    setRecording(false);
+  };
+
+  return (
+    <button
+      className={`px-3 py-1.5 rounded-lg text-xs font-mono min-w-[80px] transition-all ${error ? 'bg-red-500/20 text-red-400 border border-red-500 ring-2 ring-red-500/50' : recording ? 'bg-primary text-zinc-950 ring-2 ring-primary/50' : 'bg-zinc-800 text-zinc-300 border border-zinc-700 hover:bg-zinc-700'}`}
+      onClick={() => setRecording(true)}
+      onKeyDown={recording ? handleKeyDown : undefined}
+      onBlur={() => setRecording(false)}
+    >
+      {error ? 'Taken!' : recording ? '...' : (value || 'None')}
+    </button>
+  );
+}
+
 export default function Settings({ isOpen, onClose }) {
-  const { t, i18n } = useTranslation();
-  const { settings: globalSettings, updateAllSettings, resetSettings } = useSettings();
+  const { t } = useTranslation();
+  const { settings: globalSettings, updateAllSettings } = useSettings();
   const [settings, setSettings] = useState(globalSettings || DEFAULT_SETTINGS);
+  const { position, handleMouseDown } = useDraggable(isOpen);
 
   useEffect(() => {
     if (isOpen) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSettings(globalSettings);
     }
   }, [isOpen, globalSettings]);
@@ -86,6 +133,17 @@ export default function Settings({ isOpen, onClose }) {
     updateSetting('defaultLanguage', lang);
   };
 
+  const validateShortcut = (newKey, currentKeyName) => {
+    const shortcutKeys = [
+      'shortcutMark', 'shortcutNudgeLeft', 'shortcutNudgeRight',
+      'shortcutAddLine', 'shortcutDeleteLine', 'shortcutClearTimestamp', 'shortcutSwitchMode'
+    ];
+    for (const k of shortcutKeys) {
+      if (k !== currentKeyName && settings[k] === newKey) return false;
+    }
+    return true;
+  };
+
   return (
     <>
       {/* Backdrop */}
@@ -95,9 +153,16 @@ export default function Settings({ isOpen, onClose }) {
       />
       {/* Modal */}
       <div className="fixed inset-0 z-[101] flex items-center justify-center p-4 pointer-events-none">
-        <div className="bg-zinc-900 border border-zinc-700/80 rounded-2xl shadow-2xl w-full max-w-md pointer-events-auto animate-fade-in flex flex-col max-h-[85vh]">
-          {/* Header */}
-          <div className="flex items-center justify-between px-6 pt-5 pb-3 border-b border-zinc-800/60 flex-shrink-0">
+        <div
+          className="w-full max-w-md pointer-events-auto flex flex-col max-h-[85vh]"
+          style={{ transform: `translate(${position.x}px, ${position.y}px)` }}
+        >
+          <div className="bg-zinc-900 border border-zinc-700/80 rounded-2xl shadow-2xl w-full flex flex-col h-full animate-fade-in overflow-hidden">
+            {/* Header (drag handle) */}
+          <div
+            className="flex items-center justify-between px-6 pt-5 pb-3 border-b border-zinc-800/60 flex-shrink-0 cursor-grab active:cursor-grabbing select-none"
+            onPointerDown={handleMouseDown}
+          >
             <h3 className="text-sm font-semibold text-zinc-200 uppercase tracking-widest">
               {t('settingsTitle')}
             </h3>
@@ -270,8 +335,8 @@ export default function Settings({ isOpen, onClose }) {
                   className="bg-zinc-900 border border-zinc-700 rounded-lg px-2.5 py-1.5 text-xs text-zinc-200 focus:outline-none focus:border-primary/50 transition-all cursor-pointer"
                 >
                   <option value="center">{t('settingsScrollCenter')}</option>
-                  <option value="nearest">{t('settingsScrollNearest')}</option>
-                </select>
+                  <option value="nearest">{t('settingsScrollNearest')}</option>                    <option value="start">Top</option>
+                    <option value="none">Disabled</option>                </select>
               </SettingRow>
               <SettingRow label={t('settingsPreviewAlignment')} description={t('settingsPreviewAlignmentDesc')}>
                 <select
@@ -284,8 +349,82 @@ export default function Settings({ isOpen, onClose }) {
                   <option value="right">{t('settingsAlignRight')}</option>
                 </select>
               </SettingRow>
+              <SettingRow label={t('settingsFontSize')} description={t('settingsFontSizeDesc')}>
+                <select
+                  value={settings.fontSize}
+                  onChange={(e) => updateSetting('fontSize', e.target.value)}
+                  className="bg-zinc-900 border border-zinc-700 rounded-lg px-2.5 py-1.5 text-xs text-zinc-200 focus:outline-none focus:border-primary/50 transition-all cursor-pointer"
+                >
+                  <option value="small">{t('sizeSmall')}</option>
+                  <option value="normal">{t('sizeNormal')}</option>
+                  <option value="large">{t('sizeLarge')}</option>
+                  <option value="xlarge">{t('sizeXLarge')}</option>
+                </select>
+              </SettingRow>
+              <SettingRow label={t('settingsSpacing')} description={t('settingsSpacingDesc')}>
+                <select
+                  value={settings.spacing}
+                  onChange={(e) => updateSetting('spacing', e.target.value)}
+                  className="bg-zinc-900 border border-zinc-700 rounded-lg px-2.5 py-1.5 text-xs text-zinc-200 focus:outline-none focus:border-primary/50 transition-all cursor-pointer"
+                >
+                  <option value="compact">{t('spacingCompact')}</option>
+                  <option value="normal">{t('spacingNormal')}</option>
+                  <option value="relaxed">{t('spacingRelaxed')}</option>
+                </select>
+              </SettingRow>
             </Section>
-
+            {/* ——— SHORTCUTS ——— */}
+            <Section title={t('settingsShortcuts') || 'Shortcuts'}>
+              <SettingRow label={t('settingsShortcutMarkLabel') || 'Mark Timestamp'} description={t('settingsShortcutMarkDesc') || 'Key to mark start/end times'}>
+                <ShortcutInput
+                  value={settings.shortcutMark}
+                  onChange={(v) => updateSetting('shortcutMark', v)}
+                  onValidate={(v) => validateShortcut(v, 'shortcutMark')}
+                />
+              </SettingRow>
+              <SettingRow label={t('settingsShortcutNudgeLeftLabel') || 'Nudge Left'} description={t('settingsShortcutNudgeLeftDesc', { val: settings.nudgeIncrement }) || `Subtract ${settings.nudgeIncrement}s from timestamp`}>
+                <ShortcutInput
+                  value={settings.shortcutNudgeLeft}
+                  onChange={(v) => updateSetting('shortcutNudgeLeft', v)}
+                  onValidate={(v) => validateShortcut(v, 'shortcutNudgeLeft')}
+                />
+              </SettingRow>
+              <SettingRow label={t('settingsShortcutNudgeRightLabel') || 'Nudge Right'} description={t('settingsShortcutNudgeRightDesc', { val: settings.nudgeIncrement }) || `Add ${settings.nudgeIncrement}s to timestamp`}>
+                <ShortcutInput
+                  value={settings.shortcutNudgeRight}
+                  onChange={(v) => updateSetting('shortcutNudgeRight', v)}
+                  onValidate={(v) => validateShortcut(v, 'shortcutNudgeRight')}
+                />
+              </SettingRow>
+              <SettingRow label={t('settingsShortcutAddLineLabel') || 'Add Line'} description={t('settingsShortcutAddLineDesc') || 'Add new line below active line'}>
+                <ShortcutInput
+                  value={settings.shortcutAddLine}
+                  onChange={(v) => updateSetting('shortcutAddLine', v)}
+                  onValidate={(v) => validateShortcut(v, 'shortcutAddLine')}
+                />
+              </SettingRow>
+              <SettingRow label={t('settingsShortcutDeleteLineLabel') || 'Delete Line'} description={t('settingsShortcutDeleteLineDesc') || 'Delete active line (or selection)'}>
+                <ShortcutInput
+                  value={settings.shortcutDeleteLine}
+                  onChange={(v) => updateSetting('shortcutDeleteLine', v)}
+                  onValidate={(v) => validateShortcut(v, 'shortcutDeleteLine')}
+                />
+              </SettingRow>
+              <SettingRow label={t('settingsShortcutClearTimestampLabel') || 'Clear Timestamp'} description={t('settingsShortcutClearTimestampDesc') || 'Clear timestamp on active line'}>
+                <ShortcutInput
+                  value={settings.shortcutClearTimestamp}
+                  onChange={(v) => updateSetting('shortcutClearTimestamp', v)}
+                  onValidate={(v) => validateShortcut(v, 'shortcutClearTimestamp')}
+                />
+              </SettingRow>
+              <SettingRow label={t('settingsShortcutSwitchModeLabel') || 'Switch Mode'} description={t('settingsShortcutSwitchModeDesc') || 'Toggle LRC/SRT editor mode'}>
+                <ShortcutInput
+                  value={settings.shortcutSwitchMode}
+                  onChange={(v) => updateSetting('shortcutSwitchMode', v)}
+                  onValidate={(v) => validateShortcut(v, 'shortcutSwitchMode')}
+                />
+              </SettingRow>
+            </Section>
             {/* ——— ADVANCED ——— */}
             <Section title={t('settingsAdvanced')}>
               <SettingRow label={t('settingsAutoSave')} description={t('settingsAutoSaveDesc')}>
@@ -347,6 +486,7 @@ export default function Settings({ isOpen, onClose }) {
           </div>
         </div>
       </div>
+    </div>
     </>
   );
 }
