@@ -1,40 +1,8 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { DEFAULT_SETTINGS } from './settingsDefaults.js';
+import { SettingsContext } from './SettingsContextValue.js';
 
 const STORAGE_KEY = 'lrc-syncer-settings';
-
-export const DEFAULT_SETTINGS = {
-  // Playback
-  minSpeed: 0.25,
-  maxSpeed: 3,
-  showEQ: true,
-  showWaveform: true,
-
-  // Editor
-  nudgeIncrement: 0.1,
-  autoAdvance: true,
-  skipBlankLines: false,
-  showShiftAll: true,
-  editorTimestampPrecision: 'hundredths', // 'hundredths' | 'thousandths'
-
-  // Export
-  copyFormat: 'lrc',
-  downloadFormat: 'lrc',
-  timestampPrecision: 'hundredths', // 'hundredths' | 'thousandths'
-  defaultFilenamePattern: 'fixed', // 'fixed' | 'media'
-
-  // Interface
-  defaultLanguage: 'en',
-  scrollBehavior: 'smooth', // 'smooth' | 'instant'
-  scrollBlock: 'center', // 'center' | 'nearest'
-  previewAlignment: 'left', // 'left' | 'center' | 'right'
-
-  // Advanced
-  autoSaveEnabled: true,
-  autoSaveInterval: 1000,
-  confirmDestructive: false,
-};
-
-const SettingsContext = createContext(null);
 
 export function SettingsProvider({ children }) {
   const [settings, setSettings] = useState(() => {
@@ -77,10 +45,4 @@ export function SettingsProvider({ children }) {
       {children}
     </SettingsContext.Provider>
   );
-}
-
-export function useSettings() {
-  const ctx = useContext(SettingsContext);
-  if (!ctx) throw new Error('useSettings must be used within a SettingsProvider');
-  return ctx;
 }
