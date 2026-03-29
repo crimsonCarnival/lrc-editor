@@ -1,8 +1,13 @@
 import { useEffect } from 'react';
+import useDraggable from '../utils/useDraggable';
 import { useTranslation } from 'react-i18next';
+
+import { useSettings } from '../contexts/useSettings';
 
 export default function KeyboardHelp({ isOpen, onClose }) {
   const { t } = useTranslation();
+  const { settings } = useSettings();
+  const { position, handleMouseDown } = useDraggable(isOpen);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -18,11 +23,23 @@ export default function KeyboardHelp({ isOpen, onClose }) {
 
   if (!isOpen) return null;
 
+  const formatKeyName = (key) => {
+    switch (key) {
+      case 'Space': return 'Space';
+      case 'ArrowLeft': return '←';
+      case 'ArrowRight': return '→';
+      case 'ArrowUp': return '↑';
+      case 'ArrowDown': return '↓';
+      case 'Escape': return 'Esc';
+      default: return key;
+    }
+  };
+
   const shortcuts = [
     { section: t('syncModeOnly'), items: [
-      { keys: ['Space'], desc: t('shortcutMark') },
-      { keys: ['←'], desc: t('shortcutNudgeLeft') },
-      { keys: ['→'], desc: t('shortcutNudgeRight') },
+      { keys: [formatKeyName(settings.shortcutMark || 'Space')], desc: t('shortcutMark') },
+      { keys: [formatKeyName(settings.shortcutNudgeLeft || 'ArrowLeft')], desc: t('shortcutNudgeLeft', { val: settings.nudgeIncrement || 0.1 }) },
+      { keys: [formatKeyName(settings.shortcutNudgeRight || 'ArrowRight')], desc: t('shortcutNudgeRight', { val: settings.nudgeIncrement || 0.1 }) },
     ]},
     { section: t('shortcutSelectionSection'), items: [
       { keys: ['Shift', t('shortcutClick')], desc: t('shortcutRangeSelect') },
@@ -47,8 +64,15 @@ export default function KeyboardHelp({ isOpen, onClose }) {
       />
       {/* Modal */}
       <div className="fixed inset-0 z-[101] flex items-center justify-center p-4 pointer-events-none">
-        <div className="bg-zinc-900 border border-zinc-700 rounded-2xl shadow-2xl p-6 w-full max-w-sm pointer-events-auto animate-fade-in">
-          <div className="flex items-center justify-between mb-5">
+        <div
+          className="w-full max-w-sm pointer-events-auto"
+          style={{ transform: `translate(${position.x}px, ${position.y}px)` }}
+        >
+          <div className="bg-zinc-900 border border-zinc-700 rounded-2xl shadow-2xl p-6 w-full animate-fade-in">
+            <div
+              className="flex items-center justify-between mb-5 cursor-grab active:cursor-grabbing select-none"
+              onPointerDown={handleMouseDown}
+          >
             <h3 className="text-sm font-semibold text-zinc-200 uppercase tracking-widest">
               {t('keyboardShortcuts')}
             </h3>
@@ -96,6 +120,7 @@ export default function KeyboardHelp({ isOpen, onClose }) {
           </p>
         </div>
       </div>
+    </div>
     </>
   );
 }
