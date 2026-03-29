@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { formatTimestamp, parseLrcSrtFile } from '../utils/lrc';
 import { useTranslation } from 'react-i18next';
-import { useSettings } from '../contexts/SettingsContext';
+import { useSettings } from '../contexts/useSettings';
 import ConfirmModal from './ConfirmModal';
 import NumberInput from './NumberInput';
 
@@ -18,9 +18,11 @@ export default function Editor({
   redo,
   canUndo,
   canRedo,
+  editorMode,
+  setEditorMode,
 }) {
   const { t } = useTranslation();
-  const { settings } = useSettings();
+  const { settings, updateSetting } = useSettings();
   const [rawText, setRawText] = useState('');
   const [editingLineIndex, setEditingLineIndex] = useState(null);
   const [editingText, setEditingText] = useState('');
@@ -33,6 +35,16 @@ export default function Editor({
     message: '',
     onConfirm: null,
   });
+
+  // SRT mode: track whether we're waiting for the second Space press (end time)
+  const [awaitingEndMark, setAwaitingEndMark] = useState(null); // index of line awaiting end mark
+
+  useEffect(() => {
+    setAwaitingEndMark(null);
+  }, [editorMode, activeLineIndex]);
+
+  // Track focused timestamp for direct editing: { lineIndex: number, type: 'start' | 'end' }
+  const [focusedTimestamp, setFocusedTimestamp] = useState(null);
 
   const lastClickedRef = useRef(null);
   const activeLineRef = useRef(null);
@@ -71,64 +83,166 @@ export default function Editor({
   const shiftTime = useCallback((index, delta) => {
     setLines((prev) => {
       const updated = [...prev];
-      if (updated[index] && updated[index].timestamp != null) {
-        const newTimestamp = Math.max(0, updated[index].timestamp + delta);
-        updated[index] = {
-          ...updated[index],
-          timestamp: newTimestamp,
-        };
-        // Seek player to the new timestamp
-        if (playerRef?.current?.seek) {
-          playerRef.current.seek(newTimestamp);
+      if (updated[index]) {
+        // Check if there is a focused timestamp for this line and it's the end time
+        if (focusedTimestamp?.lineIndex === index && focusedTimestamp.type === 'end') {
+          if (updated[index].endTime != null) {
+            const newEndTime = Math.max(0, updated[index].endTime + delta);
+            updated[index] = {
+              ...updated[index],
+              endTime: newEndTime,
+            };
+            if (playerRef?.current?.seek) {
+              playerRef.current.seek(newEndTime);
+            }
+          }
+        } else if (updated[index].timestamp != null) {
+          const newTimestamp = Math.max(0, updated[index].timestamp + delta);
+          updated[index] = {
+            ...updated[index],
+            timestamp: newTimestamp,
+          };
+          // Seek player to the new timestamp
+          if (playerRef?.current?.seek) {
+            playerRef.current.seek(newTimestamp);
+          }
         }
       }
       return updated;
     });
-  }, [playerRef, setLines]);
+  }, [playerRef, setLines, focusedTimestamp]);
 
   const handleMark = useCallback(() => {
     if (activeLineIndex >= lines.length) return;
     const time = playerRef?.current?.getCurrentTime?.() ?? playbackPosition;
-    setLines((prev) => {
-      const updated = [...prev];
-      updated[activeLineIndex] = {
-        ...updated[activeLineIndex],
-        timestamp: time,
-      };
-      return updated;
-    });
-    if (settings.autoAdvance) {
-      // Find the next line index, potentially skipping blank lines
-      let nextIndex = activeLineIndex + 1;
-      if (settings.skipBlankLines) {
-        while (nextIndex < lines.length) {
-          const nextText = lines[nextIndex]?.text?.trim();
-          if (nextText && nextText !== '♪') break;
-          // Auto-stamp the blank line with the same time
-          setLines((prev) => {
-            const updated = [...prev];
-            updated[nextIndex] = { ...updated[nextIndex], timestamp: time };
-            return updated;
-          });
-          nextIndex++;
-        }
-      }
-      setActiveLineIndex(Math.min(nextIndex, lines.length - 1));
-    }
-  }, [activeLineIndex, lines, playbackPosition, playerRef, setLines, setActiveLineIndex, settings.autoAdvance, settings.skipBlankLines]);
 
-  // Space to mark
+    // If a timestamp is focused, mark that specific timestamp
+    if (focusedTimestamp) {
+      setLines((prev) => {
+        const updated = [...prev];
+        const line = updated[focusedTimestamp.lineIndex];
+        if (line) {
+          updated[focusedTimestamp.lineIndex] = {
+            ...line,
+            ...(focusedTimestamp.type === 'start'
+              ? { timestamp: time }
+              : { endTime: Math.max(line.timestamp ?? 0, time) })
+          };
+        }
+        return updated;
+      });
+      return;
+    }
+
+    if (editorMode === 'srt') {
+      // SRT double-space logic
+      if (awaitingEndMark === activeLineIndex) {
+        // Second space: set end time for this line
+        setLines((prev) => {
+          const updated = [...prev];
+          updated[activeLineIndex] = {
+            ...updated[activeLineIndex],
+            endTime: Math.max(updated[activeLineIndex].timestamp ?? 0, time),
+          };
+          return updated;
+        });
+        setAwaitingEndMark(null);
+        // Now advance
+        if (settings.autoAdvance) {
+          let nextIndex = activeLineIndex + 1;
+          if (settings.skipBlankLines) {
+            while (nextIndex < lines.length) {
+              const nextText = lines[nextIndex]?.text?.trim();
+              if (nextText && nextText !== '♪') break;
+              nextIndex++;
+            }
+            if (nextIndex > activeLineIndex + 1) {
+              setLines((prev) => {
+                const updated = [...prev];
+                for (let i = activeLineIndex + 1; i < nextIndex; i++) {
+                  updated[i] = { ...updated[i], timestamp: time, endTime: time };
+                }
+                return updated;
+              });
+            }
+          }
+          setActiveLineIndex(Math.min(nextIndex, lines.length - 1));
+        }
+      } else {
+        // First space: set start time
+        setLines((prev) => {
+          const updated = [...prev];
+          updated[activeLineIndex] = {
+            ...updated[activeLineIndex],
+            timestamp: time,
+          };
+          return updated;
+        });
+        setAwaitingEndMark(activeLineIndex);
+      }
+    } else {
+      // LRC mode: original behavior
+      setLines((prev) => {
+        const updated = [...prev];
+        updated[activeLineIndex] = {
+          ...updated[activeLineIndex],
+          timestamp: time,
+        };
+        return updated;
+      });
+      if (settings.autoAdvance) {
+        let nextIndex = activeLineIndex + 1;
+        if (settings.skipBlankLines) {
+          while (nextIndex < lines.length) {
+            const nextText = lines[nextIndex]?.text?.trim();
+            if (nextText && nextText !== '♪') break;
+            nextIndex++;
+          }
+          if (nextIndex > activeLineIndex + 1) {
+            setLines((prev) => {
+              const updated = [...prev];
+              for (let i = activeLineIndex + 1; i < nextIndex; i++) {
+                updated[i] = { ...updated[i], timestamp: time };
+              }
+              return updated;
+            });
+          }
+        }
+        setActiveLineIndex(Math.min(nextIndex, lines.length - 1));
+      }
+    }
+  }, [activeLineIndex, lines, playbackPosition, playerRef, setLines, setActiveLineIndex, settings.autoAdvance, settings.skipBlankLines, editorMode, awaitingEndMark, focusedTimestamp]);
+
+  // Shortcuts
   useEffect(() => {
     if (!syncMode) return;
+
+    const matchKey = (e, targetKey) => {
+      if (!targetKey) return false;
+      const parts = targetKey.split('+');
+      const key = parts.pop();
+      const needsCtrl = parts.includes('Ctrl') || parts.includes('Cmd') || parts.includes('Meta');
+      const needsAlt = parts.includes('Alt');
+      const needsShift = parts.includes('Shift');
+      const hasCtrl = e.ctrlKey || e.metaKey;
+      if (needsCtrl !== hasCtrl || needsAlt !== e.altKey || needsShift !== e.shiftKey) return false;
+      if (key === 'Space') return e.code === 'Space';
+      if (e.key.length === 1) return e.key.toUpperCase() === key.toUpperCase();
+      return e.key === key;
+    };
+
     const handler = (e) => {
       // Don't intercept if user is typing in an input/textarea
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-      if (e.code === 'Space') {
+
+      if (matchKey(e, settings.shortcutMark || 'Space')) {
         e.preventDefault();
         handleMark();
-      } else if (e.code === 'ArrowLeft') {
+      } else if (matchKey(e, settings.shortcutNudgeLeft || 'ArrowLeft')) {
         e.preventDefault();
-        if (selectedLines.size > 0) {
+        if (focusedTimestamp) {
+          shiftTime(focusedTimestamp.lineIndex, -settings.nudgeIncrement);
+        } else if (selectedLines.size > 0) {
           setLines((prev) => prev.map((l, idx) =>
             selectedLines.has(idx) && l.timestamp != null
               ? { ...l, timestamp: Math.max(0, l.timestamp - settings.nudgeIncrement) }
@@ -137,9 +251,11 @@ export default function Editor({
         } else {
           shiftTime(activeLineIndex, -settings.nudgeIncrement);
         }
-      } else if (e.code === 'ArrowRight') {
+      } else if (matchKey(e, settings.shortcutNudgeRight || 'ArrowRight')) {
         e.preventDefault();
-        if (selectedLines.size > 0) {
+        if (focusedTimestamp) {
+          shiftTime(focusedTimestamp.lineIndex, settings.nudgeIncrement);
+        } else if (selectedLines.size > 0) {
           setLines((prev) => prev.map((l, idx) =>
             selectedLines.has(idx) && l.timestamp != null
               ? { ...l, timestamp: Math.max(0, l.timestamp + settings.nudgeIncrement) }
@@ -148,15 +264,20 @@ export default function Editor({
         } else {
           shiftTime(activeLineIndex, settings.nudgeIncrement);
         }
+      } else if (e.key === 'Escape') {
+        if (focusedTimestamp) {
+          e.preventDefault();
+          setFocusedTimestamp(null);
+        }
       }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [syncMode, activeLineIndex, lines.length, playbackPosition, handleMark, shiftTime, selectedLines, settings.nudgeIncrement, setLines]);
+  }, [syncMode, activeLineIndex, lines.length, playbackPosition, handleMark, shiftTime, selectedLines, settings.nudgeIncrement, setLines, focusedTimestamp, settings.shortcutMark, settings.shortcutNudgeLeft, settings.shortcutNudgeRight]);
 
   // Auto-scroll to the active line
   useEffect(() => {
-    if (activeLineRef.current && listRef.current) {
+    if (activeLineRef.current && listRef.current && settings.scrollBlock !== 'none') {
       activeLineRef.current.scrollIntoView({
         behavior: settings.scrollBehavior,
         block: settings.scrollBlock,
@@ -165,26 +286,30 @@ export default function Editor({
   }, [activeLineIndex, settings.scrollBehavior, settings.scrollBlock]);
 
   // Clear a single line's timestamp
-  const handleClearLine = (index) => {
+  const handleClearLine = useCallback((index) => {
     setLines((prev) => {
       const updated = [...prev];
-      updated[index] = { ...updated[index], timestamp: null };
+      updated[index] = { ...updated[index], timestamp: null, ...(editorMode === 'srt' && { endTime: null }) };
       return updated;
     });
-  };
+  }, [setLines, editorMode]);
 
-  const requestConfirm = (message, action) => {
+  const requestConfirm = useCallback((message, action) => {
     if (settings.confirmDestructive) {
       setConfirmConfig({ isOpen: true, message, onConfirm: action });
     } else {
       action();
     }
-  };
+  }, [settings.confirmDestructive]);
 
   // Clear all timestamps
   const handleClearTimestamps = () => {
     requestConfirm(t('confirmClearTimestamps') || 'Clear all timestamps?', () => {
-      setLines((prev) => prev.map((l) => ({ ...l, timestamp: null })));
+      setLines((prev) => prev.map((l) => ({
+        ...l,
+        timestamp: null,
+        ...(editorMode === 'srt' && { endTime: null }),
+      })));
       setActiveLineIndex(0);
     });
   };
@@ -212,15 +337,13 @@ export default function Editor({
     });
   };
 
-  const handleAddLine = (index) => {
+  const handleAddLine = useCallback((index) => {
     setLines((prev) => {
       const updated = [...prev];
       updated.splice(index + 1, 0, { text: '', timestamp: prev[index].timestamp });
       return updated;
     });
-  };
-
-  const syncedCount = useMemo(() => lines.filter((l) => l.timestamp != null).length, [lines]);
+  }, [setLines]);
 
   // ——— Drag-to-reorder ———
   const handleDragStart = (e, index) => {
@@ -273,6 +396,9 @@ export default function Editor({
   const handleLineClick = (i, e) => {
     setActiveLineIndex(i); // Clicking always makes it the active line (to hear audio)
 
+    // Only allow selection with Ctrl+Click or Shift+Click
+    if (!e.ctrlKey && !e.metaKey && !e.shiftKey) return;
+
     if (e.shiftKey && lastClickedRef.current != null) {
       // Range select from last clicked to current
       const start = Math.min(lastClickedRef.current, i);
@@ -284,8 +410,8 @@ export default function Editor({
         }
         return next;
       });
-    } else {
-      // Toggle individual line directly (always enables selection without Ctrl)
+    } else if (e.ctrlKey || e.metaKey) {
+      // Toggle individual line on Ctrl+Click
       setSelectedLines((prev) => {
         const next = new Set(prev);
         if (next.has(i)) {
@@ -299,24 +425,28 @@ export default function Editor({
     lastClickedRef.current = i;
   };
 
-  const clearSelection = () => {
+  const clearSelection = useCallback(() => {
     setSelectedLines(new Set());
-  };
+  }, [setSelectedLines]);
 
   // ——— Bulk actions on selected lines ———
-  const handleBulkClearTimestamps = () => {
+  const handleBulkClearTimestamps = useCallback(() => {
     requestConfirm(t('confirmBulkClear') || 'Clear timestamps for selected lines?', () => {
       setLines((prev) => prev.map((l, idx) =>
-        selectedLines.has(idx) ? { ...l, timestamp: null } : l
+        selectedLines.has(idx) ? {
+          ...l,
+          timestamp: null,
+          ...(editorMode === 'srt' && { endTime: null }),
+        } : l
       ));
       clearSelection();
     });
-  };
+  }, [selectedLines, editorMode, setLines, clearSelection, requestConfirm, t]);
 
-  const handleBulkDelete = () => {
+  const handleBulkDelete = useCallback(() => {
     requestConfirm(t('confirmBulkDelete') || 'Delete selected lines?', () => {
       setLines((prev) => prev.filter((_, idx) => !selectedLines.has(idx)));
-      // Adjust activeLineIndex
+      // Adjust active line index
       setActiveLineIndex((prev) => {
         let offset = 0;
         for (const idx of selectedLines) {
@@ -326,7 +456,7 @@ export default function Editor({
       });
       clearSelection();
     });
-  };
+  }, [selectedLines, t, setLines, setActiveLineIndex, clearSelection, requestConfirm]);
 
   const handleBulkShift = (delta) => {
     setLines((prev) => prev.map((l, idx) =>
@@ -336,21 +466,63 @@ export default function Editor({
     ));
   };
 
-  // Escape to deselect
+  // Global Keybinds
   useEffect(() => {
-    if (selectedLines.size === 0) return;
+    const matchKey = (e, targetKey) => {
+      if (!targetKey) return false;
+      const parts = targetKey.split('+');
+      const key = parts.pop();
+      const needsCtrl = parts.includes('Ctrl') || parts.includes('Cmd') || parts.includes('Meta');
+      const needsAlt = parts.includes('Alt');
+      const needsShift = parts.includes('Shift');
+      const hasCtrl = e.ctrlKey || e.metaKey;
+      if (needsCtrl !== hasCtrl || needsAlt !== e.altKey || needsShift !== e.shiftKey) return false;
+      if (key === 'Space') return e.code === 'Space';
+      if (e.key.length === 1) return e.key.toUpperCase() === key.toUpperCase();
+      return e.key === key;
+    };
+
     const handler = (e) => {
-      if (e.key === 'Escape') {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+      if (e.key === 'Escape' && selectedLines.size > 0) {
         clearSelection();
-      } else if (e.key === 'Delete' || e.key === 'Backspace') {
-        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+        return;
+      }
+
+      if (matchKey(e, settings.shortcutDeleteLine || 'Delete')) {
         e.preventDefault();
-        handleBulkDelete();
+        if (selectedLines.size > 0) {
+          handleBulkDelete();
+        } else {
+          setLines((prev) => {
+            const newLengthAfterDelete = prev.length - 1;
+            setActiveLineIndex(prevIndex => Math.max(0, Math.min(prevIndex, newLengthAfterDelete - 1)));
+            return prev.filter((_, i) => i !== activeLineIndex);
+          });
+          clearSelection();
+        }
+      } else if (matchKey(e, settings.shortcutAddLine || 'Insert')) {
+        e.preventDefault();
+        handleAddLine(activeLineIndex);
+      } else if (matchKey(e, settings.shortcutClearTimestamp || 'Backspace')) {
+        e.preventDefault();
+        if (selectedLines.size > 0) {
+          handleBulkClearTimestamps();
+        } else {
+          handleClearLine(activeLineIndex);
+        }
+      } else if (matchKey(e, settings.shortcutSwitchMode || 'Tab')) {
+        e.preventDefault();
+        const nextMode = editorMode === 'lrc' ? 'srt' : 'lrc';
+        setEditorMode(nextMode);
+        updateSetting('copyFormat', nextMode);
+        updateSetting('downloadFormat', nextMode);
       }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [selectedLines]);
+  }, [selectedLines, handleBulkDelete, clearSelection, settings.shortcutDeleteLine, settings.shortcutAddLine, settings.shortcutClearTimestamp, settings.shortcutSwitchMode, activeLineIndex, lines.length, handleAddLine, handleBulkClearTimestamps, handleClearLine, editorMode, setEditorMode, updateSetting, setLines, setActiveLineIndex]);
 
   return (
     <div className="glass rounded-xl sm:rounded-2xl p-3 sm:p-5 flex flex-col h-full animate-fade-in">
@@ -359,9 +531,71 @@ export default function Editor({
           <h2 className="text-xs sm:text-sm font-semibold uppercase tracking-widest text-zinc-400">
             {t('editor')}
           </h2>
+          {/* LRC / SRT mode toggle */}
+          <div className="flex items-center bg-zinc-800/80 rounded-lg border border-zinc-700/60 overflow-hidden">
+            <button
+              onClick={() => {
+                setEditorMode('lrc');
+                updateSetting('copyFormat', 'lrc');
+                updateSetting('downloadFormat', 'lrc');
+              }}
+              className={`px-2.5 py-1 text-[10px] sm:text-xs font-bold transition-all cursor-pointer ${editorMode === 'lrc'
+                  ? 'bg-primary text-zinc-950'
+                  : 'text-zinc-400 hover:text-zinc-200'
+                }`}
+            >
+              {t('editorModeLRC')}
+            </button>
+            <button
+              onClick={() => {
+                setEditorMode('srt');
+                updateSetting('copyFormat', 'srt');
+                updateSetting('downloadFormat', 'srt');
+              }}
+              className={`px-2.5 py-1 text-[10px] sm:text-xs font-bold transition-all cursor-pointer ${editorMode === 'srt'
+                  ? 'bg-primary text-zinc-950'
+                  : 'text-zinc-400 hover:text-zinc-200'
+                }`}
+            >
+              {t('editorModeSRT')}
+            </button>
+          </div>
         </div>
         {syncMode && (
           <div className="flex items-center justify-end gap-1 sm:gap-2 w-full">
+            <button
+              id="undo-btn"
+              onClick={undo}
+              disabled={!canUndo}
+              className="p-1 sm:p-1.5 hover:bg-zinc-800 rounded-lg text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed flex-shrink-0"
+              title={t('undoTitle')}
+            >
+              <svg className="w-3.5 sm:w-4 h-3.5 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h10a5 5 0 015 5v2M3 10l4-4m-4 4l4 4" />
+              </svg>
+            </button>
+            <button
+              id="redo-btn"
+              onClick={redo}
+              disabled={!canRedo}
+              className="p-1 sm:p-1.5 hover:bg-zinc-800 rounded-lg text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed flex-shrink-0"
+              title={t('redoTitle')}
+            >
+              <svg className="w-3.5 sm:w-4 h-3.5 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 10H11a5 5 0 00-5 5v2m15-7l-4-4m4 4l-4 4" />
+              </svg>
+            </button>
+            <div className="w-px h-4 bg-zinc-800 hidden sm:block mx-1" />
+            <button
+              id="select-all-btn"
+              onClick={() => setSelectedLines(new Set(lines.map((_, i) => i)))}
+              className="p-1 sm:p-1.5 hover:bg-primary/20 rounded-lg text-zinc-400 hover:text-primary transition-colors cursor-pointer flex-shrink-0"
+              title={t('selectAll')}
+            >
+              <svg className="w-3.5 sm:w-4 h-3.5 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+              </svg>
+            </button>
             <button
               id="clear-timestamps-btn"
               onClick={handleClearTimestamps}
@@ -369,7 +603,7 @@ export default function Editor({
               title={t('clearTimestamps')}
             >
               <svg className="w-3.5 sm:w-4 h-3.5 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
             <div className="w-px h-4 bg-zinc-800 hidden sm:block mx-1" />
@@ -468,14 +702,54 @@ export default function Editor({
                     <div className="absolute left-0 inset-y-0 w-1 bg-primary shadow-[0_0_12px_rgba(29,185,84,0.6)] z-0 rounded-l-xl opacity-90" />
                   )}
                   <span
-                    className={`text-xs font-mono tabular-nums min-w-[75px] mt-1 shrink-0 transition-colors ${isSynced
+                    className={`text-xs font-mono tabular-nums shrink-0 transition-colors ${isSynced
                       ? 'text-primary'
                       : isActive
                         ? 'text-zinc-400 animate-pulse-glow'
                         : 'text-zinc-600'
                       }`}
+                    style={{ minWidth: editorMode === 'srt' ? '160px' : '75px' }}
                   >
-                    {isSynced ? formatTimestamp(line.timestamp, settings.editorTimestampPrecision) : '--:--.--'}
+                    {editorMode === 'srt' ? (
+                      <>
+                        <span
+                          onClick={() => setFocusedTimestamp(focusedTimestamp?.lineIndex === i && focusedTimestamp?.type === 'start' ? null : { lineIndex: i, type: 'start' })}
+                          className={`cursor-pointer px-1 py-0.5 rounded transition-all ${focusedTimestamp?.lineIndex === i && focusedTimestamp?.type === 'start'
+                              ? 'bg-primary/40 ring-1 ring-primary/60 text-primary font-semibold'
+                              : 'hover:bg-zinc-700/40'
+                            }`}
+                        >
+                          {isSynced ? formatTimestamp(line.timestamp, settings.editorTimestampPrecision) : '--:--.--'}
+                        </span>
+                        <span className="text-zinc-600 mx-2">→</span>
+                        <span
+                          onClick={() => setFocusedTimestamp(focusedTimestamp?.lineIndex === i && focusedTimestamp?.type === 'end' ? null : { lineIndex: i, type: 'end' })}
+                          className={`cursor-pointer px-1 py-0.5 rounded transition-all ${focusedTimestamp?.lineIndex === i && focusedTimestamp?.type === 'end'
+                              ? 'bg-primary/40 ring-1 ring-primary/60 font-semibold'
+                              : 'hover:bg-zinc-700/40'
+                            }`}
+                        >
+                          {line.endTime != null
+                            ? (() => {
+                              const isOverlap = i < lines.length - 1 && lines[i + 1].timestamp != null && line.endTime > lines[i + 1].timestamp;
+                              const colorClass = isOverlap ? 'text-red-400 font-bold underline decoration-wavy decoration-red-500/50' : 'text-accent-blue';
+                              return <span className={`${awaitingEndMark === i ? 'animate-pulse-glow text-primary' : colorClass}`} title={isOverlap ? 'Overlap Warning' : ''}>{formatTimestamp(line.endTime, settings.editorTimestampPrecision)}</span>;
+                            })()
+                            : <span className={awaitingEndMark === i ? 'animate-pulse-glow text-zinc-400' : 'text-zinc-600'}>--:--.--</span>
+                          }
+                        </span>
+                      </>
+                    ) : (
+                      <span
+                        onClick={() => setFocusedTimestamp(focusedTimestamp?.lineIndex === i && focusedTimestamp?.type === 'start' ? null : { lineIndex: i, type: 'start' })}
+                        className={`cursor-pointer px-1 py-0.5 rounded transition-all inline-block ${focusedTimestamp?.lineIndex === i && focusedTimestamp?.type === 'start'
+                            ? 'bg-primary/40 ring-1 ring-primary/60 text-primary font-semibold'
+                            : 'hover:bg-zinc-700/40'
+                          }`}
+                      >
+                        {isSynced ? formatTimestamp(line.timestamp, settings.editorTimestampPrecision) : '--:--.--'}
+                      </span>
+                    )}
                   </span>
 
                   {/* Lyrics text container (scrollable horizontally if needed) */}
@@ -607,7 +881,7 @@ export default function Editor({
                 title={t('clearTimestamps') || 'Clear timestamps'}
               >
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
               <button
@@ -657,34 +931,13 @@ export default function Editor({
               id="mark-btn"
               onClick={handleMark}
               title={t('mark')}
-              className="px-2.5 sm:px-3 h-8 sm:h-9 flex items-center justify-center bg-primary hover:bg-primary-dim text-zinc-950 font-bold rounded-lg transition-all duration-200 cursor-pointer glow-primary flex-shrink-0"
+              className="px-4 sm:px-6 h-8 sm:h-9 flex items-center justify-center gap-1.5 bg-primary hover:bg-primary-dim text-zinc-950 font-bold rounded-lg transition-all duration-200 cursor-pointer glow-primary flex-shrink-0"
             >
               <svg className="w-3.5 sm:w-4 h-3.5 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
-            </button>
-            <button
-              id="undo-btn"
-              onClick={undo}
-              disabled={!canUndo}
-              className="px-2.5 sm:px-3 h-8 sm:h-9 flex items-center justify-center gap-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg transition-all duration-200 cursor-pointer text-xs font-semibold disabled:opacity-30 disabled:cursor-not-allowed flex-shrink-0"
-              title={t('undoTitle')}
-            >
-              <svg className="w-3.5 sm:w-4 h-3.5 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h10a5 5 0 015 5v2M3 10l4-4m-4 4l4 4" />
-              </svg>
-            </button>
-            <button
-              id="redo-btn"
-              onClick={redo}
-              disabled={!canRedo}
-              className="px-2.5 sm:px-3 h-8 sm:h-9 flex items-center justify-center gap-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg transition-all duration-200 cursor-pointer text-xs font-semibold disabled:opacity-30 disabled:cursor-not-allowed flex-shrink-0"
-              title={t('redoTitle')}
-            >
-              <svg className="w-3.5 sm:w-4 h-3.5 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M21 10H11a5 5 0 00-5 5v2m15-7l-4-4m4 4l-4 4" />
-              </svg>
+              <span className="text-xs sm:text-sm">{t('mark')}</span>
             </button>
 
 
@@ -707,10 +960,13 @@ export default function Editor({
           </div>
 
           <p className="text-xs text-zinc-600 text-center">
-            {selectedLines.size > 0 ? (t('selectionHint') || 'Shift+Click: range · Ctrl+Click: toggle · Esc: deselect') : t('markInstruction')}
+            {selectedLines.size > 0
+              ? (t('selectionHint') || 'Shift+Click: range · Ctrl+Click: toggle · Esc: deselect')
+              : editorMode === 'srt'
+                ? (awaitingEndMark != null ? t('markEndInstruction').replace(/Space|Espacio/gi, settings.shortcutMark || 'Space') : t('markInstructionSRT').replace(/Space|Espacio/gi, settings.shortcutMark || 'Space'))
+                : t('markInstruction').replace(/Space|Espacio/gi, settings.shortcutMark || 'Space')
+            }
           </p>
-
-
         </div>
       )}
 
@@ -725,5 +981,6 @@ export default function Editor({
         onCancel={() => setConfirmConfig({ isOpen: false, message: '', onConfirm: null })}
       />
     </div>
+
   );
 }
