@@ -90,12 +90,17 @@ export function compileSRT(lines, duration, includeTranslations = false) {
   
   return synced.map((line, i) => {
     const start = line.timestamp;
-    const nextLine = synced[i + 1];
-    let end = start + 5; // Default 5 seconds duration
-    if (nextLine && nextLine.timestamp != null) {
-      end = nextLine.timestamp;
-    } else if (duration) {
-      end = Math.max(start + 2, duration);
+    let end;
+    if (line.endTime != null) {
+      end = line.endTime;
+    } else {
+      const nextLine = synced[i + 1];
+      end = start + 5; // Default 5 seconds duration
+      if (nextLine && nextLine.timestamp != null) {
+        end = nextLine.timestamp;
+      } else if (duration) {
+        end = Math.max(start + 2, duration);
+      }
     }
     
     return `${i + 1}\n${formatSrtTimestamp(start)} --> ${formatSrtTimestamp(end)}\n${
@@ -115,13 +120,19 @@ export function parseLrcSrtFile(content, filename) {
     blocks.forEach(block => {
       const parts = block.trim().split('\n');
       if (parts.length >= 3) {
-        const timeMatch = parts[1].match(/(\d{2}):(\d{2}):(\d{2}),(\d{3})\s*-->/);
+        const timeMatch = parts[1].match(/(\d{2}):(\d{2}):(\d{2}),(\d{3})\s*-->\s*(\d{2}):(\d{2}):(\d{2}),(\d{3})/);
         if (timeMatch) {
           const h = parseInt(timeMatch[1], 10);
           const m = parseInt(timeMatch[2], 10);
           const s = parseInt(timeMatch[3], 10);
           const ms = parseInt(timeMatch[4], 10);
           const timestamp = h * 3600 + m * 60 + s + ms / 1000;
+          
+          const eh = parseInt(timeMatch[5], 10);
+          const em = parseInt(timeMatch[6], 10);
+          const es = parseInt(timeMatch[7], 10);
+          const ems = parseInt(timeMatch[8], 10);
+          const endTime = eh * 3600 + em * 60 + es + ems / 1000;
           
           let secondary = '', text = '', translation = '';
           const textLines = parts.slice(2);
@@ -135,7 +146,7 @@ export function parseLrcSrtFile(content, filename) {
             text = textLines[1];
             translation = textLines.slice(2).join('\n');
           }
-          parsedLines.push({ text, timestamp, secondary, translation });
+          parsedLines.push({ text, timestamp, endTime, secondary, translation });
         }
       }
     });
@@ -187,4 +198,41 @@ export function parseLrcSrtFile(content, filename) {
   }
 
   return mergedLines;
+}
+
+/**
+ * Infers end times for lines that don't have them.
+ * Uses the next line's start time (minus a tiny gap) or a default duration for the last line.
+ * @param {Array} lines
+ * @param {number} duration - total media duration
+ * @returns {Array} new array with endTime populated
+ */
+export function inferEndTimes(lines, duration) {
+  return lines.map((line, i) => {
+    // If already has an endTime, keep it
+    if (line.endTime != null) return line;
+    // If no start time, nothing to infer
+    if (line.timestamp == null) return line;
+
+    // Find the next synced line after this one
+    let nextStart = null;
+    for (let j = i + 1; j < lines.length; j++) {
+      if (lines[j].timestamp != null) {
+        nextStart = lines[j].timestamp;
+        break;
+      }
+    }
+
+    let endTime;
+    const MIN_DURATION = 0.05;
+    if (nextStart != null) {
+      endTime = Math.max(line.timestamp + MIN_DURATION, nextStart - 0.05);
+    } else if (duration) {
+      endTime = Math.max(line.timestamp + MIN_DURATION, Math.max(line.timestamp + 2, duration));
+    } else {
+      endTime = line.timestamp + 5;
+    }
+
+    return { ...line, endTime };
+  });
 }
