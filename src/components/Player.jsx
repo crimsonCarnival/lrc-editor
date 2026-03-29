@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { createVocalIsolation } from '../utils/audioProcessing';
 import { useTranslation } from 'react-i18next';
-import { useSettings } from '../contexts/SettingsContext';
+import { useSettings } from '../contexts/useSettings';
 import ConfirmModal from './ConfirmModal';
 import NumberInput from './NumberInput';
 
@@ -19,7 +19,6 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
     [settings.minSpeed, settings.maxSpeed]
   );
   const [source, setSource] = useState('local'); // 'local' | 'youtube'
-  const [localFile, setLocalFile] = useState(null);
   const [localUrl, setLocalUrl] = useState(null);
   const [ytUrl, setYtUrl] = useState('');
   const [ytReady, setYtReady] = useState(false);
@@ -83,7 +82,7 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
       barWidth: 2,
       barGap: 1,
       barRadius: 2,
-      height: 60,
+      height: 48,
       normalize: true,
       interact: false,
       media: audioElement,
@@ -194,7 +193,6 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
       if (source === 'local') {
         if (audioRef.current) audioRef.current.pause();
         if (localUrl) URL.revokeObjectURL(localUrl);
-        setLocalFile(null);
         setLocalUrl(null);
         localBlobRef.current = null;
         // Destroy waveform
@@ -210,7 +208,7 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
         setVocalIsolation(false);
       } else if (source === 'youtube') {
         if (ytPlayerRef.current) {
-          try { ytPlayerRef.current.destroy(); } catch (e) { /* ignore */ }
+          try { ytPlayerRef.current.destroy(); } catch { /* ignore */ }
           ytPlayerRef.current = null;
         }
         // Recreate the inner div for future use
@@ -241,7 +239,6 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setLocalFile(file);
     localBlobRef.current = file;
     const url = URL.createObjectURL(file);
     setLocalUrl(url);
@@ -347,7 +344,7 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
 
     // Destroy existing player
     if (ytPlayerRef.current) {
-      try { ytPlayerRef.current.destroy(); } catch (e) { /* ignore */ }
+      try { ytPlayerRef.current.destroy(); } catch { /* ignore */ }
       ytPlayerRef.current = null;
     }
 
@@ -441,7 +438,7 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
 
   // ——————— UNIFIED CONTROLS ———————
 
-  const togglePlay = () => {
+  const togglePlay = useCallback(() => {
     if (source === 'local' && audioRef.current) {
       if (isPlaying) {
         audioRef.current.pause();
@@ -456,9 +453,9 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
         ytPlayerRef.current.playVideo();
       }
     }
-  };
+  }, [source, isPlaying]);
 
-  const seek = (time) => {
+  const seek = useCallback((time) => {
     if (source === 'local' && audioRef.current) {
       audioRef.current.currentTime = time;
       setCurrentTime(time);
@@ -468,7 +465,7 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
       setCurrentTime(time);
       onTimeUpdate?.(time);
     }
-  };
+  }, [source, onTimeUpdate]);
 
   const applySpeed = useCallback((speed) => {
     const clamped = Math.min(MAX_SPEED, Math.max(MIN_SPEED, parseFloat(speed) || 1));
@@ -530,7 +527,7 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
         },
       };
     }
-  }, [source, isPlaying, playerRef]);
+  }, [source, isPlaying, playerRef, togglePlay, seek]);
 
   const formatTime = (s) => {
     if (!s || isNaN(s)) return '0:00.00';
@@ -541,9 +538,9 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
   };
 
   return (
-    <div className="glass rounded-xl sm:rounded-2xl p-3 sm:p-5 space-y-2 sm:space-y-4 animate-fade-in overflow-visible">
+    <div className="glass rounded-xl sm:rounded-2xl p-2.5 sm:p-4 space-y-1.5 sm:space-y-3 animate-fade-in overflow-visible">
       {/* Header */}
-      <div className="flex flex-row items-center justify-between gap-2 sm:gap-4 mb-2">
+      <div className="flex flex-row items-center justify-between gap-2 sm:gap-4 mb-1">
         <h2 className="text-xs sm:text-sm font-semibold tracking-widest text-zinc-400 flex items-center gap-2 overflow-hidden flex-1 pb-0.5 min-w-0">
           <span className="uppercase shrink-0 text-xs sm:text-sm">{t('playerTitle')}</span>
           {mediaTitle && (
@@ -601,7 +598,7 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
         <div className="space-y-3 animate-fade-in">
           <label
             htmlFor="audio-file-input"
-            className="flex items-center justify-center gap-2 border-2 border-dashed border-zinc-700 hover:border-primary/50 rounded-xl p-6 cursor-pointer transition-colors duration-200 group"
+            className="flex items-center justify-center gap-2 border-2 border-dashed border-zinc-700 hover:border-primary/50 rounded-xl p-4 cursor-pointer transition-colors duration-200 group"
           >
             <svg className="w-5 h-5 text-zinc-500 group-hover:text-primary transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z" />
