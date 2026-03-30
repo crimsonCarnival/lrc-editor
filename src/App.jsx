@@ -1,266 +1,51 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { lazy, Suspense } from 'react';
 import Player from './components/Player';
 import Editor from './components/Editor';
 import Preview from './components/Preview';
-import Settings from './components/Settings';
-import useHistory from './utils/useHistory';
-import KeyboardHelp from './components/KeyboardHelp';
-import { useTranslation } from 'react-i18next';
 import { SettingsProvider } from './contexts/SettingsContext';
-import { useSettings } from './contexts/useSettings';
-import { inferEndTimes, parseLrcSrtFile } from './utils/lrc';
+import { useAppState } from './hooks/useAppState';
+
+const Settings = lazy(() => import('./components/Settings'));
+const KeyboardHelp = lazy(() => import('./components/KeyboardHelp'));
 
 function AppInner() {
-  const { t, i18n } = useTranslation();
-  const { settings } = useSettings();
-
-  useEffect(() => {
-    const root = document.documentElement;
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-
-    const updateTheme = () => {
-      if (settings.interface.theme === 'light') {
-        root.classList.remove('dark');
-      } else if (settings.interface.theme === 'system') {
-        if (mediaQuery.matches) {
-          root.classList.add('dark');
-        } else {
-          root.classList.remove('dark');
-        }
-      } else {
-        root.classList.add('dark');
-      }
-    };
-
-    updateTheme();
-    mediaQuery.addEventListener('change', updateTheme);
-
-    return () => mediaQuery.removeEventListener('change', updateTheme);
-  }, [settings.interface.theme]);
-
-  // Lines state with undo/redo
-  const [lines, setLines, undo, redo, canUndo, canRedo] = useHistory([], {
-    limit: settings.advanced?.history?.limit || 50,
-    groupingThresholdMs: settings.advanced?.history?.groupingThresholdMs || 500
-  });
-
-  const [syncMode, setSyncMode] = useState(false);
-  const [activeLineIndex, setActiveLineIndex] = useState(0);
-  const [playbackPosition, setPlaybackPosition] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [mediaTitle, setMediaTitle] = useState('');
-  const [hasMedia, setHasMedia] = useState(false);
-  const [showKeyboardHelp, setShowKeyboardHelp] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
-  const [pendingSession, setPendingSession] = useState(() => {
-    try {
-      const saved = localStorage.getItem('lrc-syncer-session');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed.lines && parsed.lines.length > 0) {
-          return parsed;
-        }
-      }
-    } catch (e) {
-      console.error('Failed to parse session data', e);
-    }
-    return null;
-  });
-  const [showLangMenu, setShowLangMenu] = useState(false);
-  const [editorMode, setEditorModeRaw] = useState('lrc'); // 'lrc' | 'srt'
-  const [isDraggingFile, setIsDraggingFile] = useState(false);
-  const maxDragDepth = useRef(0);
-
-  const playerRef = useRef(null);
-  const langMenuRef = useRef(null);
-
-  const handleManualSave = useCallback(() => {
-    localStorage.setItem('lrc-syncer-session', JSON.stringify({
-      lines,
-      syncMode,
-      activeLineIndex,
-      timestamp: Date.now()
-    }));
-  }, [lines, syncMode, activeLineIndex]);
-
-  // Mode switching with end-time inference
-  const setEditorMode = useCallback((mode) => {
-    if (mode === 'srt' && editorMode !== 'srt') {
-      // LRC → SRT: infer missing end times
-      setLines(prev => inferEndTimes(prev, duration, settings.editor?.srt));
-    }
-    setEditorModeRaw(mode);
-  }, [editorMode, duration, setLines, settings.editor?.srt]);
-
-  useEffect(() => {
-    if (pendingSession !== null || !lines.length || !settings.advanced.autoSave.enabled) return;
-    const timeoutId = setTimeout(() => {
-      localStorage.setItem('lrc-syncer-session', JSON.stringify({
-        lines,
-        syncMode,
-        activeLineIndex,
-        timestamp: Date.now()
-      }));
-    }, settings.advanced.autoSave.interval);
-    return () => clearTimeout(timeoutId);
-  }, [lines, syncMode, activeLineIndex, pendingSession, settings.advanced.autoSave.enabled, settings.advanced.autoSave.interval]);
-
-  const handleRestoreSession = () => {
-    if (pendingSession) {
-      setLines(pendingSession.lines);
-      if (pendingSession.syncMode) setSyncMode(pendingSession.syncMode);
-      if (pendingSession.activeLineIndex != null) setActiveLineIndex(pendingSession.activeLineIndex);
-    }
-    setPendingSession(null);
-  };
-
-  const handleDiscardSession = () => {
-    localStorage.removeItem('lrc-syncer-session');
-    setPendingSession(null);
-  };
-
-  // ——— Clear all data when media is removed ———
-  const handleMediaChange = useCallback((loaded) => {
-    setHasMedia(loaded);
-    if (!loaded) {
-      if (settings.advanced.confirmDestructive) {
-        // No confirm needed when media is simply removed — data is auto-saved
-      }
-      setLines([]);
-      setSyncMode(false);
-      setActiveLineIndex(0);
-      setPlaybackPosition(0);
-      setDuration(0);
-      setMediaTitle('');
-    }
-  }, [setLines, settings.advanced.confirmDestructive]);
-
-  // ——— Global Undo/Redo keyboard shortcut ———
-  useEffect(() => {
-    const handler = (e) => {
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
-        e.preventDefault();
-        undo();
-      } else if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
-        e.preventDefault();
-        redo();
-      } else if (e.key === '?') {
-        setShowKeyboardHelp((prev) => !prev);
-      }
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [undo, redo]);
-
-
-
-  // ——— Close language menu on outside click ———
-  useEffect(() => {
-    if (!showLangMenu) return;
-    const handler = (e) => {
-      if (langMenuRef.current && !langMenuRef.current.contains(e.target)) {
-        setShowLangMenu(false);
-      }
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [showLangMenu]);
-
-  const handleTimeUpdate = useCallback((time) => {
-    setPlaybackPosition(time);
-  }, []);
-
-  const handleDurationChange = useCallback((d) => {
-    setDuration(d);
-  }, []);
-
-  // Loop Current Line logic
-  useEffect(() => {
-    if (!settings.playback?.loopCurrentLine || !syncMode || !lines[activeLineIndex] || lines[activeLineIndex].timestamp == null) return;
-    
-    const currentLine = lines[activeLineIndex];
-    let endMark = currentLine.endTime;
-
-    if (editorMode !== 'srt' || endMark == null) {
-      const nextLine = lines.slice(activeLineIndex + 1).find(l => l.timestamp != null);
-      if (nextLine) endMark = nextLine.timestamp;
-    }
-
-    if (endMark != null && playbackPosition >= endMark) {
-      playerRef.current?.seek(currentLine.timestamp);
-    }
-  }, [playbackPosition, settings.playback?.loopCurrentLine, syncMode, lines, activeLineIndex, editorMode]);
-
-  const handleDragEnter = useCallback((e) => {
-    e.preventDefault();
-    maxDragDepth.current += 1;
-    if (e.dataTransfer?.types?.includes('Files')) {
-      setIsDraggingFile(true);
-    }
-  }, []);
-
-  const handleDragLeave = useCallback((e) => {
-    e.preventDefault();
-    maxDragDepth.current -= 1;
-    if (maxDragDepth.current === 0) {
-      setIsDraggingFile(false);
-    }
-  }, []);
-
-  const handleDragOver = useCallback((e) => {
-    e.preventDefault();
-  }, []);
-
-  const handleDrop = useCallback(async (e) => {
-    e.preventDefault();
-    maxDragDepth.current = 0;
-    setIsDraggingFile(false);
-    
-    const file = e.dataTransfer?.files?.[0];
-    if (!file) return;
-
-    if (file.type.startsWith('audio/')) {
-      if (playerRef.current?.loadLocalAudio) {
-        playerRef.current.loadLocalAudio(file);
-      }
-      return;
-    }
-
-    const extension = file.name.split('.').pop().toLowerCase();
-    
-    if (['lrc', 'srt', 'txt'].includes(extension)) {
-      try {
-        const text = await file.text();
-        const parsedLines = parseLrcSrtFile(text, file.name);
-        
-        if (lines.length > 0 && settings.advanced.confirmDestructive) {
-          if (!window.confirm(t('confirmRemoveAll') || 'Replace existing lyrics?')) {
-            return;
-          }
-        }
-        
-        setLines(parsedLines);
-        setEditorModeRaw(extension === 'srt' ? 'srt' : 'lrc');
-      } catch (err) {
-        console.error('Failed to parse dropped lyrics file', err);
-      }
-    }
-  }, [lines.length, setLines, settings.advanced.confirmDestructive, t]);
-
-  useEffect(() => {
-    window.addEventListener('dragenter', handleDragEnter);
-    window.addEventListener('dragleave', handleDragLeave);
-    window.addEventListener('dragover', handleDragOver);
-    window.addEventListener('drop', handleDrop);
-    
-    return () => {
-      window.removeEventListener('dragenter', handleDragEnter);
-      window.removeEventListener('dragleave', handleDragLeave);
-      window.removeEventListener('dragover', handleDragOver);
-      window.removeEventListener('drop', handleDrop);
-    };
-  }, [handleDragEnter, handleDragLeave, handleDragOver, handleDrop]);
+  const {
+    t,
+    i18n,
+    lines,
+    setLines,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+    syncMode,
+    setSyncMode,
+    activeLineIndex,
+    setActiveLineIndex,
+    playbackPosition,
+    duration,
+    mediaTitle,
+    setMediaTitle,
+    hasMedia,
+    showKeyboardHelp,
+    setShowKeyboardHelp,
+    showSettings,
+    setShowSettings,
+    pendingSession,
+    showLangMenu,
+    setShowLangMenu,
+    editorMode,
+    setEditorMode,
+    isDraggingFile,
+    playerRef,
+    langMenuRef,
+    handleManualSave,
+    handleRestoreSession,
+    handleDiscardSession,
+    handleMediaChange,
+    handleTimeUpdate,
+    handleDurationChange,
+  } = useAppState();
 
   return (
     <div className="min-h-screen lg:h-screen bg-zinc-950 relative overflow-x-hidden flex flex-col">
@@ -427,8 +212,12 @@ function AppInner() {
           </p>
         </footer>
       </div>
-      <KeyboardHelp isOpen={showKeyboardHelp} onClose={() => setShowKeyboardHelp(false)} />
-      <Settings isOpen={showSettings} onClose={() => setShowSettings(false)} onManualSave={handleManualSave} />
+      <Suspense fallback={null}>
+        {showKeyboardHelp && <KeyboardHelp isOpen={showKeyboardHelp} onClose={() => setShowKeyboardHelp(false)} />}
+      </Suspense>
+      <Suspense fallback={null}>
+        {showSettings && <Settings isOpen={showSettings} onClose={() => setShowSettings(false)} onManualSave={handleManualSave} />}
+      </Suspense>
 
       {/* Session Restore Modal */}
       {pendingSession && (
