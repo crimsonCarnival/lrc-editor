@@ -210,6 +210,17 @@ export default {
     "settingsShortcutClearTimestampLabel": "Limpiar tiempo",
     "settingsShortcutClearTimestampDesc": "Eliminar tiempo de la línea actual",
     "settingsShortcutSwitchModeLabel": "Cambiar modo",
-    "settingsShortcutSwitchModeDesc": "Alternar modo editor LRC/SRT"
+    "settingsShortcutSwitchModeDesc": "Alternar modo editor LRC/SRT",
+    "exportSuccess": "Archivo descargado",
+    "copyFailed": "Error al copiar al portapapeles",
+    "importedLines": "{{count}} líneas importadas",
+    "importFailed": "Error al analizar el archivo de letras",
+    "noLinesFound": "No se encontraron letras en el archivo",
+    "fileTooLarge": "Archivo demasiado grande (máx 5 MB)",
+    "editLine": "Editar texto (Doble clic)",
+    "mute": "Silenciar",
+    "unmute": "Activar sonido",
+    "previewLocked": "Clic para desbloquear línea",
+    "previewHoverHint": "Clic para saltar a esta línea"
   }
 };

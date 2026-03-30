@@ -210,6 +210,17 @@ export default {
     "settingsShortcutClearTimestampLabel": "Clear Timestamp",
     "settingsShortcutClearTimestampDesc": "Clear timestamp on active line",
     "settingsShortcutSwitchModeLabel": "Switch Mode",
-    "settingsShortcutSwitchModeDesc": "Toggle LRC/SRT editor mode"
+    "settingsShortcutSwitchModeDesc": "Toggle LRC/SRT editor mode",
+    "exportSuccess": "File downloaded",
+    "copyFailed": "Failed to copy to clipboard",
+    "importedLines": "Imported {{count}} lines",
+    "importFailed": "Failed to parse lyrics file",
+    "noLinesFound": "No lyrics found in file",
+    "fileTooLarge": "File too large (max 5 MB)",
+    "editLine": "Edit text (Double-click)",
+    "mute": "Mute",
+    "unmute": "Unmute",
+    "previewLocked": "Click to unlock line",
+    "previewHoverHint": "Click to jump to this line"
   }
 };
