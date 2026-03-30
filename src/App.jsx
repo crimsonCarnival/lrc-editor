@@ -52,10 +52,6 @@ function AppInner() {
   const [hasMedia, setHasMedia] = useState(false);
   const [showKeyboardHelp, setShowKeyboardHelp] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [isRestoring] = useState(() => {
-    const saved = localStorage.getItem('lrc-syncer-session');
-    return !saved;
-  });
   const [pendingSession, setPendingSession] = useState(() => {
     try {
       const saved = localStorage.getItem('lrc-syncer-session');
@@ -94,10 +90,10 @@ function AppInner() {
       setLines(prev => inferEndTimes(prev, duration, settings.editor?.srt));
     }
     setEditorModeRaw(mode);
-  }, [editorMode, duration, setLines]);
+  }, [editorMode, duration, setLines, settings.editor?.srt]);
 
   useEffect(() => {
-    if (isRestoring || !lines.length || !settings.advanced.autoSave.enabled) return;
+    if (pendingSession !== null || !lines.length || !settings.advanced.autoSave.enabled) return;
     const timeoutId = setTimeout(() => {
       localStorage.setItem('lrc-syncer-session', JSON.stringify({
         lines,
@@ -107,7 +103,7 @@ function AppInner() {
       }));
     }, settings.advanced.autoSave.interval);
     return () => clearTimeout(timeoutId);
-  }, [lines, syncMode, activeLineIndex, isRestoring, settings.advanced.autoSave.enabled, settings.advanced.autoSave.interval]);
+  }, [lines, syncMode, activeLineIndex, pendingSession, settings.advanced.autoSave.enabled, settings.advanced.autoSave.interval]);
 
   const handleRestoreSession = () => {
     if (pendingSession) {
