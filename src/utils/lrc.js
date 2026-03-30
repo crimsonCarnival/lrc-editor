@@ -38,7 +38,7 @@ export function parseTimestamp(str) {
  * @returns {string}
  */
 function sanitizeLrcTag(s) {
-  return s.replace(/[\[\]]/g, '');
+  return s.replace(/[[\]]/g, '');
 }
 
 /**
