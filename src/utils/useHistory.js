@@ -2,13 +2,16 @@ import { useState, useCallback, useRef } from 'react';
 
 /**
  * Custom hook for undo/redo history management.
- * Wraps a state value with a history stack (capped at MAX_HISTORY).
+ * Wraps a state value with a history stack (capped at `options.limit`).
+ * Supports time-based grouping: rapid updates within `groupingThresholdMs`
+ * are collapsed into a single undo entry.
  *
  * @param {*} initial - Initial state value
+ * @param {object} options
+ * @param {number} [options.limit=50] - Max history entries
+ * @param {number} [options.groupingThresholdMs=500] - Grouping window in ms
  * @returns {[state, setState, undo, redo, canUndo, canRedo]}
  */
-const MAX_HISTORY = 50;
-
 export default function useHistory(initial, options = {}) {
   const limit = options.limit || 50;
   const groupingThresholdMs = options.groupingThresholdMs || 500;
@@ -34,7 +37,7 @@ export default function useHistory(initial, options = {}) {
       futureRef.current = [];
       
       setCanUndo(pastRef.current.length > 0);
-      setCanRedo(futureRef.current.length > 0);
+      setCanRedo(false);
       
       return next;
     });
@@ -50,7 +53,7 @@ export default function useHistory(initial, options = {}) {
       lastUpdateRef.current = 0; // Reset threshold timer
       
       setCanUndo(pastRef.current.length > 0);
-      setCanRedo(futureRef.current.length > 0);
+      setCanRedo(true);
       
       return previous;
     });
@@ -65,14 +68,12 @@ export default function useHistory(initial, options = {}) {
       
       lastUpdateRef.current = 0; // Reset threshold timer
       
-      setCanUndo(pastRef.current.length > 0);
+      setCanUndo(true);
       setCanRedo(futureRef.current.length > 0);
       
       return next;
     });
   }, []);
-
-
 
   return [state, setState, undo, redo, canUndo, canRedo];
 }

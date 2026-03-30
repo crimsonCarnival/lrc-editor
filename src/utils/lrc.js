@@ -1,11 +1,12 @@
 /**
- * LRC utilities — format timestamps, compile LRC, trigger download.
+ * LRC / SRT utilities — format timestamps, compile, parse, download.
  */
 
 /**
  * Formats a number of seconds into LRC timestamp format [mm:ss.xx] or [mm:ss.xxx]
  * @param {number} seconds
  * @param {'hundredths'|'thousandths'} precision
+ * @returns {string}
  */
 export function formatTimestamp(seconds, precision = 'hundredths') {
   if (seconds == null || isNaN(seconds) || seconds < 0) {
@@ -22,6 +23,8 @@ export function formatTimestamp(seconds, precision = 'hundredths') {
 
 /**
  * Parses an LRC timestamp string like "[01:23.45]" or "[01:23.456]" into seconds
+ * @param {string} str
+ * @returns {number|null}
  */
 export function parseTimestamp(str) {
   const match = str.match(/\[(\d{2}):(\d{2}\.\d{2,3})\]/);
@@ -30,17 +33,29 @@ export function parseTimestamp(str) {
 }
 
 /**
+ * Sanitizes a string for use inside LRC bracket tags.
+ * @param {string} s
+ * @returns {string}
+ */
+function sanitizeLrcTag(s) {
+  return s.replace(/[\[\]]/g, '');
+}
+
+/**
  * Compiles an array of { text, timestamp } into a valid .lrc string
  * @param {Array} lines
  * @param {boolean} includeTranslations
  * @param {'hundredths'|'thousandths'} precision
+ * @param {object} metadata
+ * @param {'lf'|'crlf'} lineEndings
+ * @returns {string}
  */
 export function compileLRC(lines, includeTranslations = false, precision = 'hundredths', metadata = {}, lineEndings = 'lf') {
   let header = '';
-  if (metadata.ti) header += `[ti:${metadata.ti}]\n`;
-  if (metadata.ar) header += `[ar:${metadata.ar}]\n`;
-  if (metadata.al) header += `[al:${metadata.al}]\n`;
-  if (metadata.lg) header += `[lg:${metadata.lg}]\n`;
+  if (metadata.ti) header += `[ti:${sanitizeLrcTag(metadata.ti)}]\n`;
+  if (metadata.ar) header += `[ar:${sanitizeLrcTag(metadata.ar)}]\n`;
+  if (metadata.al) header += `[al:${sanitizeLrcTag(metadata.al)}]\n`;
+  if (metadata.lg) header += `[lg:${sanitizeLrcTag(metadata.lg)}]\n`;
 
   const body = lines
     .map((line) => {
@@ -61,6 +76,8 @@ export function compileLRC(lines, includeTranslations = false, precision = 'hund
 
 /**
  * Triggers a browser download of the given text content as a file.
+ * @param {string} content
+ * @param {string} filename
  */
 export function downloadLRC(content, filename = 'lyrics.lrc') {
   const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
@@ -76,9 +93,11 @@ export function downloadLRC(content, filename = 'lyrics.lrc') {
 
 /**
  * Formats a number of seconds into SRT timestamp format HH:MM:SS,mmm
+ * @param {number} seconds
+ * @returns {string}
  */
 export function formatSrtTimestamp(seconds) {
-  if (seconds == null || seconds < 0) return '00:00:00,000';
+  if (seconds == null || isNaN(seconds) || seconds < 0) return '00:00:00,000';
   const hrs = Math.floor(seconds / 3600);
   const mins = Math.floor((seconds % 3600) / 60);
   const secs = Math.floor(seconds % 60);
@@ -92,6 +111,12 @@ export function formatSrtTimestamp(seconds) {
 
 /**
  * Compiles an array of { text, timestamp } into a valid .srt string
+ * @param {Array} lines
+ * @param {number} duration
+ * @param {boolean} includeTranslations
+ * @param {'lf'|'crlf'} lineEndings
+ * @param {object} srtConfig
+ * @returns {string}
  */
 export function compileSRT(lines, duration, includeTranslations = false, lineEndings = 'lf', srtConfig = {}) {
   const minGap = srtConfig.minSubtitleGap || 0.05;
@@ -107,11 +132,13 @@ export function compileSRT(lines, duration, includeTranslations = false, lineEnd
       end = line.endTime;
     } else {
       const nextLine = synced[i + 1];
-      end = start + defaultDur; 
       if (nextLine && nextLine.timestamp != null) {
         end = Math.max(start + minGap, nextLine.timestamp - minGap);
       } else if (duration) {
-        end = Math.max(start + 2, duration);
+        // Cap at start + defaultDur, but not beyond the track duration
+        end = Math.min(start + defaultDur, duration);
+      } else {
+        end = start + defaultDur;
       }
     }
 
@@ -125,6 +152,12 @@ export function compileSRT(lines, duration, includeTranslations = false, lineEnd
   return lineEndings === 'crlf' ? body.replace(/\n/g, '\r\n') : body;
 }
 
+/**
+ * Parses an LRC or SRT file into an array of line objects.
+ * @param {string} content
+ * @param {string} filename
+ * @returns {Array<{text: string, timestamp: number|null, endTime?: number, secondary?: string, translation?: string, id: string}>}
+ */
 export function parseLrcSrtFile(content, filename) {
   const isSrt = filename.toLowerCase().endsWith('.srt');
   const parsedLines = [];
@@ -148,19 +181,11 @@ export function parseLrcSrtFile(content, filename) {
           const ems = parseInt(timeMatch[8], 10);
           const endTime = eh * 3600 + em * 60 + es + ems / 1000;
           
-          let secondary = '', text = '', translation = '';
+          // SRT multi-line text is joined as plain text by default
           const textLines = parts.slice(2);
-          if (textLines.length === 1) {
-            text = textLines[0];
-          } else if (textLines.length === 2) {
-            text = textLines[0];
-            translation = textLines.slice(1).join('\n');
-          } else {
-            secondary = textLines[0];
-            text = textLines[1];
-            translation = textLines.slice(2).join('\n');
-          }
-          parsedLines.push({ text, timestamp, endTime, secondary, translation });
+          const text = textLines.join('\n');
+
+          parsedLines.push({ text, timestamp, endTime, secondary: '', translation: '', id: crypto.randomUUID() });
         }
       }
     });
@@ -172,32 +197,26 @@ export function parseLrcSrtFile(content, filename) {
         const m = parseInt(match[1], 10);
         const s = parseFloat(match[2]);
         const text = match[3].trim();
-        parsedLines.push({ text, timestamp: m * 60 + s });
+        parsedLines.push({ text, timestamp: m * 60 + s, id: crypto.randomUUID() });
       } else if (line.trim() !== '') {
-        parsedLines.push({ text: line.trim(), timestamp: null });
+        parsedLines.push({ text: line.trim(), timestamp: null, id: crypto.randomUUID() });
       }
     });
   }
   
+  // Merge duplicate timestamps (for LRC bilingual files) using a Map for O(n) lookup
   const mergedLines = [];
+  const timestampMap = new Map();
+
   for (const line of parsedLines) {
     if (line.timestamp == null) {
       mergedLines.push(line);
       continue;
     }
 
-    let existingIndex = -1;
-    for (let i = 0; i < mergedLines.length; i++) {
-      if (
-        mergedLines[i].timestamp != null &&
-        Math.abs(mergedLines[i].timestamp - line.timestamp) < 0.01
-      ) {
-        existingIndex = i;
-        break;
-      }
-    }
-
-    if (existingIndex !== -1) {
+    const key = Math.round(line.timestamp * 100); // group within 0.01s
+    if (timestampMap.has(key)) {
+      const existingIndex = timestampMap.get(key);
       const existing = mergedLines[existingIndex];
       if (!existing.translation) {
         existing.translation = line.text;
@@ -207,7 +226,9 @@ export function parseLrcSrtFile(content, filename) {
         existing.translation = line.text;
       }
     } else {
+      const idx = mergedLines.length;
       mergedLines.push({ ...line });
+      timestampMap.set(key, idx);
     }
   }
 
@@ -219,6 +240,7 @@ export function parseLrcSrtFile(content, filename) {
  * Uses the next line's start time (minus a tiny gap) or a default duration for the last line.
  * @param {Array} lines
  * @param {number} duration - total media duration
+ * @param {object} srtConfig
  * @returns {Array} new array with endTime populated
  */
 export function inferEndTimes(lines, duration, srtConfig = {}) {
@@ -244,7 +266,8 @@ export function inferEndTimes(lines, duration, srtConfig = {}) {
     if (nextStart != null) {
       endTime = Math.max(line.timestamp + minGap, nextStart - minGap);
     } else if (duration) {
-      endTime = Math.max(line.timestamp + minGap, Math.max(line.timestamp + 2, duration));
+      // Cap at start + defaultDur, but not beyond the track duration
+      endTime = Math.min(line.timestamp + defaultDur, duration);
     } else {
       endTime = line.timestamp + defaultDur;
     }
