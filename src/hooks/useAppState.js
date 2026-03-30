@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { useSettings } from '../contexts/useSettings';
-import useHistory from '../utils/useHistory';
+import useHistory from './useHistory';
 import { inferEndTimes, parseLrcSrtFile } from '../utils/lrc';
 
 const MAX_IMPORT_FILE_SIZE = 5 * 1024 * 1024; // 5 MB

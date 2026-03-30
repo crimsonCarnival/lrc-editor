@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { Toaster } from 'react-hot-toast'
 import './index.css'
 import App from './App.jsx'
-import ErrorBoundary from './components/ErrorBoundary.jsx'
+import ErrorBoundary from './components/shared/ErrorBoundary.jsx'
 import './i18n.js'
 
 createRoot(document.getElementById('root')).render(

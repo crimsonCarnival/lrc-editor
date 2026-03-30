@@ -1,9 +1,9 @@
 import { useEditor } from './useEditor';
-import EditorToolbar from './EditorToolbar';
-import EditorPasteArea from './EditorPasteArea';
-import EditorLineItem from './EditorLineItem';
-import SelectionActionBar from './SelectionActionBar';
-import EditorSyncControls from './EditorSyncControls';
+import EditorToolbar from './parts/EditorToolbar';
+import EditorPasteArea from './parts/EditorPasteArea';
+import EditorLineItem from './parts/EditorLineItem';
+import SelectionActionBar from './parts/SelectionActionBar';
+import EditorSyncControls from './parts/EditorSyncControls';
 
 export default function Editor({
   lines,

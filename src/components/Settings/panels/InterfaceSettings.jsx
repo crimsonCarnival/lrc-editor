@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
-import { Section, SettingRow } from './shared';
-import { useInterfaceSettings } from './useInterfaceSettings';
+import { Section, SettingRow } from '../shared';
+import { useInterfaceSettings } from '../hooks/useInterfaceSettings';
 
 export default function InterfaceSettings({ settings, updateSetting, searchTerm }) {
   const { t } = useTranslation();

@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { useSettings } from '../../contexts/useSettings';
-import useConfirm from '../../utils/useConfirm';
+import useConfirm from '../../hooks/useConfirm';
 import { formatTime } from '../../utils/formatTime';
 import { extractVideoId } from './playerService';
 import WaveformDisplay from './WaveformDisplay';

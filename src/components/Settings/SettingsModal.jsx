@@ -2,12 +2,12 @@ import { useTranslation } from 'react-i18next';
 import { useSettings } from '../../contexts/useSettings';
 import { DEFAULT_SETTINGS } from '../../contexts/settingsDefaults';
 import { useSettingsModal } from './useSettingsModal';
-import PlaybackSettings from './PlaybackSettings';
-import EditorSettings from './EditorSettings';
-import ExportSettings from './ExportSettings';
-import InterfaceSettings from './InterfaceSettings';
-import ShortcutsSettings from './ShortcutsSettings';
-import AdvancedSettings from './AdvancedSettings';
+import PlaybackSettings from './panels/PlaybackSettings';
+import EditorSettings from './panels/EditorSettings';
+import ExportSettings from './panels/ExportSettings';
+import InterfaceSettings from './panels/InterfaceSettings';
+import ShortcutsSettings from './panels/ShortcutsSettings';
+import AdvancedSettings from './panels/AdvancedSettings';
 
 const TABS = [
   { id: 'playback', labelKey: 'settingsPlayback' },

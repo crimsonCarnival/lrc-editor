@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
-import { Section, SettingRow, ShortcutInput } from './shared';
-import { useShortcutsSettings } from './useShortcutsSettings';
+import { Section, SettingRow, ShortcutInput } from '../shared';
+import { useShortcutsSettings } from '../hooks/useShortcutsSettings';
 
 export default function ShortcutsSettings({ settings, updateSetting, searchTerm, validateShortcut }) {
   const { t } = useTranslation();

@@ -1,8 +1,8 @@
 import { useEffect } from 'react';
-import useDraggable from '../utils/useDraggable';
+import useDraggable from '../../hooks/useDraggable';
 import { useTranslation } from 'react-i18next';
 
-import { useSettings } from '../contexts/useSettings';
+import { useSettings } from '../../contexts/useSettings';
 
 export default function KeyboardHelp({ isOpen, onClose }) {
   const { t } = useTranslation();

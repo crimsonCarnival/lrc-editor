@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
-import NumberInput from '../NumberInput';
-import { Section, SettingRow, Toggle } from './shared';
-import { usePlaybackSettings } from './usePlaybackSettings';
+import NumberInput from '../../shared/NumberInput';
+import { Section, SettingRow, Toggle } from '../shared';
+import { usePlaybackSettings } from '../hooks/usePlaybackSettings';
 
 export default function PlaybackSettings({ settings, updateSetting, searchTerm }) {
   const { t } = useTranslation();

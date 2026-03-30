@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
-import NumberInput from '../NumberInput';
+import NumberInput from '../shared/NumberInput';
 
 const SpeedControl = React.memo(function SpeedControl({
   playbackSpeed,

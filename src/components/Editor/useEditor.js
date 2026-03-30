@@ -4,7 +4,7 @@ import { parseLrcSrtFile } from '../../utils/lrc';
 import { matchKey } from '../../utils/keyboard';
 import { useTranslation } from 'react-i18next';
 import { useSettings } from '../../contexts/useSettings';
-import useConfirm from '../../utils/useConfirm';
+import useConfirm from '../../hooks/useConfirm';
 import {
   computeNextIndex,
   applyBulkShift,

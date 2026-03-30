@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import useDraggable from '../../utils/useDraggable';
+import useDraggable from '../../hooks/useDraggable';
 import { DEFAULT_SETTINGS } from '../../contexts/settingsDefaults';
 
 export function useSettingsModal(isOpen, onClose, globalSettings, updateAllSettings) {

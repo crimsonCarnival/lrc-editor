@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import NumberInput from '../NumberInput';
+import NumberInput from '../../shared/NumberInput';
 
 export default function EditorSyncControls({
   handleMark,

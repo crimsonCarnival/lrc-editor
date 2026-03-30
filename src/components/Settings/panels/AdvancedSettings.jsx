@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
-import { Section, SettingRow, Toggle } from './shared';
-import { useAdvancedSettings } from './useAdvancedSettings';
+import { Section, SettingRow, Toggle } from '../shared';
+import { useAdvancedSettings } from '../hooks/useAdvancedSettings';
 
 export default function AdvancedSettings({ settings, updateSetting, searchTerm }) {
   const { t } = useTranslation();

@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
-import NumberInput from '../NumberInput';
-import { Section, SettingRow, Toggle } from './shared';
-import { useEditorSettings } from './useEditorSettings';
+import NumberInput from '../../shared/NumberInput';
+import { Section, SettingRow, Toggle } from '../shared';
+import { useEditorSettings } from '../hooks/useEditorSettings';
 
 export default function EditorSettings({ settings, updateSetting, searchTerm }) {
   const { t } = useTranslation();

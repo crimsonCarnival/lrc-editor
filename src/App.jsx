@@ -6,7 +6,7 @@ import { SettingsProvider } from './contexts/SettingsContext';
 import { useAppState } from './hooks/useAppState';
 
 const Settings = lazy(() => import('./components/Settings'));
-const KeyboardHelp = lazy(() => import('./components/KeyboardHelp'));
+const KeyboardHelp = lazy(() => import('./components/shared/KeyboardHelp'));
 
 function AppInner() {
   const {

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { formatTimestamp } from '../../utils/lrc';
+import { formatTimestamp } from '../../../utils/lrc';
 
 const EditorLineItem = React.memo(({
   line,
