@@ -8,7 +8,7 @@
  * @param {'hundredths'|'thousandths'} precision
  */
 export function formatTimestamp(seconds, precision = 'hundredths') {
-  if (seconds == null || seconds < 0) {
+  if (seconds == null || isNaN(seconds) || seconds < 0) {
     return precision === 'thousandths' ? '[00:00.000]' : '[00:00.00]';
   }
   const mins = Math.floor(seconds / 60);
