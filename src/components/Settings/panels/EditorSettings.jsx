@@ -11,6 +11,7 @@ export default function EditorSettings({ settings, updateSetting, searchTerm }) 
     handleAutoAdvanceChange,
     handleSkipBlankChange,
     handleShowShiftAllChange,
+    handleShowLineNumbersChange,
     handleTimestampPrecisionChange,
   } = useEditorSettings(updateSetting);
 
@@ -58,6 +59,13 @@ export default function EditorSettings({ settings, updateSetting, searchTerm }) 
           id="toggle-shift-all"
           checked={settings.editor?.showShiftAll ?? true}
           onChange={handleShowShiftAllChange}
+        />
+      </SettingRow>
+      <SettingRow label={t('settingsShowLineNumbers') || 'Line numbers'} description={t('settingsShowLineNumbersDesc') || 'Show line numbers in the editor'}>
+        <Toggle
+          id="toggle-line-numbers"
+          checked={settings.editor?.showLineNumbers ?? true}
+          onChange={handleShowLineNumbersChange}
         />
       </SettingRow>
       <SettingRow

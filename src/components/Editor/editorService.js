@@ -69,3 +69,141 @@ export function clearLineTimestamp(lines, index, isSrt) {
       : l,
   );
 }
+
+/**
+ * Stamps blank lines between fromIndex+1 and the next non-blank line with the given time.
+ * Returns a new array with blanks stamped.
+ */
+function stampBlanks(lines, fromIndex, time, isSrt) {
+  const updated = [...lines];
+  let nextIndex = fromIndex + 1;
+  while (nextIndex < updated.length) {
+    const text = updated[nextIndex]?.text?.trim();
+    if (text && text !== '♪') break;
+    nextIndex++;
+  }
+  for (let i = fromIndex + 1; i < nextIndex; i++) {
+    updated[i] = isSrt
+      ? { ...updated[i], timestamp: time, endTime: time }
+      : { ...updated[i], timestamp: time };
+  }
+  return { lines: updated, nextBlankEnd: nextIndex };
+}
+
+/**
+ * Pure function that computes the next lines state and side-effects from a mark action.
+ *
+ * @param {object} params
+ * @param {Array} params.lines - current lines array
+ * @param {number} params.activeLineIndex
+ * @param {number} params.time - current playback time
+ * @param {string} params.editorMode - 'lrc' | 'srt'
+ * @param {number|null} params.awaitingEndMark - line index awaiting end mark, or null
+ * @param {object|null} params.focusedTimestamp - { lineIndex, type } or null
+ * @param {object} params.settings - editor settings subtree
+ *
+ * @returns {{ nextLines: Array, nextActiveLineIndex: number|null, nextAwaitingEndMark: object|null }}
+ *   nextActiveLineIndex is null if unchanged, nextAwaitingEndMark is null to clear or an object to set.
+ */
+export function applyMark({ lines, activeLineIndex, time, editorMode, awaitingEndMark, focusedTimestamp, settings }) {
+  if (activeLineIndex >= lines.length) {
+    return { nextLines: lines, nextActiveLineIndex: null, nextAwaitingEndMark: undefined };
+  }
+
+  const skipBlank = settings.autoAdvance?.skipBlank;
+  const autoAdvance = settings.autoAdvance?.enabled;
+  const isSrt = editorMode === 'srt';
+
+  // Focused timestamp takes priority
+  if (focusedTimestamp) {
+    const updated = [...lines];
+    const line = updated[focusedTimestamp.lineIndex];
+    if (line) {
+      updated[focusedTimestamp.lineIndex] = {
+        ...line,
+        ...(focusedTimestamp.type === 'start'
+          ? { timestamp: time }
+          : { endTime: Math.max(line.timestamp ?? 0, time) }),
+      };
+    }
+    return { nextLines: updated, nextActiveLineIndex: null, nextAwaitingEndMark: undefined };
+  }
+
+  if (isSrt) {
+    if (settings.srt?.snapToNextLine) {
+      let updated = [...lines];
+
+      // Close previous line's endTime
+      let lastSyncedIndex = activeLineIndex - 1;
+      while (lastSyncedIndex >= 0 && updated[lastSyncedIndex].timestamp == null) {
+        lastSyncedIndex--;
+      }
+      if (lastSyncedIndex >= 0 && updated[lastSyncedIndex].endTime == null) {
+        updated[lastSyncedIndex] = {
+          ...updated[lastSyncedIndex],
+          endTime: Math.max(
+            updated[lastSyncedIndex].timestamp ?? 0,
+            time - (settings.srt?.minSubtitleGap || 0),
+          ),
+        };
+      }
+
+      updated[activeLineIndex] = { ...updated[activeLineIndex], timestamp: time };
+
+      if (skipBlank) {
+        const result = stampBlanks(updated, activeLineIndex, time, true);
+        updated = result.lines;
+      }
+
+      const nextIdx = autoAdvance
+        ? computeNextIndex(lines, activeLineIndex, skipBlank)
+        : null;
+
+      return { nextLines: updated, nextActiveLineIndex: nextIdx, nextAwaitingEndMark: null };
+    }
+
+    // SRT non-snap mode
+    if (awaitingEndMark === activeLineIndex) {
+      let updated = [...lines];
+      updated[activeLineIndex] = {
+        ...updated[activeLineIndex],
+        endTime: Math.max(updated[activeLineIndex].timestamp ?? 0, time),
+      };
+
+      if (skipBlank) {
+        const result = stampBlanks(updated, activeLineIndex, time, true);
+        updated = result.lines;
+      }
+
+      const nextIdx = autoAdvance
+        ? computeNextIndex(lines, activeLineIndex, skipBlank)
+        : null;
+
+      return { nextLines: updated, nextActiveLineIndex: nextIdx, nextAwaitingEndMark: null };
+    }
+
+    // SRT first mark on line (set start time)
+    const updated = [...lines];
+    updated[activeLineIndex] = { ...updated[activeLineIndex], timestamp: time };
+    return {
+      nextLines: updated,
+      nextActiveLineIndex: null,
+      nextAwaitingEndMark: { lineIndex: activeLineIndex, mode: editorMode },
+    };
+  }
+
+  // LRC mode
+  let updated = [...lines];
+  updated[activeLineIndex] = { ...updated[activeLineIndex], timestamp: time };
+
+  if (skipBlank) {
+    const result = stampBlanks(updated, activeLineIndex, time, false);
+    updated = result.lines;
+  }
+
+  const nextIdx = autoAdvance
+    ? computeNextIndex(lines, activeLineIndex, skipBlank)
+    : null;
+
+  return { nextLines: updated, nextActiveLineIndex: nextIdx, nextAwaitingEndMark: null };
+}

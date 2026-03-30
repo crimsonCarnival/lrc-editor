@@ -68,6 +68,12 @@ const EditorLineItem = React.memo(({
             : 'bg-primary/40 opacity-60'
         }`} />
       )}
+      {/* Line number */}
+      {(settings.editor?.showLineNumbers ?? true) && (
+        <span className="text-[10px] font-mono tabular-nums text-zinc-600 select-none w-5 text-right shrink-0">
+          {i + 1}
+        </span>
+      )}
       <span
         className={`text-xs font-mono tabular-nums shrink-0 transition-colors ${isSynced
           ? 'text-primary'

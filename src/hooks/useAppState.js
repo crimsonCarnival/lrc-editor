@@ -3,6 +3,7 @@ import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { useSettings } from '../contexts/useSettings';
 import useHistory from './useHistory';
+import useConfirm from './useConfirm';
 import { inferEndTimes, parseLrcSrtFile } from '../utils/lrc';
 
 const MAX_IMPORT_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
@@ -49,6 +50,7 @@ export function useAppState() {
   const [hasMedia, setHasMedia] = useState(false);
   const [showKeyboardHelp, setShowKeyboardHelp] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  
   const [pendingSession, setPendingSession] = useState(() => {
     try {
       const saved = localStorage.getItem('lrc-syncer-session');
@@ -65,26 +67,60 @@ export function useAppState() {
   });
   const [showLangMenu, setShowLangMenu] = useState(false);
   const [editorMode, setEditorModeRaw] = useState('lrc');
+  const [isAutosaving, setIsAutosaving] = useState(false);
   const [isDraggingFile, setIsDraggingFile] = useState(false);
   const maxDragDepth = useRef(0);
   const lastLoopSeekRef = useRef(0);
 
   const playerRef = useRef(null);
   const langMenuRef = useRef(null);
+  const [requestConfirm, confirmModal] = useConfirm();
 
   // ——— Manual save ———
+  const buildSessionPayload = useCallback(() => {
+    const tzSetting = settings.advanced?.timezone;
+    const tz = (!tzSetting || tzSetting === 'auto')
+      ? Intl.DateTimeFormat().resolvedOptions().timeZone
+      : tzSetting;
+
+    // Compute UTC offset for the resolved timezone
+    const now = new Date();
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: tz,
+      timeZoneName: 'shortOffset',
+    });
+    const parts = formatter.formatToParts(now);
+    const offsetPart = parts.find((p) => p.type === 'timeZoneName')?.value || '';
+    // offsetPart is like "GMT-5" or "GMT+5:30" — normalize to ±HH:MM
+    const match = offsetPart.match(/GMT([+-]?)(\d{1,2})(?::(\d{2}))?/);
+    let utcOffset = '+00:00';
+    if (match) {
+      const sign = match[1] || '+';
+      const hrs = match[2].padStart(2, '0');
+      const mins = (match[3] || '0').padStart(2, '0');
+      utcOffset = `${sign}${hrs}:${mins}`;
+    }
+
+    return {
+      lines: lines.map((l) => ({
+        ...l,
+        timestamp: typeof l.timestamp === 'number' ? Math.round(l.timestamp * 1000) / 1000 : l.timestamp,
+        endTime: editorMode === 'srt'
+          ? (typeof l.endTime === 'number' ? Math.round(l.endTime * 1000) / 1000 : (l.endTime ?? null))
+          : null,
+      })),
+      syncMode,
+      activeLineIndex,
+      editorMode,
+      saveTime: now.toISOString(),
+      timezone: tz,
+      utcOffset,
+    };
+  }, [lines, syncMode, activeLineIndex, editorMode, settings.advanced?.timezone]);
+
   const handleManualSave = useCallback(() => {
-    localStorage.setItem(
-      'lrc-syncer-session',
-      JSON.stringify({
-        lines,
-        syncMode,
-        activeLineIndex,
-        editorMode,
-        timestamp: Date.now(),
-      }),
-    );
-  }, [lines, syncMode, activeLineIndex, editorMode]);
+    localStorage.setItem('lrc-syncer-session', JSON.stringify(buildSessionPayload()));
+  }, [buildSessionPayload]);
 
   // ——— Mode switching with end-time inference ———
   const setEditorMode = useCallback(
@@ -101,36 +137,45 @@ export function useAppState() {
   useEffect(() => {
     if (pendingSession !== null || !lines.length || !settings.advanced.autoSave.enabled) return;
     const timeoutId = setTimeout(() => {
-      localStorage.setItem(
-        'lrc-syncer-session',
-        JSON.stringify({
-          lines,
-          syncMode,
-          activeLineIndex,
-          editorMode,
-          timestamp: Date.now(),
-        }),
-      );
+      localStorage.setItem('lrc-syncer-session', JSON.stringify(buildSessionPayload()));
+      setIsAutosaving(true);
+      setTimeout(() => setIsAutosaving(false), 1200);
     }, settings.advanced.autoSave.interval);
     return () => clearTimeout(timeoutId);
   }, [
-    lines,
-    syncMode,
-    activeLineIndex,
-    editorMode,
+    buildSessionPayload,
     pendingSession,
+    lines.length,
     settings.advanced.autoSave.enabled,
     settings.advanced.autoSave.interval,
   ]);
 
   const handleRestoreSession = () => {
     if (pendingSession) {
-      setLines(pendingSession.lines);
+      // Validate line shape before restoring
+      const validLines = pendingSession.lines.filter(
+        (l) => l && typeof l === 'object' && typeof l.text === 'string',
+      ).map((l) => ({
+        text: l.text,
+        timestamp: typeof l.timestamp === 'number' && isFinite(l.timestamp) ? l.timestamp : null,
+        endTime: typeof l.endTime === 'number' && isFinite(l.endTime) ? l.endTime : undefined,
+        secondary: typeof l.secondary === 'string' ? l.secondary : '',
+        translation: typeof l.translation === 'string' ? l.translation : '',
+        id: typeof l.id === 'string' ? l.id : crypto.randomUUID(),
+      }));
+      if (validLines.length === 0) {
+        setPendingSession(null);
+        return;
+      }
+      setLines(validLines);
       if (pendingSession.syncMode) setSyncMode(pendingSession.syncMode);
-      if (pendingSession.activeLineIndex != null) setActiveLineIndex(pendingSession.activeLineIndex);
+      const idx = pendingSession.activeLineIndex;
+      if (typeof idx === 'number' && idx >= 0 && idx < validLines.length) {
+        setActiveLineIndex(idx);
+      }
       // Restore editorMode, auto-detect SRT if lines have endTime
       const restoredMode = pendingSession.editorMode
-        || (pendingSession.lines.some(l => l.endTime != null) ? 'srt' : 'lrc');
+        || (validLines.some((l) => l.endTime != null) ? 'srt' : 'lrc');
       setEditorModeRaw(restoredMode);
     }
     setPendingSession(null);
@@ -276,24 +321,26 @@ export function useAppState() {
             return;
           }
 
-          if (lines.length > 0 && settings.advanced.confirmDestructive) {
-            if (!window.confirm(t('confirmRemoveAll') || 'Replace existing lyrics?')) {
-              return;
-            }
-          }
+          const applyImport = () => {
+            setLines(parsedLines);
+            setEditorModeRaw(extension === 'srt' ? 'srt' : 'lrc');
+            toast.success(
+              t('importedLines', { count: parsedLines.length }) || `Imported ${parsedLines.length} lines`,
+            );
+          };
 
-          setLines(parsedLines);
-          setEditorModeRaw(extension === 'srt' ? 'srt' : 'lrc');
-          toast.success(
-            t('importedLines', { count: parsedLines.length }) || `Imported ${parsedLines.length} lines`,
-          );
+          if (lines.length > 0 && settings.advanced.confirmDestructive) {
+            requestConfirm(t('confirmRemoveAll') || 'Replace existing lyrics?', applyImport);
+          } else {
+            applyImport();
+          }
         } catch (err) {
           console.error('Failed to parse dropped lyrics file', err);
           toast.error(t('importFailed') || 'Failed to parse lyrics file');
         }
       }
     },
-    [lines.length, setLines, settings.advanced.confirmDestructive, t],
+    [lines.length, setLines, settings.advanced.confirmDestructive, t, requestConfirm],
   );
 
   // ——— Register drag listeners ———
@@ -348,5 +395,7 @@ export function useAppState() {
     handleMediaChange,
     handleTimeUpdate,
     handleDurationChange,
+    confirmModal,
+    isAutosaving,
   };
 }

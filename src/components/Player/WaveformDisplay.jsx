@@ -9,12 +9,14 @@ const WaveformDisplay = React.memo(function WaveformDisplay({
 }) {
   const wavesurferRef = useRef(null);
   const waveContainerRef = useRef(null);
+  const cleanupListenersRef = useRef(null);
 
   const initWaveform = useCallback(async (url, audioEl) => {
     // Dynamically import wavesurfer.js
     const WaveSurfer = (await import('wavesurfer.js')).default;
 
-    // Destroy previous instance
+    // Destroy previous instance + remove old listeners
+    if (cleanupListenersRef.current) cleanupListenersRef.current();
     if (wavesurferRef.current) {
       wavesurferRef.current.destroy();
     }
@@ -115,20 +117,36 @@ const WaveformDisplay = React.memo(function WaveformDisplay({
       isFollowingCursor = false;
     };
 
-    waveContainerRef.current?.addEventListener('mouseenter', createTooltip);
-    waveContainerRef.current?.addEventListener('mousemove', handleMouseMove, { passive: true });
-    waveContainerRef.current?.addEventListener('mouseleave', () => {
+    const handleMouseLeave = () => {
       if (tooltipElement) tooltipElement.style.display = 'none';
       isFollowingCursor = false;
-    });
-    waveContainerRef.current?.addEventListener('mousedown', handleMouseDown);
+    };
+
+    const container = waveContainerRef.current;
+    container?.addEventListener('mouseenter', createTooltip);
+    container?.addEventListener('mousemove', handleMouseMove, { passive: true });
+    container?.addEventListener('mouseleave', handleMouseLeave);
+    container?.addEventListener('mousedown', handleMouseDown);
     window.addEventListener('mouseup', handleMouseUp);
+
+    cleanupListenersRef.current = () => {
+      container?.removeEventListener('mouseenter', createTooltip);
+      container?.removeEventListener('mousemove', handleMouseMove);
+      container?.removeEventListener('mouseleave', handleMouseLeave);
+      container?.removeEventListener('mousedown', handleMouseDown);
+      window.removeEventListener('mouseup', handleMouseUp);
+      if (tooltipElement && tooltipElement.parentNode) {
+        tooltipElement.parentNode.removeChild(tooltipElement);
+      }
+      cleanupListenersRef.current = null;
+    };
 
     wavesurferRef.current = ws;
   }, [onTimeUpdate]);
 
   useEffect(() => {
     if (!showWaveform) {
+      if (cleanupListenersRef.current) cleanupListenersRef.current();
       if (wavesurferRef.current) {
         wavesurferRef.current.destroy();
         wavesurferRef.current = null;
@@ -148,6 +166,7 @@ const WaveformDisplay = React.memo(function WaveformDisplay({
   // Clean up on unmount
   useEffect(() => {
     return () => {
+      if (cleanupListenersRef.current) cleanupListenersRef.current();
       if (wavesurferRef.current) {
         wavesurferRef.current.destroy();
         wavesurferRef.current = null;

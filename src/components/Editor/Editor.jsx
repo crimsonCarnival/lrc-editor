@@ -1,3 +1,5 @@
+import { useCallback, useMemo } from 'react';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { useEditor } from './useEditor';
 import EditorToolbar from './parts/EditorToolbar';
 import EditorPasteArea from './parts/EditorPasteArea';
@@ -41,7 +43,6 @@ export default function Editor({
     isActiveLineLocked,
     handleLineHover,
     handleLineHoverEnd,
-    activeLineRef,
     listRef,
     fileInputRef,
     handleConfirmLyrics,
@@ -113,23 +114,169 @@ export default function Editor({
 
       {/* Sync Mode */}
       {syncMode && (
-        <div className="flex flex-col flex-1 gap-3 animate-fade-in min-h-0">
-          <div ref={listRef} className="flex-1 overflow-y-auto space-y-1 pr-1 min-h-0 mask-edges">
-            {lines.map((line, i) => {
-              const isActive = i === displayedActiveIndex;
-              const isSynced = line.timestamp != null;
-              let nextTimestamp = null;
-              for (let j = i + 1; j < lines.length; j++) {
-                if (lines[j].timestamp != null) {
-                  nextTimestamp = lines[j].timestamp;
-                  break;
-                }
-              }
+        <VirtualizedLineList
+          lines={lines}
+          displayedActiveIndex={displayedActiveIndex}
+          activeLineIndex={activeLineIndex}
+          isActiveLineLocked={isActiveLineLocked}
+          editorMode={editorMode}
+          awaitingEndMark={awaitingEndMark}
+          focusedTimestamp={focusedTimestamp}
+          setFocusedTimestamp={setFocusedTimestamp}
+          handleLineClick={handleLineClick}
+          handleLineHover={handleLineHover}
+          handleLineHoverEnd={handleLineHoverEnd}
+          handleDragStart={handleDragStart}
+          handleDragOver={handleDragOver}
+          handleDragEnd={handleDragEnd}
+          handleDrop={handleDrop}
+          dragOverIndex={dragOverIndex}
+          dragIndex={dragIndex}
+          selectedLines={selectedLines}
+          settings={settings}
+          editingLineIndex={editingLineIndex}
+          setEditingLineIndex={setEditingLineIndex}
+          editingText={editingText}
+          setEditingText={setEditingText}
+          handleSaveLineText={handleSaveLineText}
+          playerRef={playerRef}
+          shiftTime={shiftTime}
+          handleAddLine={handleAddLine}
+          handleClearLine={handleClearLine}
+          handleDeleteLine={handleDeleteLine}
+          listRef={listRef}
+          handleMark={handleMark}
+          offsetValue={offsetValue}
+          setOffsetValue={setOffsetValue}
+          handleApplyOffset={handleApplyOffset}
+          handleBulkClearTimestamps={handleBulkClearTimestamps}
+          handleBulkShift={handleBulkShift}
+          handleBulkDelete={handleBulkDelete}
+          clearSelection={clearSelection}
+        />
+      )}
 
-              return (
+      {confirmModal}
+    </div>
+  );
+}
+
+const ESTIMATED_LINE_HEIGHT = 44;
+const LINE_GAP = 4;
+
+function VirtualizedLineList({
+  lines,
+  displayedActiveIndex,
+  activeLineIndex,
+  isActiveLineLocked,
+  editorMode,
+  awaitingEndMark,
+  focusedTimestamp,
+  setFocusedTimestamp,
+  handleLineClick,
+  handleLineHover,
+  handleLineHoverEnd,
+  handleDragStart,
+  handleDragOver,
+  handleDragEnd,
+  handleDrop,
+  dragOverIndex,
+  dragIndex,
+  selectedLines,
+  settings,
+  editingLineIndex,
+  setEditingLineIndex,
+  editingText,
+  setEditingText,
+  handleSaveLineText,
+  playerRef,
+  shiftTime,
+  handleAddLine,
+  handleClearLine,
+  handleDeleteLine,
+  listRef,
+  handleMark,
+  offsetValue,
+  setOffsetValue,
+  handleApplyOffset,
+  handleBulkClearTimestamps,
+  handleBulkShift,
+  handleBulkDelete,
+  clearSelection,
+}) {
+  const scrollAlignment = settings.editor?.scroll?.alignment || 'center';
+  const scrollMode = settings.editor?.scroll?.mode || 'smooth';
+
+  const virtualizer = useVirtualizer({
+    count: lines.length,
+    getScrollElement: () => listRef.current,
+    estimateSize: () => ESTIMATED_LINE_HEIGHT,
+    gap: LINE_GAP,
+    overscan: 8,
+  });
+
+  // Auto-scroll to active line via virtualizer
+  const prevActiveRef = useCallback((idx) => {
+    if (scrollAlignment === 'none') return;
+    virtualizer.scrollToIndex(idx, {
+      align: scrollAlignment === 'start' ? 'start' : scrollAlignment === 'end' ? 'end' : 'center',
+      behavior: scrollMode,
+    });
+  }, [virtualizer, scrollAlignment, scrollMode]);
+
+  // Scroll when active line changes (not on hover)
+  const lastScrolledIndex = useMemo(() => ({ current: -1 }), []);
+  if (activeLineIndex !== lastScrolledIndex.current && activeLineIndex >= 0) {
+    lastScrolledIndex.current = activeLineIndex;
+    // Use queueMicrotask so the virtualizer has measured before scrolling
+    queueMicrotask(() => prevActiveRef(activeLineIndex));
+  }
+
+  // Pre-compute nextTimestamp for each line
+  const nextTimestamps = useMemo(() => {
+    const result = new Array(lines.length).fill(null);
+    let lastTs = null;
+    for (let i = lines.length - 1; i >= 0; i--) {
+      result[i] = lastTs;
+      if (lines[i].timestamp != null) lastTs = lines[i].timestamp;
+    }
+    return result;
+  }, [lines]);
+
+  return (
+    <div className="flex flex-col flex-1 gap-3 animate-fade-in min-h-0">
+      <div
+        ref={listRef}
+        className="flex-1 overflow-y-auto pr-1 min-h-0 mask-edges"
+      >
+        <div
+          style={{
+            height: virtualizer.getTotalSize(),
+            width: '100%',
+            position: 'relative',
+          }}
+        >
+          {virtualizer.getVirtualItems().map((virtualRow) => {
+            const i = virtualRow.index;
+            const line = lines[i];
+            const isActive = i === displayedActiveIndex;
+            const isSynced = line.timestamp != null;
+
+            return (
+              <div
+                key={line.id || i}
+                data-index={i}
+                ref={virtualizer.measureElement}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  transform: `translateY(${virtualRow.start}px)`,
+                }}
+              >
                 <EditorLineItem
-                  key={line.id || i}
-                  line={{ ...line, nextTimestamp }}
+                  line={{ ...line, nextTimestamp: nextTimestamps[i] }}
                   i={i}
                   isActive={isActive}
                   isLocked={isActiveLineLocked && i === activeLineIndex}
@@ -138,7 +285,7 @@ export default function Editor({
                   awaitingEndMark={awaitingEndMark}
                   focusedTimestamp={focusedTimestamp}
                   setFocusedTimestamp={setFocusedTimestamp}
-                  activeLineRef={activeLineRef}
+                  activeLineRef={null}
                   handleLineClick={handleLineClick}
                   handleLineHover={handleLineHover}
                   handleLineHoverEnd={handleLineHoverEnd}
@@ -162,33 +309,31 @@ export default function Editor({
                   handleDeleteLine={handleDeleteLine}
                   isLastLine={i === lines.length - 1}
                 />
-              );
-            })}
-          </div>
-
-          <SelectionActionBar
-            selectedLines={selectedLines}
-            settings={settings}
-            handleBulkClearTimestamps={handleBulkClearTimestamps}
-            handleBulkShift={handleBulkShift}
-            handleBulkDelete={handleBulkDelete}
-            clearSelection={clearSelection}
-          />
-
-          <EditorSyncControls
-            handleMark={handleMark}
-            settings={settings}
-            offsetValue={offsetValue}
-            setOffsetValue={setOffsetValue}
-            handleApplyOffset={handleApplyOffset}
-            selectedLines={selectedLines}
-            editorMode={editorMode}
-            awaitingEndMark={awaitingEndMark}
-          />
+              </div>
+            );
+          })}
         </div>
-      )}
+      </div>
 
-      {confirmModal}
+      <SelectionActionBar
+        selectedLines={selectedLines}
+        settings={settings}
+        handleBulkClearTimestamps={handleBulkClearTimestamps}
+        handleBulkShift={handleBulkShift}
+        handleBulkDelete={handleBulkDelete}
+        clearSelection={clearSelection}
+      />
+
+      <EditorSyncControls
+        handleMark={handleMark}
+        settings={settings}
+        offsetValue={offsetValue}
+        setOffsetValue={setOffsetValue}
+        handleApplyOffset={handleApplyOffset}
+        selectedLines={selectedLines}
+        editorMode={editorMode}
+        awaitingEndMark={awaitingEndMark}
+      />
     </div>
   );
 }

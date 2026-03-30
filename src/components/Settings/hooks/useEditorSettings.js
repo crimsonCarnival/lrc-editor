@@ -10,6 +10,8 @@ export function useEditorSettings(updateSetting) {
 
   const handleShowShiftAllChange = (v) => updateSetting('editor.showShiftAll', v);
 
+  const handleShowLineNumbersChange = (v) => updateSetting('editor.showLineNumbers', v);
+
   const handleTimestampPrecisionChange = (e) =>
     updateSetting('editor.timestampPrecision', e.target.value);
 
@@ -19,6 +21,7 @@ export function useEditorSettings(updateSetting) {
     handleAutoAdvanceChange,
     handleSkipBlankChange,
     handleShowShiftAllChange,
+    handleShowLineNumbersChange,
     handleTimestampPrecisionChange,
   };
 }

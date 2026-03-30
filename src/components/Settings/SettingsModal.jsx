@@ -176,12 +176,14 @@ export default function SettingsModal({ isOpen, onClose }) {
               >
                 {t('settingsReset') || 'Reset to defaults'}
               </button>
-              <button
-                onClick={handleApply}
-                className="flex-1 py-2.5 bg-primary hover:bg-primary-dim text-zinc-950 font-semibold text-sm rounded-xl transition-all cursor-pointer"
-              >
-                {t('applyChanges') || 'Apply Changes'}
-              </button>
+              {!settings.advanced?.autoSave?.enabled && (
+                <button
+                  onClick={handleApply}
+                  className="flex-1 py-2.5 bg-primary hover:bg-primary-dim text-zinc-950 font-semibold text-sm rounded-xl transition-all cursor-pointer"
+                >
+                  {t('applyChanges') || 'Apply Changes'}
+                </button>
+              )}
             </div>
           </div>
         </div>

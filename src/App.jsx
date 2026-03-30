@@ -4,6 +4,7 @@ import Editor from './components/Editor';
 import Preview from './components/Preview';
 import { SettingsProvider } from './contexts/SettingsContext';
 import { useAppState } from './hooks/useAppState';
+import { Kbd } from './components/shared/Kbd';
 
 const Settings = lazy(() => import('./components/Settings'));
 const KeyboardHelp = lazy(() => import('./components/shared/KeyboardHelp'));
@@ -45,6 +46,8 @@ function AppInner() {
     handleMediaChange,
     handleTimeUpdate,
     handleDurationChange,
+    confirmModal,
+    isAutosaving,
   } = useAppState();
 
   return (
@@ -140,7 +143,7 @@ function AppInner() {
               className="px-2 sm:px-3 h-8 sm:h-9 flex items-center justify-center gap-1.5 rounded-lg sm:rounded-xl bg-zinc-800/80 border border-zinc-700/60 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700 transition-all cursor-pointer shadow-lg flex-shrink-0"
               title={t('keyboardShortcuts') || 'Shortcuts'}
             >
-              <kbd className="text-xs font-mono font-bold">?</kbd>
+              <Kbd>?</Kbd>
               <span className="hidden sm:inline text-xs font-semibold">{t('keyboardShortcuts') || 'Help'}</span>
             </button>
 
@@ -154,12 +157,12 @@ function AppInner() {
           {/* Left: Player + Editor */}
           <div className="lg:col-span-5 flex flex-col gap-2 sm:gap-3 lg:gap-4 min-h-0 max-lg:h-[85vh]">
             <Player
+              ref={playerRef}
               mediaTitle={mediaTitle}
               onTitleChange={setMediaTitle}
               onTimeUpdate={handleTimeUpdate}
               onDurationChange={handleDurationChange}
               onMediaChange={handleMediaChange}
-              playerRef={playerRef}
             />
             <div className="flex-1 min-h-0 flex flex-col">
               {(hasMedia || lines.length > 0) ? (
@@ -251,6 +254,18 @@ function AppInner() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {confirmModal}
+
+      {/* Autosave indicator */}
+      {isAutosaving && (
+        <div className="fixed bottom-4 right-4 z-50 flex items-center gap-2 px-3 py-1.5 rounded-lg shadow-lg animate-fade-in">
+          <svg className="w-3.5 h-3.5 text-primary animate-spin" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          </svg>
         </div>
       )}
     </div>

@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import useDraggable from '../../hooks/useDraggable';
 import { useTranslation } from 'react-i18next';
-
+import { Kbd, KbdGroup } from './Kbd';
 import { useSettings } from '../../contexts/useSettings';
 
 export default function KeyboardHelp({ isOpen, onClose }) {
@@ -96,18 +96,16 @@ export default function KeyboardHelp({ isOpen, onClose }) {
                   {group.items.map((s) => (
                     <div key={s.desc} className="flex items-center justify-between">
                       <span className="text-sm text-zinc-300">{s.desc}</span>
-                      <div className="flex items-center gap-1">
+                      <KbdGroup>
                         {s.keys.map((k, i) => (
                           <span key={i}>
-                            <kbd className="px-2 py-0.5 bg-zinc-800 border border-zinc-700 rounded text-xs font-mono text-zinc-300 shadow-sm">
-                              {k}
-                            </kbd>
+                            <Kbd>{k}</Kbd>
                             {i < s.keys.length - 1 && (
                               <span className="text-zinc-600 mx-0.5">+</span>
                             )}
                           </span>
                         ))}
-                      </div>
+                      </KbdGroup>
                     </div>
                   ))}
                 </div>
@@ -116,7 +114,7 @@ export default function KeyboardHelp({ isOpen, onClose }) {
           </div>
 
           <p className="text-xs text-zinc-600 text-center mt-5">
-            {t('shortcutHelp')}: <kbd className="px-1.5 py-0.5 bg-zinc-800 border border-zinc-700 rounded text-xs font-mono">?</kbd>
+            {t('shortcutHelp')}: <Kbd>?</Kbd>
           </p>
         </div>
       </div>

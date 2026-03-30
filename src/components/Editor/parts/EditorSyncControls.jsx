@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import NumberInput from '../../shared/NumberInput';
+import { Kbd } from '../../shared/Kbd';
 
 export default function EditorSyncControls({
   handleMark,
@@ -27,6 +28,7 @@ export default function EditorSyncControls({
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
           </svg>
           <span className="text-xs sm:text-sm">{t('mark')}</span>
+          <Kbd className="ml-1 hidden sm:inline-flex">{settings.shortcuts?.mark?.[0] === 'Space' ? '␣' : (settings.shortcuts?.mark?.[0] || 'Space')}</Kbd>
         </button>
 
         {/* Global offset shift */}

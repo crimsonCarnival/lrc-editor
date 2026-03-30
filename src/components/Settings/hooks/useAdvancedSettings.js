@@ -7,9 +7,13 @@ export function useAdvancedSettings(updateSetting) {
   const handleConfirmDestructiveChange = (v) =>
     updateSetting('advanced.confirmDestructive', v);
 
+  const handleTimezoneChange = (e) =>
+    updateSetting('advanced.timezone', e.target.value);
+
   return {
     handleAutoSaveToggle,
     handleAutoSaveIntervalChange,
     handleConfirmDestructiveChange,
+    handleTimezoneChange,
   };
 }

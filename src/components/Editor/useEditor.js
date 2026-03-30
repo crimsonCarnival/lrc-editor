@@ -6,11 +6,11 @@ import { useTranslation } from 'react-i18next';
 import { useSettings } from '../../contexts/useSettings';
 import useConfirm from '../../hooks/useConfirm';
 import {
-  computeNextIndex,
   applyBulkShift,
   applyGlobalOffset,
   clearAllTimestamps,
   clearLineTimestamp,
+  applyMark,
 } from './editorService';
 
 export function useEditor({
@@ -47,9 +47,22 @@ export function useEditor({
   const [requestConfirm, confirmModal] = useConfirm();
 
   const lastClickedRef = useRef(null);
-  const activeLineRef = useRef(null);
   const listRef = useRef(null);
   const fileInputRef = useRef(null);
+
+  // Stable refs to avoid recreating handleMark/keyboard effects on every frame
+  const linesRef = useRef(lines);
+  const playbackPositionRef = useRef(playbackPosition);
+  const activeLineIndexRef = useRef(activeLineIndex);
+  const focusedTimestampRef = useRef(focusedTimestamp);
+  const selectedLinesRef = useRef(selectedLines);
+  useEffect(() => {
+    linesRef.current = lines;
+    playbackPositionRef.current = playbackPosition;
+    activeLineIndexRef.current = activeLineIndex;
+    focusedTimestampRef.current = focusedTimestamp;
+    selectedLinesRef.current = selectedLines;
+  });
 
   const displayedActiveIndex = isActiveLineLocked
     ? activeLineIndex
@@ -141,151 +154,39 @@ export function useEditor({
   );
 
   const handleMark = useCallback(() => {
-    if (activeLineIndex >= lines.length) return;
-    const time = playerRef?.current?.getCurrentTime?.() ?? playbackPosition;
+    const currentLines = linesRef.current;
+    const idx = activeLineIndexRef.current;
+    if (idx >= currentLines.length) return;
+    const time = playerRef?.current?.getCurrentTime?.() ?? playbackPositionRef.current;
 
     if (settings.editor?.autoPauseOnMark) {
       playerRef?.current?.pause?.();
     }
 
-    // Focused timestamp takes priority
-    if (focusedTimestamp) {
-      setLines((prev) => {
-        const updated = [...prev];
-        const line = updated[focusedTimestamp.lineIndex];
-        if (line) {
-          updated[focusedTimestamp.lineIndex] = {
-            ...line,
-            ...(focusedTimestamp.type === 'start'
-              ? { timestamp: time }
-              : { endTime: Math.max(line.timestamp ?? 0, time) }),
-          };
-        }
-        return updated;
-      });
-      return;
+    const result = applyMark({
+      lines: currentLines,
+      activeLineIndex: idx,
+      time,
+      editorMode,
+      awaitingEndMark,
+      focusedTimestamp: focusedTimestampRef.current,
+      settings: settings.editor || {},
+    });
+
+    setLines(result.nextLines);
+    if (result.nextActiveLineIndex != null) {
+      setActiveLineIndex(result.nextActiveLineIndex);
     }
-
-    if (editorMode === 'srt') {
-      if (settings.editor?.srt?.snapToNextLine) {
-        setLines((prev) => {
-          const updated = [...prev];
-
-          let lastSyncedIndex = activeLineIndex - 1;
-          while (lastSyncedIndex >= 0 && updated[lastSyncedIndex].timestamp == null) {
-            lastSyncedIndex--;
-          }
-          if (lastSyncedIndex >= 0 && updated[lastSyncedIndex].endTime == null) {
-            updated[lastSyncedIndex] = {
-              ...updated[lastSyncedIndex],
-              endTime: Math.max(
-                updated[lastSyncedIndex].timestamp ?? 0,
-                time - (settings.editor?.srt?.minSubtitleGap || 0),
-              ),
-            };
-          }
-
-          updated[activeLineIndex] = { ...updated[activeLineIndex], timestamp: time };
-
-          if (settings.editor?.autoAdvance?.skipBlank) {
-            let nextIndex = activeLineIndex + 1;
-            while (nextIndex < prev.length) {
-              const nextText = prev[nextIndex]?.text?.trim();
-              if (nextText && nextText !== '♪') break;
-              nextIndex++;
-            }
-            for (let i = activeLineIndex + 1; i < nextIndex; i++) {
-              updated[i] = { ...updated[i], timestamp: time, endTime: time };
-            }
-          }
-
-          return updated;
-        });
-
-        if (settings.editor?.autoAdvance?.enabled) {
-          setActiveLineIndex(
-            computeNextIndex(lines, activeLineIndex, settings.editor?.autoAdvance?.skipBlank),
-          );
-        }
-      } else {
-        if (awaitingEndMark === activeLineIndex) {
-          setLines((prev) => {
-            const updated = [...prev];
-            updated[activeLineIndex] = {
-              ...updated[activeLineIndex],
-              endTime: Math.max(updated[activeLineIndex].timestamp ?? 0, time),
-            };
-
-            if (settings.editor?.autoAdvance?.skipBlank) {
-              let nextIndex = activeLineIndex + 1;
-              while (nextIndex < prev.length) {
-                const nextText = prev[nextIndex]?.text?.trim();
-                if (nextText && nextText !== '♪') break;
-                nextIndex++;
-              }
-              for (let i = activeLineIndex + 1; i < nextIndex; i++) {
-                updated[i] = { ...updated[i], timestamp: time, endTime: time };
-              }
-            }
-            return updated;
-          });
-          setAwaitingEndMarkFor(null);
-          if (settings.editor?.autoAdvance?.enabled) {
-            setActiveLineIndex(
-              computeNextIndex(lines, activeLineIndex, settings.editor?.autoAdvance?.skipBlank),
-            );
-          }
-        } else {
-          setLines((prev) => {
-            const updated = [...prev];
-            updated[activeLineIndex] = { ...updated[activeLineIndex], timestamp: time };
-            return updated;
-          });
-          setAwaitingEndMarkFor({ lineIndex: activeLineIndex, mode: editorMode });
-        }
-      }
-    } else {
-      // LRC mode
-      setLines((prev) => {
-        const updated = [...prev];
-        updated[activeLineIndex] = { ...updated[activeLineIndex], timestamp: time };
-
-        if (settings.editor?.autoAdvance?.skipBlank) {
-          let nextIndex = activeLineIndex + 1;
-          while (nextIndex < prev.length) {
-            const nextText = prev[nextIndex]?.text?.trim();
-            if (nextText && nextText !== '♪') break;
-            nextIndex++;
-          }
-          for (let i = activeLineIndex + 1; i < nextIndex; i++) {
-            updated[i] = { ...updated[i], timestamp: time };
-          }
-        }
-
-        return updated;
-      });
-
-      if (settings.editor?.autoAdvance?.enabled) {
-        setActiveLineIndex(
-          computeNextIndex(lines, activeLineIndex, settings.editor?.autoAdvance?.skipBlank),
-        );
-      }
+    if (result.nextAwaitingEndMark !== undefined) {
+      setAwaitingEndMarkFor(result.nextAwaitingEndMark);
     }
   }, [
-    activeLineIndex,
-    lines,
-    playbackPosition,
     playerRef,
     setLines,
     setActiveLineIndex,
-    settings.editor?.autoAdvance?.enabled,
-    settings.editor?.autoAdvance?.skipBlank,
     editorMode,
     awaitingEndMark,
-    focusedTimestamp,
-    settings.editor?.autoPauseOnMark,
-    settings.editor?.srt?.snapToNextLine,
-    settings.editor?.srt?.minSubtitleGap,
+    settings.editor,
   ]);
 
   // ——— Shortcut handler (sync mode) ———
@@ -296,12 +197,13 @@ export function useEditor({
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
       const handleNudge = (delta) => {
-        if (focusedTimestamp) {
-          shiftTime(focusedTimestamp.lineIndex, delta);
-        } else if (selectedLines.size > 0) {
-          setLines((prev) => applyBulkShift(prev, selectedLines, delta));
+        const ft = focusedTimestampRef.current;
+        if (ft) {
+          shiftTime(ft.lineIndex, delta);
+        } else if (selectedLinesRef.current.size > 0) {
+          setLines((prev) => applyBulkShift(prev, selectedLinesRef.current, delta));
         } else {
-          shiftTime(activeLineIndex, delta);
+          shiftTime(activeLineIndexRef.current, delta);
         }
       };
 
@@ -320,7 +222,7 @@ export function useEditor({
       } else if (matchKey(e, settings.shortcuts?.nudgeRight?.[0] || 'ArrowRight')) {
         e.preventDefault();
         handleNudge(settings.editor?.nudge?.default || 0.1);
-      } else if (e.key === 'Escape' && focusedTimestamp) {
+      } else if (e.key === 'Escape' && focusedTimestampRef.current) {
         e.preventDefault();
         setFocusedTimestamp(null);
       }
@@ -330,48 +232,17 @@ export function useEditor({
     return () => window.removeEventListener('keydown', handler);
   }, [
     syncMode,
-    activeLineIndex,
-    lines.length,
     handleMark,
     shiftTime,
-    selectedLines,
     settings.editor?.nudge?.default,
     settings.editor?.nudge?.fine,
     setLines,
-    focusedTimestamp,
     settings.shortcuts?.mark,
     settings.shortcuts?.nudgeLeft,
     settings.shortcuts?.nudgeRight,
     settings.shortcuts?.nudgeLeftFine,
     settings.shortcuts?.nudgeRightFine,
   ]);
-
-  // ——— Auto-scroll to active line ———
-  useEffect(() => {
-    if (!activeLineRef.current || !listRef.current) return;
-    if (settings.editor?.scroll?.alignment === 'none') return;
-
-    const container = listRef.current;
-    const element = activeLineRef.current;
-    const containerRect = container.getBoundingClientRect();
-    const elementRect = element.getBoundingClientRect();
-    const elementTop = elementRect.top - containerRect.top + container.scrollTop;
-    let scrollTo = container.scrollTop;
-
-    if (settings.editor?.scroll?.alignment === 'center') {
-      scrollTo = elementTop - containerRect.height / 2 + elementRect.height / 2;
-    } else if (settings.editor?.scroll?.alignment === 'start') {
-      scrollTo = elementTop;
-    } else if (settings.editor?.scroll?.alignment === 'end') {
-      scrollTo = elementTop - containerRect.height + elementRect.height;
-    } else {
-      if (elementRect.top < containerRect.top) scrollTo = elementTop;
-      else if (elementRect.bottom > containerRect.bottom)
-        scrollTo = elementTop - containerRect.height + elementRect.height;
-    }
-
-    container.scrollTo({ top: scrollTo, behavior: settings.editor?.scroll?.mode || 'smooth' });
-  }, [activeLineIndex, settings.editor?.scroll?.mode, settings.editor?.scroll?.alignment]);
 
   // ——— Line operations ———
 
@@ -636,7 +507,6 @@ export function useEditor({
     handleLineHover,
     handleLineHoverEnd,
     // refs
-    activeLineRef,
     listRef,
     fileInputRef,
     // handlers
