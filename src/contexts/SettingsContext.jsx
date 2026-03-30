@@ -28,7 +28,7 @@ function upgradeLegacySettings(parsed) {
   }
   
   // Create a base config using defaults
-  const migrated = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
+  const migrated = structuredClone(DEFAULT_SETTINGS);
   
   // Playback
   if (parsed.defaultVolume !== undefined) migrated.playback.volume = parsed.defaultVolume;
@@ -98,21 +98,25 @@ export function SettingsProvider({ children }) {
     } catch (e) {
       console.error('Failed to load settings', e);
     }
-    return JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
+    return structuredClone(DEFAULT_SETTINGS);
   });
 
+  // Debounced localStorage persistence to avoid excessive writes during rapid changes (e.g. volume slider)
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
-    } catch (e) {
-      console.error('Failed to save settings', e);
-    }
+    const timer = setTimeout(() => {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+      } catch (e) {
+        console.error('Failed to save settings', e);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
   }, [settings]);
 
   const updateSetting = useCallback((keyPath, value) => {
     setSettings((prev) => {
       const keys = keyPath.split('.');
-      const nextSettings = JSON.parse(JSON.stringify(prev)); // Deep clone for safety
+      const nextSettings = structuredClone(prev);
       let current = nextSettings;
       for (let i = 0; i < keys.length - 1; i++) {
         if (!current[keys[i]]) current[keys[i]] = {};
@@ -128,7 +132,7 @@ export function SettingsProvider({ children }) {
   }, []);
 
   const resetSettings = useCallback(() => {
-    setSettings(JSON.parse(JSON.stringify(DEFAULT_SETTINGS)));
+    setSettings(structuredClone(DEFAULT_SETTINGS));
   }, []);
 
   return (
