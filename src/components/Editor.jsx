@@ -81,30 +81,36 @@ export default function Editor({
   };
 
   const shiftTime = useCallback((index, delta) => {
+    const numericDelta = Number(delta) || 0;
+    
     setLines((prev) => {
       const updated = [...prev];
       if (updated[index]) {
         // Check if there is a focused timestamp for this line and it's the end time
         if (focusedTimestamp?.lineIndex === index && focusedTimestamp.type === 'end') {
           if (updated[index].endTime != null) {
-            const newEndTime = Math.max(0, updated[index].endTime + delta);
-            updated[index] = {
-              ...updated[index],
-              endTime: newEndTime,
-            };
-            if (playerRef?.current?.seek) {
-              playerRef.current.seek(newEndTime);
+            const newEndTime = Math.max(0, Number(updated[index].endTime) + numericDelta);
+            if (!isNaN(newEndTime)) {
+              updated[index] = {
+                ...updated[index],
+                endTime: newEndTime,
+              };
+              if (playerRef?.current?.seek) {
+                playerRef.current.seek(newEndTime);
+              }
             }
           }
         } else if (updated[index].timestamp != null) {
-          const newTimestamp = Math.max(0, updated[index].timestamp + delta);
-          updated[index] = {
-            ...updated[index],
-            timestamp: newTimestamp,
-          };
-          // Seek player to the new timestamp
-          if (playerRef?.current?.seek) {
-            playerRef.current.seek(newTimestamp);
+          const newTimestamp = Math.max(0, Number(updated[index].timestamp) + numericDelta);
+          if (!isNaN(newTimestamp)) {
+            updated[index] = {
+              ...updated[index],
+              timestamp: newTimestamp,
+            };
+            // Seek player to the new timestamp
+            if (playerRef?.current?.seek) {
+              playerRef.current.seek(newTimestamp);
+            }
           }
         }
       }
@@ -261,7 +267,7 @@ export default function Editor({
         setActiveLineIndex(Math.min(nextIndex, lines.length - 1));
       }
     }
-  }, [activeLineIndex, lines, playbackPosition, playerRef, setLines, setActiveLineIndex, settings.editor?.autoAdvance?.enabled, settings.editor?.autoAdvance?.skipBlank, editorMode, awaitingEndMark, focusedTimestamp, settings.editor?.autoPauseOnMark]);
+  }, [activeLineIndex, lines, playbackPosition, playerRef, setLines, setActiveLineIndex, settings.editor?.autoAdvance?.enabled, settings.editor?.autoAdvance?.skipBlank, editorMode, awaitingEndMark, focusedTimestamp, settings.editor?.autoPauseOnMark, settings.editor?.srt?.snapToNextLine, settings.editor?.srt?.minSubtitleGap]);
 
   // Shortcuts
   useEffect(() => {
@@ -286,16 +292,19 @@ export default function Editor({
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
       const handleNudge = (delta) => {
+        const numericDelta = Number(delta) || 0;
         if (focusedTimestamp) {
-          shiftTime(focusedTimestamp.lineIndex, delta);
+          shiftTime(focusedTimestamp.lineIndex, numericDelta);
         } else if (selectedLines.size > 0) {
-          setLines((prev) => prev.map((l, idx) =>
-            selectedLines.has(idx) && l.timestamp != null
-              ? { ...l, timestamp: Math.max(0, l.timestamp + delta) }
-              : l
-          ));
+          setLines((prev) => prev.map((l, idx) => {
+            if (selectedLines.has(idx) && l.timestamp != null) {
+              const newTimestamp = Math.max(0, Number(l.timestamp) + numericDelta);
+              return !isNaN(newTimestamp) ? { ...l, timestamp: newTimestamp } : l;
+            }
+            return l;
+          }));
         } else {
-          shiftTime(activeLineIndex, delta);
+          shiftTime(activeLineIndex, numericDelta);
         }
       };
 
@@ -533,11 +542,14 @@ export default function Editor({
   }, [selectedLines, t, setLines, setActiveLineIndex, clearSelection, requestConfirm]);
 
   const handleBulkShift = (delta) => {
-    setLines((prev) => prev.map((l, idx) =>
-      selectedLines.has(idx) && l.timestamp != null
-        ? { ...l, timestamp: Math.max(0, l.timestamp + delta) }
-        : l
-    ));
+    const numericDelta = Number(delta) || 0;
+    setLines((prev) => prev.map((l, idx) => {
+      if (selectedLines.has(idx) && l.timestamp != null) {
+        const newTimestamp = Math.max(0, Number(l.timestamp) + numericDelta);
+        return !isNaN(newTimestamp) ? { ...l, timestamp: newTimestamp } : l;
+      }
+      return l;
+    }));
   };
 
   // Global Keybinds
@@ -885,18 +897,18 @@ export default function Editor({
                         {selectedLines.size === 0 && (
                           <>
                             <button
-                              onClick={(e) => { e.stopPropagation(); shiftTime(i, -settings.nudgeIncrement); }}
+                              onClick={(e) => { e.stopPropagation(); shiftTime(i, -(settings.editor?.nudge?.default || 0.1)); }}
                               className="p-1 hover:bg-zinc-700/60 rounded text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer"
-                              title={`-${settings.nudgeIncrement}s`}
+                              title={`-${settings.editor?.nudge?.default || 0.1}s`}
                             >
                               <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
                               </svg>
                             </button>
                             <button
-                              onClick={(e) => { e.stopPropagation(); shiftTime(i, settings.nudgeIncrement); }}
+                              onClick={(e) => { e.stopPropagation(); shiftTime(i, (settings.editor?.nudge?.default || 0.1)); }}
                               className="p-1 hover:bg-zinc-700/60 rounded text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer"
-                              title={`+${settings.nudgeIncrement}s`}
+                              title={`+${settings.editor?.nudge?.default || 0.1}s`}
                             >
                               <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5L15.75 12l-7.5 7.5" />
@@ -959,18 +971,18 @@ export default function Editor({
                 </svg>
               </button>
               <button
-                onClick={() => handleBulkShift(-settings.nudgeIncrement)}
+                onClick={() => handleBulkShift(-(settings.editor?.nudge?.default || 0.1))}
                 className="p-1.5 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700/60 rounded-md transition-all cursor-pointer"
-                title={`(-${settings.nudgeIncrement}s)`}
+                title={`(-${settings.editor?.nudge?.default || 0.1}s)`}
               >
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
                 </svg>
               </button>
               <button
-                onClick={() => handleBulkShift(settings.nudgeIncrement)}
+                onClick={() => handleBulkShift((settings.editor?.nudge?.default || 0.1))}
                 className="p-1.5 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700/60 rounded-md transition-all cursor-pointer"
-                title={`(+${settings.nudgeIncrement}s)`}
+                title={`(+${settings.editor?.nudge?.default || 0.1}s)`}
               >
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5L15.75 12l-7.5 7.5" />
@@ -1016,7 +1028,7 @@ export default function Editor({
 
 
             {/* Global offset shift */}
-            {settings.showShiftAll && (
+            {settings.editor?.showShiftAll && (
               <div className="flex items-center gap-2 ml-auto">
                 <div className="w-px h-6 bg-zinc-800/80 mx-1 hidden sm:block" />
                 <span className="text-xs text-zinc-500 whitespace-nowrap flex-shrink-0 hidden md:inline">{t('shiftAll')}</span>
@@ -1037,8 +1049,8 @@ export default function Editor({
             {selectedLines.size > 0
               ? (t('selectionHint') || 'Shift+Click: range · Ctrl+Click: toggle · Esc: deselect')
               : editorMode === 'srt'
-                ? (awaitingEndMark != null ? t('markEndInstruction').replace(/Space|Espacio/gi, settings.shortcutMark || 'Space') : t('markInstructionSRT').replace(/Space|Espacio/gi, settings.shortcutMark || 'Space'))
-                : t('markInstruction').replace(/Space|Espacio/gi, settings.shortcutMark || 'Space')
+                ? (awaitingEndMark != null ? t('markEndInstruction').replace(/Space|Espacio/gi, settings.shortcuts?.mark?.[0] || 'Space') : t('markInstructionSRT').replace(/Space|Espacio/gi, settings.shortcuts?.mark?.[0] || 'Space'))
+                : t('markInstruction').replace(/Space|Espacio/gi, settings.shortcuts?.mark?.[0] || 'Space')
             }
           </p>
         </div>
