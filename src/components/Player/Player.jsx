@@ -1,15 +1,19 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { createPortal } from 'react-dom';
+import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
-import { useSettings } from '../contexts/useSettings';
-import ConfirmModal from './ConfirmModal';
-import NumberInput from './NumberInput';
+import { useSettings } from '../../contexts/useSettings';
+import useConfirm from '../../utils/useConfirm';
+import { formatTime } from '../../utils/formatTime';
+import { extractVideoId } from './playerService';
+import WaveformDisplay from './WaveformDisplay';
+import VolumeControl from './VolumeControl';
+import SpeedControl from './SpeedControl';
 
 const ALL_SPEED_PRESETS = [0.25, 0.5, 0.75, 1, 1.25, 1.5];
 
 export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, playerRef, mediaTitle, onTitleChange }) {
   const { t } = useTranslation();
-  const { settings, updateSetting } = useSettings();
+  const { settings } = useSettings();
 
   const MIN_SPEED = settings.playback?.speedBounds?.min ?? 0.25;
   const MAX_SPEED = settings.playback?.speedBounds?.max ?? 3;
@@ -25,23 +29,8 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
-  const [showSpeedMenu, setShowSpeedMenu] = useState(false);
-  const [speedMenuPos, setSpeedMenuPos] = useState(null);
-  const [customSpeedInput, setCustomSpeedInput] = useState('');
   const [ytError, setYtError] = useState('');
-  const [confirmConfig, setConfirmConfig] = useState({
-    isOpen: false,
-    message: '',
-    onConfirm: null,
-  });
-
-  const requestConfirm = (message, action) => {
-    if (settings.advanced?.confirmDestructive) {
-      setConfirmConfig({ isOpen: true, message, onConfirm: action });
-    } else {
-      action();
-    }
-  };
+  const [requestConfirm, confirmModal] = useConfirm();
 
   const audioRef = useRef(null);
   const ytPlayerRef = useRef(null);
@@ -49,154 +38,21 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
   const ytInnerRef = useRef(null);
   const rafIdRef = useRef(null);
   const apiLoadedRef = useRef(false);
-  const wavesurferRef = useRef(null);
-  const waveContainerRef = useRef(null);
   const localBlobRef = useRef(null);
-  const speedMenuRef = useRef(null);
-  const speedBtnRef = useRef(null);
 
   // Whether media is currently loaded
   const hasMedia = (source === 'local' && localUrl) || (source === 'youtube' && ytReady);
 
-  // ——————— WAVEFORM ———————
-
-  const initWaveform = useCallback(async (url, audioElement) => {
-    // Dynamically import wavesurfer.js
-    const WaveSurfer = (await import('wavesurfer.js')).default;
-
-    // Destroy previous instance
-    if (wavesurferRef.current) {
-      wavesurferRef.current.destroy();
-    }
-
-    if (!waveContainerRef.current) return;
-
-    const ws = WaveSurfer.create({
-      container: waveContainerRef.current,
-      waveColor: 'rgba(29, 185, 84, 0.4)',
-      progressColor: '#1DB954',
-      cursorColor: '#1DB954',
-      barWidth: 2,
-      barGap: 1,
-      barRadius: 2,
-      height: 48,
-      normalize: true,
-      interact: false,
-      media: audioElement,
-      backend: 'MediaElement',
-    });
-
-    ws.on('seeking', (time) => {
-      onTimeUpdate?.(time);
-    });
-
-    // Cursor following state
-    let isFollowingCursor = false;
-    let tooltipElement = null;
-
-    const formatWaveTime = (s) => {
-      if (!s || isNaN(s)) return '0:00.00';
-      const m = Math.floor(s / 60);
-      const sec = Math.floor(s % 60);
-      const ms = Math.floor(parseFloat((s % 1).toFixed(3)) * 100);
-      return `${m}:${sec.toString().padStart(2, '0')}.${ms.toString().padStart(2, '0')}`;
-    };
-
-    const createTooltip = () => {
-      if (!tooltipElement) {
-        tooltipElement = document.createElement('div');
-        tooltipElement.style.cssText = `
-          position: absolute;
-          background: rgba(0, 0, 0, 0.85);
-          color: #1DB954;
-          padding: 4px 8px;
-          border-radius: 4px;
-          font-size: 11px;
-          font-family: monospace;
-          pointer-events: none;
-          z-index: 1000;
-          display: none;
-          white-space: nowrap;
-          border: 1px solid rgba(29, 185, 84, 0.3);
-        `;
-        waveContainerRef.current?.appendChild(tooltipElement);
-      }
-      return tooltipElement;
-    };
-
-    const updateTooltip = (e) => {
-      const tooltip = createTooltip();
-      const rect = waveContainerRef.current?.getBoundingClientRect();
-      if (!rect) return;
-
-      const x = e.clientX - rect.left;
-      const percentage = Math.max(0, Math.min(x / rect.width, 1));
-      const time = percentage * (audioElement.duration || 0);
-
-      tooltip.textContent = formatWaveTime(time);
-      tooltip.style.left = (x - tooltip.offsetWidth / 2) + 'px';
-      tooltip.style.top = '-28px';
-      tooltip.style.display = 'block';
-    };
-
-    const handleMouseMove = (e) => {
-      if (isFollowingCursor) {
-        const rect = waveContainerRef.current?.getBoundingClientRect();
-        if (!rect) return;
-
-        const x = e.clientX - rect.left;
-        const percentage = Math.max(0, Math.min(x / rect.width, 1));
-        const time = percentage * (audioElement.duration || 0);
-
-        audioElement.currentTime = time;
-        onTimeUpdate?.(time);
-      }
-      updateTooltip(e);
-    };
-
-    const handleMouseDown = (e) => {
-      const rect = waveContainerRef.current?.getBoundingClientRect();
-      if (!rect) return;
-
-      const x = e.clientX - rect.left;
-      const percentage = Math.max(0, Math.min(x / rect.width, 1));
-      const time = percentage * (audioElement.duration || 0);
-
-      isFollowingCursor = true;
-      audioElement.currentTime = time;
-      onTimeUpdate?.(time);
-    };
-
-    const handleMouseUp = () => {
-      isFollowingCursor = false;
-    };
-
-    waveContainerRef.current?.addEventListener('mouseenter', createTooltip);
-    waveContainerRef.current?.addEventListener('mousemove', handleMouseMove, { passive: true });
-    waveContainerRef.current?.addEventListener('mouseleave', () => {
-      if (tooltipElement) tooltipElement.style.display = 'none';
-      isFollowingCursor = false;
-    });
-    waveContainerRef.current?.addEventListener('mousedown', handleMouseDown);
-    window.addEventListener('mouseup', handleMouseUp);
-
-    wavesurferRef.current = ws;
-  }, [onTimeUpdate]);
 
   // ——————— REMOVE MEDIA ———————
 
-  const removeMedia = () => {
+  const removeMedia = useCallback(() => {
     requestConfirm(t('confirmRemoveMedia') || 'Remove currently loaded media?', () => {
       if (source === 'local') {
         if (audioRef.current) audioRef.current.pause();
         if (localUrl) URL.revokeObjectURL(localUrl);
         setLocalUrl(null);
         localBlobRef.current = null;
-        // Destroy waveform
-        if (wavesurferRef.current) {
-          wavesurferRef.current.destroy();
-          wavesurferRef.current = null;
-        }
       } else if (source === 'youtube') {
         if (ytPlayerRef.current) {
           try { ytPlayerRef.current.destroy(); } catch { /* ignore */ }
@@ -223,13 +79,19 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
       onTitleChange?.('');
       onMediaChange?.(false);
     });
-  };
+  }, [source, localUrl, requestConfirm, t, onTimeUpdate, onDurationChange, onTitleChange, onMediaChange]);
 
   // ——————— LOCAL AUDIO ———————
 
   const handleFileChange = useCallback((e) => {
     const file = e.type === 'change' ? e.target.files?.[0] : e;
     if (!file) return;
+
+    if (file.size > 150 * 1024 * 1024) {
+      toast.error(t('fileTooLarge') || 'Audio file is too large (max 150MB).');
+      return;
+    }
+
     localBlobRef.current = file;
     const url = URL.createObjectURL(file);
     setSource('local');
@@ -238,26 +100,8 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
     setCurrentTime(0);
     onTitleChange?.(file.name.replace(/\.[^/.]+$/, ""));
     onMediaChange?.(true);
-  }, [onTitleChange, onMediaChange]);
+  }, [t, onTitleChange, onMediaChange]);
 
-  // Initialize waveform when localUrl changes
-  useEffect(() => {
-    if (!settings.playback?.showWaveform) {
-      // Destroy if waveform was hidden while active
-      if (wavesurferRef.current) {
-        wavesurferRef.current.destroy();
-        wavesurferRef.current = null;
-      }
-      return;
-    }
-    if (localUrl && audioRef.current && waveContainerRef.current) {
-      // Small delay to ensure audio element has loaded
-      const timer = setTimeout(() => {
-        initWaveform(localUrl, audioRef.current);
-      }, 100);
-      return () => clearTimeout(timer);
-    }
-  }, [localUrl, initWaveform, settings.playback?.showWaveform]);
 
   const handleLocalTimeUpdate = useCallback(() => {
     if (audioRef.current) {
@@ -270,6 +114,8 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
   const handleLocalLoadedMetadata = () => {
     if (audioRef.current) {
       const d = audioRef.current.duration;
+      // Guard against NaN/Infinity from corrupt audio files
+      if (!isFinite(d) || d <= 0) return;
       setDuration(d);
       onDurationChange?.(d);
       audioRef.current.volume = settings.playback.muted ? 0 : settings.playback.volume;
@@ -288,19 +134,7 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
 
   // ——————— YOUTUBE ———————
 
-  const extractVideoId = (url) => {
-    const patterns = [
-      /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&?/]+)/,
-      /^([a-zA-Z0-9_-]{11})$/,
-    ];
-    for (const p of patterns) {
-      const m = url.match(p);
-      if (m) return m[1];
-    }
-    return null;
-  };
-
-  // Load YouTube IFrame API
+  // Load YouTube IFrame API with error/timeout handling
   useEffect(() => {
     if (apiLoadedRef.current) return;
     if (document.querySelector('script[src*="youtube.com/iframe_api"]')) {
@@ -309,8 +143,18 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
     }
     const tag = document.createElement('script');
     tag.src = 'https://www.youtube.com/iframe_api';
+    tag.onerror = () => {
+      setYtError('Failed to load YouTube player. Check your connection or ad-blocker.');
+    };
     document.head.appendChild(tag);
     apiLoadedRef.current = true;
+    // Timeout: if YT API hasn't loaded in 10s, show error
+    const timeout = setTimeout(() => {
+      if (!window.YT) {
+        setYtError('YouTube API took too long to load.');
+      }
+    }, 10000);
+    return () => clearTimeout(timeout);
   }, []);
 
   // Create inner div for YT player on mount
@@ -323,7 +167,7 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
     }
   }, []);
 
-  const loadYouTube = () => {
+  const loadYouTube = useCallback(() => {
     const videoId = extractVideoId(ytUrl);
     if (!videoId) {
       setYtError(t('invalidUrl') || 'Invalid YouTube URL');
@@ -409,7 +253,7 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
     } else {
       window.onYouTubeIframeAPIReady = initPlayer;
     }
-  };
+  }, [ytUrl, t, settings.playback.volume, settings.playback.muted, settings.playback.autoRewindOnPause?.enabled, settings.playback.autoRewindOnPause?.seconds, onDurationChange, onTitleChange, onMediaChange, onTimeUpdate]);
 
   // Poll YouTube time with requestAnimationFrame for precision
   useEffect(() => {
@@ -476,30 +320,7 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
     } else if (source === 'youtube' && ytPlayerRef.current?.setPlaybackRate) {
       ytPlayerRef.current.setPlaybackRate(clamped);
     }
-    setShowSpeedMenu(false);
   }, [source, MIN_SPEED, MAX_SPEED]);
-
-  const handleCustomSpeedSubmit = useCallback(() => {
-    const val = parseFloat(customSpeedInput);
-    if (!isNaN(val) && val >= MIN_SPEED && val <= MAX_SPEED) {
-      applySpeed(val);
-      setCustomSpeedInput('');
-    }
-  }, [customSpeedInput, applySpeed, MIN_SPEED, MAX_SPEED]);
-
-  // Close speed menu on outside click
-  useEffect(() => {
-    if (!showSpeedMenu) return;
-    const handler = (e) => {
-      const inMenu = speedMenuRef.current && speedMenuRef.current.contains(e.target);
-      const inBtn = speedBtnRef.current && speedBtnRef.current.contains(e.target);
-      if (!inMenu && !inBtn) {
-        setShowSpeedMenu(false);
-      }
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [showSpeedMenu]);
 
   // Expose player API via ref
   useEffect(() => {
@@ -532,14 +353,6 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
       };
     }
   }, [source, isPlaying, playerRef, togglePlay, seek, handleFileChange]);
-
-  const formatTime = (s) => {
-    if (!s || isNaN(s)) return '0:00.00';
-    const m = Math.floor(s / 60);
-    const sec = Math.floor(s % 60);
-    const ms = Math.floor(parseFloat((s % 1).toFixed(3)) * 100);
-    return `${m}:${sec.toString().padStart(2, '0')}.${ms.toString().padStart(2, '0')}`;
-  };
 
   const handleLocalPause = () => {
     if (settings.playback?.autoRewindOnPause?.enabled && audioRef.current && audioRef.current.currentTime > 0) {
@@ -634,12 +447,12 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
       {source === 'local' && localUrl && (
         <div className="animate-fade-in space-y-3">
           {/* Waveform container */}
-          {settings.playback?.showWaveform && (
-            <div
-              ref={waveContainerRef}
-              className="w-full rounded-lg overflow-hidden bg-zinc-900/40 border border-zinc-800/50 cursor-pointer"
-            />
-          )}
+          <WaveformDisplay
+            showWaveform={settings.playback?.showWaveform}
+            audioRef={audioRef}
+            localUrl={localUrl}
+            onTimeUpdate={onTimeUpdate}
+          />
 
           <audio
             ref={audioRef}
@@ -732,138 +545,20 @@ export default function Player({ onTimeUpdate, onDurationChange, onMediaChange, 
               {formatTime(duration)}
             </span>
 
-            {/* Volume Control */}
-            <div className="flex items-center gap-1 sm:gap-1.5 group/volume relative">
-              <button
-                onClick={() => updateSetting('playback.muted', !settings.playback.muted)}
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-zinc-800/80 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700 transition-all cursor-pointer flex-shrink-0"
-                title={settings.playback.muted ? t('unmute') || 'Unmute' : t('mute') || 'Mute'}
-              >
-                {settings.playback.muted || settings.playback.volume === 0 ? (
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 9.75L19.5 12m0 0l2.25 2.25M19.5 12l2.25-2.25M19.5 12l-2.25 2.25m-10.5-6.75h-2.25A2.25 2.25 0 002.25 9.75v4.5a2.25 2.25 0 002.25 2.25h2.25l6.75 6.75V3.75l-6.75 6.75z" />
-                  </svg>
-                ) : (
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.114 5.636a9 9 0 010 12.728M16.463 8.288a5.25 5.25 0 010 7.424M6.75 8.25l4.72-4.72a.75.75 0 011.28.53v15.88a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 012.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75z" />
-                  </svg>
-                )}
-              </button>
-              <div className="overflow-hidden w-0 group-hover/volume:w-24 focus-within/volume:w-24 transition-all duration-300 flex items-center">
-                <input
-                  type="range"
-                  min={0}
-                  max={1}
-                  step={0.01}
-                  value={settings.playback.volume}
-                  onChange={(e) => {
-                    const val = parseFloat(e.target.value);
-                    updateSetting('playback.volume', val);
-                    if (val > 0 && settings.playback.muted) {
-                      updateSetting('playback.muted', false);
-                    }
-                  }}
-                  className="w-20 mx-2"
-                  style={{
-                    background: `linear-gradient(to right, var(--color-primary) ${settings.playback.volume * 100}%, rgba(255, 255, 255, 0.15) ${settings.playback.volume * 100}%)`
-                  }}
-                />
-              </div>
-            </div>
+            <VolumeControl />
 
-
-            {/* Speed Control Dropdown */}
-            <div className="relative">
-              <button
-                ref={speedBtnRef}
-                id="speed-btn"
-                onClick={() => {
-                  setShowSpeedMenu(prev => {
-                    if (!prev && speedBtnRef.current) {
-                      const rect = speedBtnRef.current.getBoundingClientRect();
-                      setSpeedMenuPos({
-                        top: rect.bottom + 8,
-                        right: window.innerWidth - rect.right,
-                      });
-                    }
-                    return !prev;
-                  });
-                }}
-                title={t('speed')}
-                className={`h-8 sm:h-9 px-2 sm:px-2.5 flex items-center gap-1 rounded-full transition-all duration-200 cursor-pointer flex-shrink-0 text-xs font-mono font-semibold ${playbackSpeed !== 1
-                  ? 'bg-primary text-zinc-950 shadow-lg shadow-primary/30'
-                  : 'bg-zinc-800 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700'
-                  }`}
-              >
-                {playbackSpeed}x
-                <svg className={`w-2.5 h-2.5 transition-transform duration-200 ${showSpeedMenu ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-              {showSpeedMenu && speedMenuPos && createPortal(
-                <div
-                  ref={speedMenuRef}
-                  className="fixed w-44 bg-zinc-900 border border-zinc-700/80 rounded-xl shadow-2xl shadow-black/50 overflow-hidden animate-fade-in z-[9999]"
-                  style={{
-                    top: speedMenuPos.top,
-                    right: speedMenuPos.right,
-                  }}
-                >
-                  <div className="p-1.5 max-h-52 overflow-y-auto speed-menu-scroll">
-                    {SPEED_PRESETS.map((speed) => (
-                      <button
-                        key={speed}
-                        onClick={() => applySpeed(speed)}
-                        className={`w-full text-left px-3 py-1.5 text-xs font-mono rounded-lg transition-all duration-150 cursor-pointer ${playbackSpeed === speed
-                          ? 'bg-primary/20 text-primary font-bold'
-                          : 'text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100'
-                          }`}
-                      >
-                        {speed}x {speed === 1 && <span className="text-zinc-500 font-sans">(normal)</span>}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="border-t border-zinc-700/60 p-2">
-                    <label className="text-[10px] text-zinc-500 font-medium uppercase tracking-wider mb-1 block">{t('customSpeed') || 'Custom'} ({MIN_SPEED}–{MAX_SPEED}x)</label>
-                    <div className="flex gap-1.5">
-                      <NumberInput
-                        id="custom-speed-input"
-                        min={MIN_SPEED}
-                        max={MAX_SPEED}
-                        step={0.05}
-                        value={customSpeedInput}
-                        onChange={(e) => setCustomSpeedInput(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleCustomSpeedSubmit()}
-                        placeholder="e.g. 1.3"
-                        className="flex-1 w-0"
-                      />
-                      <button
-                        onClick={handleCustomSpeedSubmit}
-                        disabled={!customSpeedInput || isNaN(parseFloat(customSpeedInput)) || parseFloat(customSpeedInput) < MIN_SPEED || parseFloat(customSpeedInput) > MAX_SPEED}
-                        className="px-2.5 py-1.5 bg-primary hover:bg-primary-dim disabled:bg-zinc-800 disabled:text-zinc-600 text-zinc-950 text-xs font-semibold rounded-lg transition-all cursor-pointer disabled:cursor-not-allowed"
-                      >
-                        ✓
-                      </button>
-                    </div>
-                  </div>
-                </div>,
-                document.body
-              )}
-            </div>
+            <SpeedControl
+              playbackSpeed={playbackSpeed}
+              applySpeed={applySpeed}
+              MIN_SPEED={MIN_SPEED}
+              MAX_SPEED={MAX_SPEED}
+              SPEED_PRESETS={SPEED_PRESETS}
+            />
           </div>
         </div>
       )}
 
-      <ConfirmModal
-        isOpen={confirmConfig.isOpen}
-        message={confirmConfig.message}
-        onConfirm={() => {
-          const action = confirmConfig.onConfirm;
-          setConfirmConfig({ isOpen: false, message: '', onConfirm: null });
-          if (action) setTimeout(action, 0);
-        }}
-        onCancel={() => setConfirmConfig({ isOpen: false, message: '', onConfirm: null })}
-      />
+      {confirmModal}
     </div>
   );
 }
