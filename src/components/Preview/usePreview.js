@@ -3,6 +3,7 @@ import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { useSettings } from '../../contexts/useSettings';
 import { compileLRC, compileSRT, downloadLRC } from '../../utils/lrc';
+import { matchKey } from '../../utils/keyboard';
 
 export function usePreview({ lines, setLines, playbackPosition, playerRef, duration, mediaTitle, editorMode }) {
   const { t } = useTranslation();
@@ -145,6 +146,28 @@ export function usePreview({ lines, setLines, playbackPosition, playerRef, durat
 
   const hasSyncedLines = syncedIndices.length > 0;
   const hasTranslations = lines.some(l => l.translation || l.secondary);
+
+  // ——— Preview keyboard shortcuts ———
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      if (pastingType) return; // paste panel open — don't intercept
+      if (matchKey(e, settings.shortcuts?.toggleTranslation?.[0] || 't')) {
+        e.preventDefault();
+        setShowTranslationsInPreview((prev) => !prev);
+      } else if (matchKey(e, settings.shortcuts?.addSecondary?.[0] || 'Shift+H')) {
+        e.preventDefault();
+        setPastingType('secondary');
+        setPasteText(lines.map((l) => l.secondary || '').join('\n'));
+      } else if (matchKey(e, settings.shortcuts?.addTranslation?.[0] || 'Shift+T')) {
+        e.preventDefault();
+        setPastingType('translation');
+        setPasteText(lines.map((l) => l.translation || '').join('\n'));
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [settings.shortcuts, lines, pastingType]);
 
   const handleSavePaste = () => {
     if (!pastingType) return;
