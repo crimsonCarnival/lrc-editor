@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from './components/ui/dropdown-menu';
 import { Music2, UploadCloud, Globe, Settings as SettingsIcon } from 'lucide-react';
+import { useScrollLock } from './hooks/useScrollLock';
 
 const Settings = lazy(() => import('./components/Settings'));
 const KeyboardHelp = lazy(() => import('./components/shared/KeyboardHelp'));
@@ -55,6 +56,8 @@ function AppInner() {
     isAutosaving,
   } = useAppState();
 
+  useScrollLock(!!pendingSession);
+
   return (
     <div className="min-h-screen lg:h-screen bg-zinc-950 relative overflow-x-hidden flex flex-col">
       {/* Background gradient blobs and noise texture */}
@@ -77,74 +80,73 @@ function AppInner() {
 
       <header className="relative z-50 flex flex-row items-center justify-between gap-2 w-full px-4 sm:px-6 lg:px-8 py-3 sm:py-5 animate-fade-in">
         <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-shrink">
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-primary to-accent-purple flex items-center justify-center shadow-lg shadow-primary/20 flex-shrink-0">
-              <Music2 className="w-4 sm:w-5 h-4 sm:h-5 text-white" strokeWidth={2} />
-            </div>
-            <div className="overflow-hidden">
-              <h1 className="text-base sm:text-lg font-bold text-zinc-100 tracking-tight truncate">
-                {t('appName')}
-              </h1>
-            </div>
+          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-primary to-accent-purple flex items-center justify-center shadow-lg shadow-primary/20 flex-shrink-0">
+            <Music2 className="w-4 sm:w-5 h-4 sm:h-5 text-white" strokeWidth={2} />
           </div>
+          <div className="overflow-hidden">
+            <h1 className="text-base sm:text-lg font-bold text-zinc-100 tracking-tight truncate">
+              {t('appName')}
+            </h1>
+          </div>
+        </div>
 
-          <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
-            {/* Language Selector */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 h-8 sm:h-9 bg-zinc-800/80 hover:bg-zinc-700 border-zinc-700/60 rounded-lg sm:rounded-xl text-zinc-200 flex-shrink-0"
-                  title={t('settingsLanguageDesc') || 'Language'}
-                >
-                  <Globe className="w-4 h-4 text-zinc-400" strokeWidth={2} />
-                  <span className="text-xs font-semibold uppercase">{i18n.resolvedLanguage?.split('-')[0] || 'en'}</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-28 bg-zinc-900 border-zinc-700/80" align="end">
-                {[
-                  { code: 'en', label: 'EN' },
-                  { code: 'es', label: 'ES' }
-                ].map(lang => (
-                  <DropdownMenuItem
-                    key={lang.code}
-                    onClick={() => i18n.changeLanguage(lang.code)}
-                    className={`text-xs font-semibold text-center justify-center cursor-pointer ${
-                      (i18n.resolvedLanguage?.split('-')[0] === lang.code)
-                        ? 'bg-zinc-800/60 text-primary focus:bg-zinc-800 focus:text-primary'
-                        : 'text-zinc-300 focus:bg-zinc-800/80 focus:text-zinc-100'
+        <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+          {/* Language Selector */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 h-8 sm:h-9 bg-zinc-800/80 hover:bg-zinc-700 border-zinc-700/60 rounded-lg sm:rounded-xl text-zinc-200 flex-shrink-0"
+                title={t('settingsLanguageDesc') || 'Language'}
+              >
+                <Globe className="w-4 h-4 text-zinc-400" strokeWidth={2} />
+                <span className="text-xs font-semibold uppercase">{i18n.resolvedLanguage?.split('-')[0] || 'en'}</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-28 bg-zinc-900 border-zinc-700/80" align="end">
+              {[
+                { code: 'en', label: 'EN' },
+                { code: 'es', label: 'ES' }
+              ].map(lang => (
+                <DropdownMenuItem
+                  key={lang.code}
+                  onClick={() => i18n.changeLanguage(lang.code)}
+                  className={`text-xs font-semibold text-center justify-center cursor-pointer ${(i18n.resolvedLanguage?.split('-')[0] === lang.code)
+                      ? 'bg-zinc-800/60 text-primary focus:bg-zinc-800 focus:text-primary'
+                      : 'text-zinc-300 focus:bg-zinc-800/80 focus:text-zinc-100'
                     }`}
-                  >
-                    {lang.label}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
+                >
+                  {lang.label}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
 
-            {/* Settings button */}
-            <Button
-              variant="outline"
-              onClick={() => setShowSettings(true)}
-              className="px-2 sm:px-3 h-8 sm:h-9 bg-zinc-800/80 border-zinc-700/60 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700 rounded-lg sm:rounded-xl flex-shrink-0"
-              title={t('settingsTitle')}
-            >
-              <SettingsIcon className="w-4 sm:w-[18px] h-4 sm:h-[18px]" strokeWidth={1.8} />
-              <span className="hidden sm:inline text-xs font-semibold">{t('settingsTitle')}</span>
-            </Button>
+          {/* Settings button */}
+          <Button
+            variant="outline"
+            onClick={() => setShowSettings(true)}
+            className="px-2 sm:px-3 h-8 sm:h-9 bg-zinc-800/80 border-zinc-700/60 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700 rounded-lg sm:rounded-xl flex-shrink-0"
+            title={t('settingsTitle')}
+          >
+            <SettingsIcon className="w-4 sm:w-[18px] h-4 sm:h-[18px]" strokeWidth={1.8} />
+            <span className="hidden sm:inline text-xs font-semibold">{t('settingsTitle')}</span>
+          </Button>
 
-            {/* Help button */}
-            <Button
-              variant="outline"
-              onClick={() => setShowKeyboardHelp(prev => !prev)}
-              className="px-2 sm:px-3 h-8 sm:h-9 bg-zinc-800/80 border-zinc-700/60 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700 rounded-lg sm:rounded-xl flex-shrink-0"
-              title={t('keyboardShortcuts') || 'Shortcuts'}
-            >
-              <Kbd>?</Kbd>
-              <span className="hidden sm:inline text-xs font-semibold">{t('keyboardShortcuts') || 'Help'}</span>
-            </Button>
+          {/* Help button */}
+          <Button
+            variant="outline"
+            onClick={() => setShowKeyboardHelp(prev => !prev)}
+            className="px-2 sm:px-3 h-8 sm:h-9 bg-zinc-800/80 border-zinc-700/60 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700 rounded-lg sm:rounded-xl flex-shrink-0"
+            title={t('keyboardShortcuts') || 'Shortcuts'}
+          >
+            <Kbd>?</Kbd>
+            <span className="hidden sm:inline text-xs font-semibold">{t('keyboardShortcuts') || 'Help'}</span>
+          </Button>
 
 
-          </div>
-        </header>
+        </div>
+      </header>
 
       <div className="relative z-10 max-w-7xl mx-auto w-full flex-1 min-h-0 px-2 sm:px-4 lg:px-6 pb-2 sm:pb-4 flex flex-col">
         {/* 3-Column layout */}
@@ -200,13 +202,6 @@ function AppInner() {
             />
           </div>
         </div>
-
-        {/* Footer */}
-        <footer className="mt-3 pt-3 border-t border-zinc-800/50 text-center shrink-0">
-          <p className="text-xs text-zinc-600">
-            {t('footerText')}
-          </p>
-        </footer>
       </div>
       <Suspense fallback={null}>
         {showKeyboardHelp && <KeyboardHelp isOpen={showKeyboardHelp} onClose={() => setShowKeyboardHelp(false)} />}

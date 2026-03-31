@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { useScrollLock } from '../../hooks/useScrollLock';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -12,6 +13,7 @@ import {
 
 export default function ConfirmModal({ isOpen, title, message, onConfirm, onCancel, confirmText, cancelText }) {
   const { t } = useTranslation();
+  useScrollLock(isOpen);
 
   return (
     <AlertDialog open={isOpen} onOpenChange={(open) => !open && onCancel()}>

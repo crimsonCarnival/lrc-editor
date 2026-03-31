@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { useSettings } from '../../contexts/useSettings';
 import { DEFAULT_SETTINGS } from '../../contexts/settingsDefaults';
 import { useSettingsModal } from './useSettingsModal';
+import { useScrollLock } from '../../hooks/useScrollLock';
 import PlaybackSettings from './panels/PlaybackSettings';
 import EditorSettings from './panels/EditorSettings';
 import ExportSettings from './panels/ExportSettings';
@@ -45,6 +46,8 @@ export default function SettingsModal({ isOpen, onClose }) {
     handleReset,
     handleApply,
   } = useSettingsModal(isOpen, onClose, globalSettings, updateAllSettings);
+
+  useScrollLock(isOpen);
 
   if (!isOpen) return null;
 
