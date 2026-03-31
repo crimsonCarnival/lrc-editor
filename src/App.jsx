@@ -5,6 +5,14 @@ import Preview from './components/Preview';
 import { SettingsProvider } from './contexts/SettingsContext';
 import { useAppState } from './hooks/useAppState';
 import { Kbd } from './components/shared/Kbd';
+import { Button } from './components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from './components/ui/dropdown-menu';
+import { Music2, UploadCloud, Globe, Settings as SettingsIcon } from 'lucide-react';
 
 const Settings = lazy(() => import('./components/Settings'));
 const KeyboardHelp = lazy(() => import('./components/shared/KeyboardHelp'));
@@ -33,13 +41,10 @@ function AppInner() {
     showSettings,
     setShowSettings,
     pendingSession,
-    showLangMenu,
-    setShowLangMenu,
     editorMode,
     setEditorMode,
     isDraggingFile,
     playerRef,
-    langMenuRef,
     handleManualSave,
     handleRestoreSession,
     handleDiscardSession,
@@ -63,9 +68,7 @@ function AppInner() {
       {isDraggingFile && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm pointer-events-none transition-all">
           <div className="flex flex-col items-center gap-4 text-primary animate-bounce">
-            <svg className="w-20 h-20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-            </svg>
+            <UploadCloud className="w-20 h-20" strokeWidth={1.5} />
             <h2 className="text-3xl font-bold tracking-tight text-center px-4">{t('dropAudio') || 'Drop your audio or lyrics file here'}</h2>
           </div>
         </div>
@@ -75,9 +78,7 @@ function AppInner() {
       <header className="relative z-50 flex flex-row items-center justify-between gap-2 w-full px-4 sm:px-6 lg:px-8 py-3 sm:py-5 animate-fade-in">
         <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-shrink">
             <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-primary to-accent-purple flex items-center justify-center shadow-lg shadow-primary/20 flex-shrink-0">
-              <svg className="w-4 sm:w-5 h-4 sm:h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z" />
-              </svg>
+              <Music2 className="w-4 sm:w-5 h-4 sm:h-5 text-white" strokeWidth={2} />
             </div>
             <div className="overflow-hidden">
               <h1 className="text-base sm:text-lg font-bold text-zinc-100 tracking-tight truncate">
@@ -88,64 +89,58 @@ function AppInner() {
 
           <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
             {/* Language Selector */}
-            <div className="relative" ref={langMenuRef}>
-              <button
-                onClick={() => setShowLangMenu(!showLangMenu)}
-                className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 h-8 sm:h-9 bg-zinc-800/80 hover:bg-zinc-700 border border-zinc-700/60 rounded-lg sm:rounded-xl shadow-lg transition-all cursor-pointer text-zinc-200 focus:outline-none flex-shrink-0"
-                title={t('settingsLanguageDesc') || 'Language'}
-              >
-                <svg className="w-4 h-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span className="text-xs font-semibold uppercase">{i18n.resolvedLanguage?.split('-')[0] || 'en'}</span>
-              </button>
-              {showLangMenu && (
-                <div className="absolute right-0 top-full mt-2 w-28 bg-zinc-900 border border-zinc-700/80 rounded-lg sm:rounded-xl shadow-2xl py-1.5 z-50 animate-fade-in flex flex-col items-stretch">
-                  {[
-                    { code: 'en', label: 'EN' },
-                    { code: 'es', label: 'ES' }
-                  ].map(lang => (
-                    <button
-                      key={lang.code}
-                      onClick={() => {
-                        i18n.changeLanguage(lang.code);
-                        setShowLangMenu(false);
-                      }}
-                      className={`px-3 py-2 text-xs font-semibold text-center transition-colors flex items-center justify-center cursor-pointer outline-none ${
-                        (i18n.resolvedLanguage?.split('-')[0] === lang.code)
-                          ? 'bg-zinc-800/60 text-primary'
-                          : 'text-zinc-300 hover:bg-zinc-800/80 hover:text-zinc-100'
-                      }`}
-                    >
-                      {lang.label}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 h-8 sm:h-9 bg-zinc-800/80 hover:bg-zinc-700 border-zinc-700/60 rounded-lg sm:rounded-xl text-zinc-200 flex-shrink-0"
+                  title={t('settingsLanguageDesc') || 'Language'}
+                >
+                  <Globe className="w-4 h-4 text-zinc-400" strokeWidth={2} />
+                  <span className="text-xs font-semibold uppercase">{i18n.resolvedLanguage?.split('-')[0] || 'en'}</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-28 bg-zinc-900 border-zinc-700/80" align="end">
+                {[
+                  { code: 'en', label: 'EN' },
+                  { code: 'es', label: 'ES' }
+                ].map(lang => (
+                  <DropdownMenuItem
+                    key={lang.code}
+                    onClick={() => i18n.changeLanguage(lang.code)}
+                    className={`text-xs font-semibold text-center justify-center cursor-pointer ${
+                      (i18n.resolvedLanguage?.split('-')[0] === lang.code)
+                        ? 'bg-zinc-800/60 text-primary focus:bg-zinc-800 focus:text-primary'
+                        : 'text-zinc-300 focus:bg-zinc-800/80 focus:text-zinc-100'
+                    }`}
+                  >
+                    {lang.label}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             {/* Settings button */}
-            <button
+            <Button
+              variant="outline"
               onClick={() => setShowSettings(true)}
-              className="px-2 sm:px-3 h-8 sm:h-9 flex items-center justify-center gap-1.5 rounded-lg sm:rounded-xl bg-zinc-800/80 border border-zinc-700/60 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700 transition-all cursor-pointer shadow-lg flex-shrink-0"
+              className="px-2 sm:px-3 h-8 sm:h-9 bg-zinc-800/80 border-zinc-700/60 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700 rounded-lg sm:rounded-xl flex-shrink-0"
               title={t('settingsTitle')}
             >
-              <svg className="w-4 sm:w-4.5 h-4 sm:h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
+              <SettingsIcon className="w-4 sm:w-[18px] h-4 sm:h-[18px]" strokeWidth={1.8} />
               <span className="hidden sm:inline text-xs font-semibold">{t('settingsTitle')}</span>
-            </button>
+            </Button>
 
             {/* Help button */}
-            <button
+            <Button
+              variant="outline"
               onClick={() => setShowKeyboardHelp(prev => !prev)}
-              className="px-2 sm:px-3 h-8 sm:h-9 flex items-center justify-center gap-1.5 rounded-lg sm:rounded-xl bg-zinc-800/80 border border-zinc-700/60 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700 transition-all cursor-pointer shadow-lg flex-shrink-0"
+              className="px-2 sm:px-3 h-8 sm:h-9 bg-zinc-800/80 border-zinc-700/60 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700 rounded-lg sm:rounded-xl flex-shrink-0"
               title={t('keyboardShortcuts') || 'Shortcuts'}
             >
               <Kbd>?</Kbd>
               <span className="hidden sm:inline text-xs font-semibold">{t('keyboardShortcuts') || 'Help'}</span>
-            </button>
+            </Button>
 
 
           </div>
@@ -155,7 +150,7 @@ function AppInner() {
         {/* 3-Column layout */}
         <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-2 sm:gap-3 lg:gap-4 min-h-0 lg:overflow-hidden max-lg:overflow-visible">
           {/* Left: Player + Editor */}
-          <div className="lg:col-span-5 flex flex-col gap-2 sm:gap-3 lg:gap-4 min-h-0 max-lg:h-[85vh]">
+          <div className="lg:col-span-6 flex flex-col gap-2 sm:gap-3 lg:gap-4 min-h-0 max-lg:h-[85vh]">
             <Player
               ref={playerRef}
               mediaTitle={mediaTitle}
@@ -185,9 +180,7 @@ function AppInner() {
                 />
               ) : (
                 <div className="glass rounded-2xl p-5 flex flex-col items-center justify-center h-full animate-fade-in">
-                  <svg className="w-10 h-10 text-zinc-700 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z" />
-                  </svg>
+                  <Music2 className="w-10 h-10 text-zinc-700 mb-3" strokeWidth={1.5} />
                   <p className="text-sm text-zinc-500 text-center whitespace-pre-line">{t('noMediaText')}</p>
                 </div>
               )}
@@ -195,7 +188,7 @@ function AppInner() {
           </div>
 
           {/* Right: Preview */}
-          <div className="flex lg:col-span-7 min-h-0 flex-col max-lg:h-[85vh] max-lg:mt-4">
+          <div className="flex lg:col-span-6 min-h-0 flex-col max-lg:h-[85vh] max-lg:mt-4">
             <Preview
               lines={lines}
               setLines={setLines}
@@ -240,18 +233,19 @@ function AppInner() {
               {pendingSession.lines?.length || 0} {t('sessionRestoreLines')}
             </p>
             <div className="flex gap-3">
-              <button
+              <Button
+                variant="outline"
                 onClick={handleDiscardSession}
-                className="flex-1 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-semibold text-sm rounded-xl transition-all cursor-pointer"
+                className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border-zinc-700 font-semibold text-sm rounded-xl h-10"
               >
                 {t('sessionDiscard')}
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={handleRestoreSession}
-                className="flex-1 py-2.5 bg-primary hover:bg-primary-dim text-zinc-950 font-semibold text-sm rounded-xl transition-all cursor-pointer"
+                className="flex-1 bg-primary hover:bg-primary-dim text-zinc-950 font-semibold text-sm rounded-xl h-10"
               >
                 {t('sessionRestore')}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
