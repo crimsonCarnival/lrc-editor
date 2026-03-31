@@ -3,7 +3,7 @@ import NumberInput from '../../shared/NumberInput';
 import { Kbd } from '../../shared/Kbd';
 import { Button } from '@/components/ui/button';
 import { MapPin } from 'lucide-react';
-import { KEY_SYMBOLS } from '../../Settings/shared';
+import { KEY_SYMBOLS } from '../../Settings/keySymbols';
 
 export default function EditorSyncControls({
   handleMark,

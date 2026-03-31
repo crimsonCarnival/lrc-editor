@@ -7,7 +7,7 @@ import { useSettings } from '../../contexts/useSettings';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { X, Headphones, FileText, Eye } from 'lucide-react';
-import { KEY_SYMBOLS } from '../Settings/shared';
+import { KEY_SYMBOLS } from '../Settings/keySymbols';
 import { matchKey } from '../../utils/keyboard';
 
 // Split a shortcut string like 'Ctrl+M' into display parts ['Ctrl', 'M']

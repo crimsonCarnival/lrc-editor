@@ -1,0 +1,16 @@
+export const KEY_SYMBOLS = {
+  Space: ' ␣ ',
+  ArrowLeft: '←',
+  ArrowRight: '→',
+  ArrowUp: '↑',
+  ArrowDown: '↓',
+  Enter: '↵ Enter',
+  Backspace: '⌫',
+  Delete: 'Del',
+  Escape: 'Esc',
+  Tab: '⇥ ',
+  Shift: '⇧ Shift',
+  Ctrl: 'Ctrl',
+  Alt: 'Alt',
+  Meta: '⌘',
+};

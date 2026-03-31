@@ -1,23 +1,7 @@
 import React, { useState } from 'react';
 import { Switch } from '@/components/ui/switch';
 import { Kbd } from '@/components/ui/kbd';
-
-export const KEY_SYMBOLS = {
-  Space: ' ␣ ',
-  ArrowLeft: '←',
-  ArrowRight: '→',
-  ArrowUp: '↑',
-  ArrowDown: '↓',
-  Enter: '↵ Enter',
-  Backspace: '⌫',
-  Delete: 'Del',
-  Escape: 'Esc',
-  Tab: '⇥ ',
-  Shift: '⇧ Shift',
-  Ctrl: 'Ctrl',
-  Alt: 'Alt',
-  Meta: '⌘',
-};
+import { KEY_SYMBOLS } from './keySymbols';
 
 export function Toggle({ checked, onChange, id }) {
   return (
