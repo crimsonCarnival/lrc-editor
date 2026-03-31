@@ -8,14 +8,17 @@ import ExportSettings from './panels/ExportSettings';
 import InterfaceSettings from './panels/InterfaceSettings';
 import ShortcutsSettings from './panels/ShortcutsSettings';
 import AdvancedSettings from './panels/AdvancedSettings';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { X, Headphones, FileText, Download, Monitor, Keyboard, SlidersHorizontal } from 'lucide-react';
 
 const TABS = [
-  { id: 'playback', labelKey: 'settingsPlayback' },
-  { id: 'editor', labelKey: 'settingsEditor' },
-  { id: 'export', labelKey: 'settingsExport' },
-  { id: 'interface', labelKey: 'settingsInterface' },
-  { id: 'shortcuts', labelKey: 'settingsShortcuts', fallback: 'Shortcuts' },
-  { id: 'advanced', labelKey: 'settingsAdvanced' },
+  { id: 'playback', labelKey: 'settingsPlayback', icon: Headphones },
+  { id: 'editor', labelKey: 'settingsEditor', icon: FileText },
+  { id: 'export', labelKey: 'settingsExport', icon: Download },
+  { id: 'interface', labelKey: 'settingsInterface', icon: Monitor },
+  { id: 'shortcuts', labelKey: 'settingsShortcuts', fallback: 'Shortcuts', icon: Keyboard },
+  { id: 'advanced', labelKey: 'settingsAdvanced', icon: SlidersHorizontal },
 ];
 
 function tabPanelClass(tabId, activeTab, searchTerm) {
@@ -55,7 +58,7 @@ export default function SettingsModal({ isOpen, onClose }) {
       {/* Modal */}
       <div className="fixed inset-0 z-[101] flex items-center justify-center p-4 pointer-events-none">
         <div
-          className="w-full max-w-md pointer-events-auto flex flex-col max-h-[85vh]"
+          className="w-full max-w-lg pointer-events-auto flex flex-col max-h-[85vh]"
           style={{ transform: `translate(${position.x}px, ${position.y}px)` }}
         >
           <div className="bg-zinc-900 border border-zinc-700/80 rounded-2xl shadow-2xl w-full flex flex-col h-full animate-fade-in overflow-hidden">
@@ -68,24 +71,24 @@ export default function SettingsModal({ isOpen, onClose }) {
                 <h3 className="text-sm font-semibold text-zinc-200 uppercase tracking-widest shrink-0">
                   {t('settingsTitle')}
                 </h3>
-                <input
+                <Input
                   type="text"
                   placeholder={t('searchSettings')}
                   title={t('searchSettingsTitle')}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   onPointerDown={(e) => e.stopPropagation()}
-                  className="bg-zinc-800/50 border border-zinc-700/60 rounded-md px-3 py-1.5 text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-primary/50 transition-colors w-full max-w-[200px]"
+                  className="bg-zinc-800/50 border-zinc-700/60 text-zinc-200 placeholder-zinc-500 focus-visible:border-primary/50 w-full max-w-[200px] h-7 text-xs"
                 />
               </div>
-              <button
+              <Button
+                variant="ghost"
+                size="icon-sm"
                 onClick={onClose}
-                className="p-1 hover:bg-zinc-800 rounded-lg text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer ml-4"
+                className="text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 ml-4"
               >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+                <X className="w-4 h-4" />
+              </Button>
             </div>
 
             {/* Tabs */}
@@ -94,16 +97,18 @@ export default function SettingsModal({ isOpen, onClose }) {
                 {TABS.map((tab) => {
                   const label = t(tab.labelKey) || tab.fallback || tab.id;
                   return (
-                    <button
+                    <Button
                       key={tab.id}
+                      variant="ghost"
                       onClick={() => setActiveTab(tab.id)}
-                      className={`relative flex-1 min-w-0 px-1 sm:px-2 py-2.5 text-[10px] sm:text-xs font-semibold text-center whitespace-nowrap overflow-hidden text-ellipsis transition-colors duration-150 cursor-pointer outline-none rounded-t-xl ${
+                      className={`relative flex flex-1 min-w-0 flex-col items-center gap-0.5 px-1 sm:px-2 py-2 text-[9px] sm:text-[10px] font-semibold text-center whitespace-nowrap overflow-hidden text-ellipsis transition-colors duration-150 outline-none rounded-t-xl h-auto ${
                         activeTab === tab.id
-                          ? 'bg-zinc-900 text-primary z-10'
+                          ? 'bg-zinc-900 text-primary z-10 hover:bg-zinc-900 hover:text-primary'
                           : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/30'
                       }`}
                       title={label}
                     >
+                      {tab.icon && <tab.icon className="w-3.5 h-3.5 shrink-0" />}
                       {label}
                       {activeTab === tab.id && (
                         <>
@@ -111,7 +116,7 @@ export default function SettingsModal({ isOpen, onClose }) {
                           <div className="absolute bottom-0 -right-3 w-3 h-3 rounded-bl-xl shadow-[-4px_4px_0_0_var(--color-zinc-900)] pointer-events-none" />
                         </>
                       )}
-                    </button>
+                    </Button>
                   );
                 })}
               </div>
@@ -170,19 +175,20 @@ export default function SettingsModal({ isOpen, onClose }) {
 
             {/* Footer — Reset & Apply */}
             <div className="px-6 py-4 border-t border-zinc-800/60 flex-shrink-0 flex gap-3">
-              <button
+              <Button
+                variant="outline"
                 onClick={handleReset}
-                className="flex-1 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-zinc-200 font-medium text-sm rounded-xl transition-all cursor-pointer"
+                className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-zinc-200 border-zinc-700 font-medium text-sm rounded-xl h-10"
               >
                 {t('settingsReset') || 'Reset to defaults'}
-              </button>
+              </Button>
               {!settings.advanced?.autoSave?.enabled && (
-                <button
+                <Button
                   onClick={handleApply}
-                  className="flex-1 py-2.5 bg-primary hover:bg-primary-dim text-zinc-950 font-semibold text-sm rounded-xl transition-all cursor-pointer"
+                  className="flex-1 bg-primary hover:bg-primary-dim text-zinc-950 font-semibold text-sm rounded-xl h-10"
                 >
                   {t('applyChanges') || 'Apply Changes'}
-                </button>
+                </Button>
               )}
             </div>
           </div>

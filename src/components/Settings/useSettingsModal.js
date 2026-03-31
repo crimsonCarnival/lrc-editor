@@ -52,6 +52,10 @@ export function useSettingsModal(isOpen, onClose, globalSettings, updateAllSetti
 
   const validateShortcut = useCallback(
     (newKey, currentKeyName) => {
+      // Block undo/redo keys from being reassigned to any shortcut
+      const reserved = ['Ctrl+Z', 'Ctrl+Y', 'Ctrl+Shift+Z'];
+      if (reserved.some((r) => r.toLowerCase() === newKey.toLowerCase())) return false;
+
       const shortcutKeys = [
         'mark',
         'nudgeLeft',
@@ -62,6 +66,8 @@ export function useSettingsModal(isOpen, onClose, globalSettings, updateAllSetti
         'switchMode',
         'nudgeLeftFine',
         'nudgeRightFine',
+        'deselect',
+        'showHelp',
       ];
       for (const k of shortcutKeys) {
         if (k !== currentKeyName && settings.shortcuts[k]?.includes(newKey)) return false;
