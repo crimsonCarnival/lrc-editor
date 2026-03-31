@@ -192,7 +192,7 @@ export function ShortcutInput({ value, onChange, onValidate }) {
       ) : recording ? (
         <span className="text-primary text-xs animate-pulse font-medium">Press key…</span>
       ) : value ? (
-        value.split('+').map((part, idx) => (
+        value.split(/(?<=.)\+/).map((part, idx) => (
           <React.Fragment key={idx}>
             {idx > 0 && <span className="text-zinc-600 text-[10px] mx-0.5">+</span>}
             <Kbd className="bg-zinc-700/60 text-zinc-200 border border-zinc-600/50 h-auto px-1.5 py-0.5 text-xs">
