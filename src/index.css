@@ -1,14 +1,12 @@
 @import "tailwindcss";
-@import "@fontsource-variable/inter";
-@import "@fontsource-variable/noto-serif-jp";
+@import "@fontsource-variable/geist";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
-@import "@fontsource-variable/geist";
 
 @custom-variant dark (&:is(.dark *));
 
 @theme {
-  --font-sans: "Inter Variable", "Noto Serif JP Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
   --color-primary: #1DB954;
   --color-primary-dim: #1aa34a;
   --color-surface: rgba(255, 255, 255, 0.04);
