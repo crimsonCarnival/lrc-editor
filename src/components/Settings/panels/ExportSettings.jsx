@@ -1,6 +1,8 @@
-import { useTranslation } from 'react-i18next';
+﻿import { useTranslation } from 'react-i18next';
 import { Section, SettingRow } from '../shared';
 import { useExportSettings } from '../hooks/useExportSettings';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Download, WrapText, Clipboard, FileDown, Clock, FileText } from 'lucide-react';
 
 export default function ExportSettings({ settings, updateSetting, searchTerm }) {
   const { t } = useTranslation();
@@ -12,69 +14,77 @@ export default function ExportSettings({ settings, updateSetting, searchTerm }) 
     handleFilenamePatternChange,
   } = useExportSettings(updateSetting);
 
-  const selectClass =
-    'bg-zinc-900 border border-zinc-700 rounded-lg px-2.5 py-1.5 text-xs text-zinc-200 focus:outline-none focus:border-primary/50 transition-all cursor-pointer';
-
   return (
-    <Section title={t('settingsExport')} searchTerm={searchTerm}>
-      <SettingRow label={t('settingsLineEndings')} description={t('settingsLineEndingsDesc')}>
-        <select
+    <Section title={t('settingsExport')} icon={Download} searchTerm={searchTerm}>
+      <SettingRow icon={WrapText} label={t('settingsLineEndings')} description={t('settingsLineEndingsDesc')}>
+        <Select
           value={settings.export?.lineEndings ?? 'lf'}
-          onChange={handleLineEndingsChange}
-          className={selectClass}
+          onValueChange={(val) => handleLineEndingsChange({ target: { value: val } })}
         >
-          <option value="lf">Unix (LF)</option>
-          <option value="crlf">Windows (CRLF)</option>
-        </select>
+          <SelectTrigger className="bg-zinc-900 border-zinc-700 text-xs text-zinc-200 focus:border-primary/50 h-8 w-auto">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="bg-zinc-900 border-zinc-700">
+            <SelectItem value="lf">Unix (LF)</SelectItem>
+            <SelectItem value="crlf">Windows (CRLF)</SelectItem>
+          </SelectContent>
+        </Select>
       </SettingRow>
-      <SettingRow label={t('settingsCopyFormat')} description={t('settingsCopyFormatDesc')}>
-        <select
+      <SettingRow icon={Clipboard} label={t('settingsCopyFormat')} description={t('settingsCopyFormatDesc')}>
+        <Select
           value={settings.export?.copyFormat ?? 'lrc'}
-          onChange={handleCopyFormatChange}
-          className={selectClass}
+          onValueChange={(val) => handleCopyFormatChange({ target: { value: val } })}
         >
-          <option value="lrc">.lrc</option>
-          <option value="srt">.srt</option>
-        </select>
+          <SelectTrigger className="bg-zinc-900 border-zinc-700 text-xs text-zinc-200 focus:border-primary/50 h-8 w-auto">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="bg-zinc-900 border-zinc-700">
+            <SelectItem value="lrc">.lrc</SelectItem>
+            <SelectItem value="srt">.srt</SelectItem>
+          </SelectContent>
+        </Select>
       </SettingRow>
-      <SettingRow
-        label={t('settingsDownloadFormat')}
-        description={t('settingsDownloadFormatDesc')}
-      >
-        <select
+      <SettingRow icon={FileDown} label={t('settingsDownloadFormat')} description={t('settingsDownloadFormatDesc')}>
+        <Select
           value={settings.export?.downloadFormat ?? 'lrc'}
-          onChange={handleDownloadFormatChange}
-          className={selectClass}
+          onValueChange={(val) => handleDownloadFormatChange({ target: { value: val } })}
         >
-          <option value="lrc">.lrc</option>
-          <option value="srt">.srt</option>
-        </select>
+          <SelectTrigger className="bg-zinc-900 border-zinc-700 text-xs text-zinc-200 focus:border-primary/50 h-8 w-auto">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="bg-zinc-900 border-zinc-700">
+            <SelectItem value="lrc">.lrc</SelectItem>
+            <SelectItem value="srt">.srt</SelectItem>
+          </SelectContent>
+        </Select>
       </SettingRow>
-      <SettingRow
-        label={t('settingsTimestampPrecision')}
-        description={t('settingsTimestampPrecisionDesc')}
-      >
-        <select
+      <SettingRow icon={Clock} label={t('settingsTimestampPrecision')} description={t('settingsTimestampPrecisionDesc')}>
+        <Select
           value={settings.export?.timestampPrecision ?? 'hundredths'}
-          onChange={handleTimestampPrecisionChange}
-          className={selectClass}
+          onValueChange={(val) => handleTimestampPrecisionChange({ target: { value: val } })}
         >
-          <option value="hundredths">mm:ss.xx</option>
-          <option value="thousandths">mm:ss.xxx</option>
-        </select>
+          <SelectTrigger className="bg-zinc-900 border-zinc-700 text-xs text-zinc-200 focus:border-primary/50 h-8 w-auto">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="bg-zinc-900 border-zinc-700">
+            <SelectItem value="hundredths">mm:ss.xx</SelectItem>
+            <SelectItem value="thousandths">mm:ss.xxx</SelectItem>
+          </SelectContent>
+        </Select>
       </SettingRow>
-      <SettingRow
-        label={t('settingsFilenamePattern')}
-        description={t('settingsFilenamePatternDesc')}
-      >
-        <select
+      <SettingRow icon={FileText} label={t('settingsFilenamePattern')} description={t('settingsFilenamePatternDesc')}>
+        <Select
           value={settings.export?.defaultFilenamePattern ?? 'fixed'}
-          onChange={handleFilenamePatternChange}
-          className={selectClass}
+          onValueChange={(val) => handleFilenamePatternChange({ target: { value: val } })}
         >
-          <option value="fixed">{t('settingsFilenameFixed')}</option>
-          <option value="media">{t('settingsFilenameMedia')}</option>
-        </select>
+          <SelectTrigger className="bg-zinc-900 border-zinc-700 text-xs text-zinc-200 focus:border-primary/50 h-8 w-auto">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="bg-zinc-900 border-zinc-700">
+            <SelectItem value="fixed">{t('settingsFilenameFixed')}</SelectItem>
+            <SelectItem value="media">{t('settingsFilenameMedia')}</SelectItem>
+          </SelectContent>
+        </Select>
       </SettingRow>
     </Section>
   );

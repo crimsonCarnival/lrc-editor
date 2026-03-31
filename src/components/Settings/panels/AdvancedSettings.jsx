@@ -1,6 +1,8 @@
 import { useTranslation } from 'react-i18next';
 import { Section, SettingRow, Toggle } from '../shared';
 import { useAdvancedSettings } from '../hooks/useAdvancedSettings';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SlidersHorizontal, Save, Timer, ShieldAlert, Globe } from 'lucide-react';
 
 const COMMON_TIMEZONES = [
   'America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles',
@@ -20,8 +22,8 @@ export default function AdvancedSettings({ settings, updateSetting, searchTerm }
   } = useAdvancedSettings(updateSetting);
 
   return (
-    <Section title={t('settingsAdvanced')} searchTerm={searchTerm}>
-      <SettingRow label={t('settingsAutoSave')} description={t('settingsAutoSaveDesc')}>
+    <Section title={t('settingsAdvanced')} icon={SlidersHorizontal} searchTerm={searchTerm}>
+      <SettingRow icon={Save} label={t('settingsAutoSave')} description={t('settingsAutoSaveDesc')}>
         <Toggle
           id="toggle-auto-save"
           checked={settings.advanced?.autoSave?.enabled ?? false}
@@ -30,25 +32,28 @@ export default function AdvancedSettings({ settings, updateSetting, searchTerm }
       </SettingRow>
 
       {settings.advanced?.autoSave?.enabled && (
-        <SettingRow
-          label={t('settingsAutoSaveInterval')}
+        <SettingRow          icon={Timer}          label={t('settingsAutoSaveInterval')}
           description={t('settingsAutoSaveIntervalDesc')}
         >
-          <select
-            value={settings.advanced?.autoSave?.interval}
-            onChange={handleAutoSaveIntervalChange}
-            className="bg-zinc-900 border border-zinc-700 rounded-lg px-2.5 py-1.5 text-xs text-zinc-200 focus:outline-none focus:border-primary/50 transition-all cursor-pointer"
+          <Select
+            value={String(settings.advanced?.autoSave?.interval ?? 30000)}
+            onValueChange={(val) => handleAutoSaveIntervalChange({ target: { value: Number(val) } })}
           >
-            {/* <option value={1000}>1s</option> */}
-            <option value={10000}>10s</option>
-            <option value={30000}>30s</option>
-            <option value={45000}>45s</option>
-            <option value={60000}>1m</option>
-          </select>
+            <SelectTrigger className="bg-zinc-900 border-zinc-700 text-xs text-zinc-200 focus:border-primary/50 h-8 w-auto">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-zinc-900 border-zinc-700">
+              <SelectItem value="10000">10s</SelectItem>
+              <SelectItem value="30000">30s</SelectItem>
+              <SelectItem value="45000">45s</SelectItem>
+              <SelectItem value="60000">1m</SelectItem>
+            </SelectContent>
+          </Select>
         </SettingRow>
       )}
 
       <SettingRow
+        icon={ShieldAlert}
         label={t('settingsConfirmDestructive')}
         description={t('settingsConfirmDestructiveDesc')}
       >
@@ -60,21 +65,26 @@ export default function AdvancedSettings({ settings, updateSetting, searchTerm }
       </SettingRow>
 
       <SettingRow
+        icon={Globe}
         label={t('settingsTimezone') || 'Timezone'}
         description={t('settingsTimezoneDesc') || 'Override detected timezone for saved timestamps'}
       >
-        <select
+        <Select
           value={settings.advanced?.timezone ?? 'auto'}
-          onChange={handleTimezoneChange}
-          className="bg-zinc-900 border border-zinc-700 rounded-lg px-2.5 py-1.5 text-xs text-zinc-200 focus:outline-none focus:border-primary/50 transition-all cursor-pointer max-w-[200px]"
+          onValueChange={(val) => handleTimezoneChange({ target: { value: val } })}
         >
-          <option value="auto">
-            {t('settingsTimezoneAuto') || 'Auto'} ({Intl.DateTimeFormat().resolvedOptions().timeZone})
-          </option>
-          {COMMON_TIMEZONES.map((tz) => (
-            <option key={tz} value={tz}>{tz.replace(/_/g, ' ')}</option>
-          ))}
-        </select>
+          <SelectTrigger className="bg-zinc-900 border-zinc-700 text-xs text-zinc-200 focus:border-primary/50 h-8 max-w-[200px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="bg-zinc-900 border-zinc-700">
+            <SelectItem value="auto">
+              {t('settingsTimezoneAuto') || 'Auto'} ({Intl.DateTimeFormat().resolvedOptions().timeZone})
+            </SelectItem>
+            {COMMON_TIMEZONES.map((tz) => (
+              <SelectItem key={tz} value={tz}>{tz.replace(/_/g, ' ')}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </SettingRow>
     </Section>
   );

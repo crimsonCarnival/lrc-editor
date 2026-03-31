@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import NumberInput from '../../shared/NumberInput';
 import { Section, SettingRow, Toggle } from '../shared';
 import { usePlaybackSettings } from '../hooks/usePlaybackSettings';
+import { Headphones, RotateCcw, ChevronsDown, ChevronsUp, ActivitySquare } from 'lucide-react';
 
 export default function PlaybackSettings({ settings, updateSetting, searchTerm }) {
   const { t } = useTranslation();
@@ -13,8 +14,8 @@ export default function PlaybackSettings({ settings, updateSetting, searchTerm }
   } = usePlaybackSettings(settings, updateSetting);
 
   return (
-    <Section title={t('settingsPlayback')} searchTerm={searchTerm}>
-      <SettingRow label={t('settingsAutoRewind')} description={t('settingsAutoRewindDesc')}>
+    <Section title={t('settingsPlayback')} icon={Headphones} searchTerm={searchTerm}>
+      <SettingRow icon={RotateCcw} label={t('settingsAutoRewind')} description={t('settingsAutoRewindDesc')}>
         <NumberInput
           min={0}
           max={10}
@@ -24,7 +25,7 @@ export default function PlaybackSettings({ settings, updateSetting, searchTerm }
           className="w-20"
         />
       </SettingRow>
-      <SettingRow label={t('settingsMinSpeed')} description={t('settingsMinSpeedDesc')}>
+      <SettingRow icon={ChevronsDown} label={t('settingsMinSpeed')} description={t('settingsMinSpeedDesc')}>
         <NumberInput
           min={0.05}
           max={(settings.playback?.speedBounds?.max || 3) - 0.05}
@@ -34,7 +35,7 @@ export default function PlaybackSettings({ settings, updateSetting, searchTerm }
           className="w-20"
         />
       </SettingRow>
-      <SettingRow label={t('settingsMaxSpeed')} description={t('settingsMaxSpeedDesc')}>
+      <SettingRow icon={ChevronsUp} label={t('settingsMaxSpeed')} description={t('settingsMaxSpeedDesc')}>
         <NumberInput
           min={(settings.playback?.speedBounds?.min || 0.25) + 0.05}
           max={10}
@@ -44,7 +45,7 @@ export default function PlaybackSettings({ settings, updateSetting, searchTerm }
           className="w-20"
         />
       </SettingRow>
-      <SettingRow label={t('settingsShowWaveform')} description={t('settingsShowWaveformDesc')}>
+      <SettingRow icon={ActivitySquare} label={t('settingsShowWaveform')} description={t('settingsShowWaveformDesc')}>
         <Toggle
           id="toggle-waveform"
           checked={settings.playback?.showWaveform ?? true}

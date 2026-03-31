@@ -2,6 +2,8 @@ import { useTranslation } from 'react-i18next';
 import NumberInput from '../../shared/NumberInput';
 import { Section, SettingRow, Toggle } from '../shared';
 import { useEditorSettings } from '../hooks/useEditorSettings';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { FileText, PauseCircle, SlidersHorizontal, ChevronDown, SkipForward, MoveHorizontal, Hash, Clock } from 'lucide-react';
 
 export default function EditorSettings({ settings, updateSetting, searchTerm }) {
   const { t } = useTranslation();
@@ -16,8 +18,9 @@ export default function EditorSettings({ settings, updateSetting, searchTerm }) 
   } = useEditorSettings(updateSetting);
 
   return (
-    <Section title={t('settingsEditor')} searchTerm={searchTerm}>
+    <Section title={t('settingsEditor')} icon={FileText} searchTerm={searchTerm}>
       <SettingRow
+        icon={PauseCircle}
         label={t('settingsAutoPauseOnMark')}
         description={t('settingsAutoPauseOnMarkDesc')}
       >
@@ -28,6 +31,7 @@ export default function EditorSettings({ settings, updateSetting, searchTerm }) 
         />
       </SettingRow>
       <SettingRow
+        icon={SlidersHorizontal}
         label={t('settingsNudgeIncrement')}
         description={t('settingsNudgeIncrementDesc')}
       >
@@ -40,28 +44,28 @@ export default function EditorSettings({ settings, updateSetting, searchTerm }) 
           className="w-20"
         />
       </SettingRow>
-      <SettingRow label={t('settingsAutoAdvance')} description={t('settingsAutoAdvanceDesc')}>
+      <SettingRow icon={ChevronDown} label={t('settingsAutoAdvance')} description={t('settingsAutoAdvanceDesc')}>
         <Toggle
           id="toggle-auto-advance"
           checked={settings.editor?.autoAdvance?.enabled ?? true}
           onChange={handleAutoAdvanceChange}
         />
       </SettingRow>
-      <SettingRow label={t('settingsSkipBlank')} description={t('settingsSkipBlankDesc')}>
+      <SettingRow icon={SkipForward} label={t('settingsSkipBlank')} description={t('settingsSkipBlankDesc')}>
         <Toggle
           id="toggle-skip-blank"
           checked={settings.editor?.autoAdvance?.skipBlank ?? false}
           onChange={handleSkipBlankChange}
         />
       </SettingRow>
-      <SettingRow label={t('settingsShowShiftAll')} description={t('settingsShowShiftAllDesc')}>
+      <SettingRow icon={MoveHorizontal} label={t('settingsShowShiftAll')} description={t('settingsShowShiftAllDesc')}>
         <Toggle
           id="toggle-shift-all"
           checked={settings.editor?.showShiftAll ?? true}
           onChange={handleShowShiftAllChange}
         />
       </SettingRow>
-      <SettingRow label={t('settingsShowLineNumbers') || 'Line numbers'} description={t('settingsShowLineNumbersDesc') || 'Show line numbers in the editor'}>
+      <SettingRow icon={Hash} label={t('settingsShowLineNumbers') || 'Line numbers'} description={t('settingsShowLineNumbersDesc') || 'Show line numbers in the editor'}>
         <Toggle
           id="toggle-line-numbers"
           checked={settings.editor?.showLineNumbers ?? true}
@@ -69,17 +73,22 @@ export default function EditorSettings({ settings, updateSetting, searchTerm }) 
         />
       </SettingRow>
       <SettingRow
+        icon={Clock}
         label={t('settingsEditorTimestampPrecision')}
         description={t('settingsEditorTimestampPrecisionDesc')}
       >
-        <select
+        <Select
           value={settings.editor?.timestampPrecision ?? 'hundredths'}
-          onChange={handleTimestampPrecisionChange}
-          className="bg-zinc-900 border border-zinc-700 rounded-lg px-2.5 py-1.5 text-xs text-zinc-200 focus:outline-none focus:border-primary/50 transition-all cursor-pointer"
+          onValueChange={(val) => handleTimestampPrecisionChange({ target: { value: val } })}
         >
-          <option value="hundredths">mm:ss.xx</option>
-          <option value="thousandths">mm:ss.xxx</option>
-        </select>
+          <SelectTrigger className="bg-zinc-900 border-zinc-700 text-xs text-zinc-200 focus:border-primary/50 h-8 w-auto">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="bg-zinc-900 border-zinc-700">
+            <SelectItem value="hundredths">mm:ss.xx</SelectItem>
+            <SelectItem value="thousandths">mm:ss.xxx</SelectItem>
+          </SelectContent>
+        </Select>
       </SettingRow>
     </Section>
   );
