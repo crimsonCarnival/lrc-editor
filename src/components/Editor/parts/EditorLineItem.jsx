@@ -1,6 +1,10 @@
-import React from 'react';
+﻿import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { formatTimestamp } from '../../../utils/lrc';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Pencil, Play, ChevronLeft, ChevronRight, Plus, X, Trash2 } from 'lucide-react';
 
 const EditorLineItem = React.memo(({
   line,
@@ -34,6 +38,7 @@ const EditorLineItem = React.memo(({
   handleAddLine,
   handleClearLine,
   handleDeleteLine,
+  handleToggleLine,
   isLastLine
 }) => {
   const { t } = useTranslation();
@@ -68,11 +73,24 @@ const EditorLineItem = React.memo(({
             : 'bg-primary/40 opacity-60'
         }`} />
       )}
-      {/* Line number */}
+      {/* Line number / checkbox */}
       {(settings.editor?.showLineNumbers ?? true) && (
-        <span className="text-[10px] font-mono tabular-nums text-zinc-600 select-none w-5 text-right shrink-0">
-          {i + 1}
-        </span>
+        <div
+          className="w-5 shrink-0 flex items-center justify-center"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {selectedLines.size > 0 ? (
+            <Checkbox
+              checked={selectedLines.has(i)}
+              onCheckedChange={() => handleToggleLine(i)}
+              className="w-3.5 h-3.5 border-zinc-600 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+            />
+          ) : (
+            <span className="text-[10px] font-mono tabular-nums text-zinc-600 select-none text-right">
+              {i + 1}
+            </span>
+          )}
+        </div>
       )}
       <span
         className={`text-xs font-mono tabular-nums shrink-0 transition-colors ${isSynced
@@ -125,13 +143,13 @@ const EditorLineItem = React.memo(({
         )}
       </span>
 
-      {/* Lyrics text container (scrollable horizontally if needed) */}
+      {/* Lyrics text container */}
       <div className="flex-1 min-w-0 flex items-center gap-2 overflow-x-auto whitespace-nowrap scrollbar-hide pb-0.5 mt-0.5" onDoubleClick={() => {
         setEditingLineIndex(i);
         setEditingText(line.text);
       }}>
         {editingLineIndex === i ? (
-          <input
+          <Input
             type="text"
             autoFocus
             value={editingText}
@@ -148,7 +166,7 @@ const EditorLineItem = React.memo(({
                 setEditingLineIndex(null);
               }
             }}
-            className="w-full bg-zinc-800 border border-primary/50 rounded px-2 py-1 text-sm text-zinc-100 focus:outline-none"
+            className="w-full bg-zinc-800 border-primary/50 text-xs text-zinc-100 h-7"
           />
         ) : (
           <div className="flex items-center gap-2 group/text">
@@ -162,26 +180,28 @@ const EditorLineItem = React.memo(({
             >
               {line.text || '♪'}
             </p>
-            <button
+            <Button
+              variant="ghost"
+              size="icon-xs"
               onClick={(e) => {
                 e.stopPropagation();
                 setEditingLineIndex(i);
                 setEditingText(line.text);
               }}
-              className="opacity-0 group-hover:opacity-100 p-1 text-zinc-500 hover:text-primary transition-all rounded hover:bg-zinc-800/60 cursor-pointer"
+              className="opacity-0 group-hover:opacity-100 text-zinc-500 hover:text-primary hover:bg-zinc-800/60"
               title={t('editLine') || 'Edit text (Double-click)'}
             >
-              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-              </svg>
-            </button>
+              <Pencil className="w-3 h-3" />
+            </Button>
           </div>
         )}
       </div>
       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
         {isSynced && (
           <>
-            <button
+            <Button
+              variant="ghost"
+              size="icon-xs"
               onClick={(e) => {
                 e.stopPropagation();
                 if (playerRef?.current?.seek) {
@@ -189,66 +209,64 @@ const EditorLineItem = React.memo(({
                   if (playerRef.current.play) playerRef.current.play();
                 }
               }}
-              className="p-1 hover:bg-primary/20 rounded text-zinc-500 hover:text-primary transition-colors cursor-pointer mr-2"
+              className="text-zinc-500 hover:bg-primary/20 hover:text-primary mr-1"
               title={t('jumpSync')}
             >
-              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M8 5v14l11-7z" />
-              </svg>
-            </button>
+              <Play className="w-3 h-3" fill="currentColor" />
+            </Button>
             {selectedLines.size === 0 && (
               <>
-                <button
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
                   onClick={(e) => { e.stopPropagation(); shiftTime(i, -(settings.editor?.nudge?.default || 0.1)); }}
-                  className="p-1 hover:bg-zinc-700/60 rounded text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer"
+                  className="text-zinc-500 hover:text-zinc-300 hover:bg-zinc-700/60"
                   title={`-${settings.editor?.nudge?.default || 0.1}s`}
                 >
-                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
-                  </svg>
-                </button>
-                <button
+                  <ChevronLeft className="w-3 h-3" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
                   onClick={(e) => { e.stopPropagation(); shiftTime(i, (settings.editor?.nudge?.default || 0.1)); }}
-                  className="p-1 hover:bg-zinc-700/60 rounded text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer"
+                  className="text-zinc-500 hover:text-zinc-300 hover:bg-zinc-700/60"
                   title={`+${settings.editor?.nudge?.default || 0.1}s`}
                 >
-                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5L15.75 12l-7.5 7.5" />
-                  </svg>
-                </button>
+                  <ChevronRight className="w-3 h-3" />
+                </Button>
                 <div className="w-px h-4 bg-zinc-700/50 mx-1" />
-                <button
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
                   onClick={(e) => { e.stopPropagation(); handleAddLine(i); }}
-                  className="p-1 text-zinc-500 hover:text-green-400 transition-all duration-150 cursor-pointer rounded hover:bg-green-500/10"
+                  className="text-zinc-500 hover:text-green-400 hover:bg-green-500/10"
                   title={t('addLine')}
                 >
-                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                  </svg>
-                </button>
-                <button
+                  <Plus className="w-3 h-3" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
                   onClick={(e) => { e.stopPropagation(); handleClearLine(i); }}
-                  className="p-1 text-zinc-500 hover:text-orange-400 transition-all duration-150 cursor-pointer rounded hover:bg-orange-500/10"
+                  className="text-zinc-500 hover:text-orange-400 hover:bg-orange-500/10"
                   title={t('clearTimestamp')}
                 >
-                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
+                  <X className="w-3 h-3" />
+                </Button>
               </>
             )}
           </>
         )}
         {selectedLines.size === 0 && (
-          <button
+          <Button
+            variant="ghost"
+            size="icon-xs"
             onClick={(e) => { e.stopPropagation(); handleDeleteLine(i); }}
-            className="p-1 text-zinc-500 hover:text-red-400 transition-all duration-150 cursor-pointer rounded hover:bg-red-500/10"
+            className="text-zinc-500 hover:text-red-400 hover:bg-red-500/10"
             title={t('removeLine')}
           >
-            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
-          </button>
+            <Trash2 className="w-3 h-3" />
+          </Button>
         )}
       </div>
     </div>

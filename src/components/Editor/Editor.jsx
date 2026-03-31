@@ -23,6 +23,7 @@ export default function Editor({
   editorMode,
   setEditorMode,
 }) {
+  "use no memo";
   const {
     rawText,
     setRawText,
@@ -61,6 +62,7 @@ export default function Editor({
     handleApplyOffset,
     handleLineClick,
     clearSelection,
+    handleToggleLine,
     handleBulkClearTimestamps,
     handleBulkDelete,
     handleBulkShift,
@@ -94,6 +96,7 @@ export default function Editor({
         canRedo={canRedo}
         lines={lines}
         setSelectedLines={setSelectedLines}
+        selectedLines={selectedLines}
         handleClearTimestamps={handleClearTimestamps}
         requestConfirm={requestConfirm}
         setLines={setLines}
@@ -153,6 +156,7 @@ export default function Editor({
           handleBulkShift={handleBulkShift}
           handleBulkDelete={handleBulkDelete}
           clearSelection={clearSelection}
+          handleToggleLine={handleToggleLine}
         />
       )}
 
@@ -203,10 +207,12 @@ function VirtualizedLineList({
   handleBulkShift,
   handleBulkDelete,
   clearSelection,
+  handleToggleLine,
 }) {
   const scrollAlignment = settings.editor?.scroll?.alignment || 'center';
   const scrollMode = settings.editor?.scroll?.mode || 'smooth';
 
+  // eslint-disable-next-line react-hooks/incompatible-library
   const virtualizer = useVirtualizer({
     count: lines.length,
     getScrollElement: () => listRef.current,
@@ -307,6 +313,7 @@ function VirtualizedLineList({
                   handleAddLine={handleAddLine}
                   handleClearLine={handleClearLine}
                   handleDeleteLine={handleDeleteLine}
+                  handleToggleLine={handleToggleLine}
                   isLastLine={i === lines.length - 1}
                 />
               </div>

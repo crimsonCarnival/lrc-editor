@@ -1,4 +1,7 @@
-import { useTranslation } from 'react-i18next';
+﻿import { useTranslation } from 'react-i18next';
+import { Button } from '@/components/ui/button';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { Undo2, Redo2, ListChecks, TimerOff, Trash2, MousePointerClick, FileText } from 'lucide-react';
 
 export default function EditorToolbar({
   editorMode,
@@ -11,6 +14,7 @@ export default function EditorToolbar({
   canRedo,
   lines,
   setSelectedLines,
+  selectedLines,
   handleClearTimestamps,
   requestConfirm,
   setLines,
@@ -22,86 +26,102 @@ export default function EditorToolbar({
   return (
     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-3 mb-3 sm:mb-4">
       <div className="flex items-center gap-2 sm:gap-3">
-        <h2 className="text-xs sm:text-sm font-semibold uppercase tracking-widest text-zinc-400">
+        <h2 className="text-xs sm:text-sm font-semibold uppercase tracking-widest text-zinc-400 flex items-center gap-1.5">
+          <FileText className="w-3.5 h-3.5" />
           {t('editor')}
         </h2>
-        {/* LRC / SRT mode toggle */}
-        <div className="flex items-center bg-zinc-800/80 rounded-lg border border-zinc-700/60 overflow-hidden">
-          <button
-            onClick={() => {
-              setEditorMode('lrc');
-              updateSetting('export.copyFormat', 'lrc');
-              updateSetting('export.downloadFormat', 'lrc');
-            }}
-            className={`px-2.5 py-1 text-[10px] sm:text-xs font-bold transition-all cursor-pointer ${editorMode === 'lrc'
-              ? 'bg-primary text-zinc-950'
-              : 'text-zinc-400 hover:text-zinc-200'
-              }`}
+        <ToggleGroup
+          type="single"
+          value={editorMode}
+          onValueChange={(val) => {
+            if (!val) return;
+            setEditorMode(val);
+            updateSetting('export.copyFormat', val);
+            updateSetting('export.downloadFormat', val);
+          }}
+          className="bg-zinc-800/80 rounded-lg border border-zinc-700/60 overflow-hidden h-auto p-0 gap-0"
+        >
+          <ToggleGroupItem
+            value="lrc"
+            className="px-2.5 py-1 text-[10px] sm:text-xs font-bold rounded-none border-0 data-[state=on]:bg-primary data-[state=on]:text-zinc-950 text-zinc-400 hover:text-zinc-200 hover:bg-transparent h-auto"
           >
             {t('editorModeLRC')}
-          </button>
-          <button
-            onClick={() => {
-              setEditorMode('srt');
-              updateSetting('export.copyFormat', 'srt');
-              updateSetting('export.downloadFormat', 'srt');
-            }}
-            className={`px-2.5 py-1 text-[10px] sm:text-xs font-bold transition-all cursor-pointer ${editorMode === 'srt'
-              ? 'bg-primary text-zinc-950'
-              : 'text-zinc-400 hover:text-zinc-200'
-              }`}
+          </ToggleGroupItem>
+          <ToggleGroupItem
+            value="srt"
+            className="px-2.5 py-1 text-[10px] sm:text-xs font-bold rounded-none border-0 data-[state=on]:bg-primary data-[state=on]:text-zinc-950 text-zinc-400 hover:text-zinc-200 hover:bg-transparent h-auto"
           >
             {t('editorModeSRT')}
-          </button>
-        </div>
+          </ToggleGroupItem>
+        </ToggleGroup>
       </div>
       {syncMode && (
         <div className="flex items-center justify-end gap-1 sm:gap-2 w-full">
-          <button
+          <Button
             id="undo-btn"
+            variant="ghost"
+            size="icon-sm"
             onClick={undo}
             disabled={!canUndo}
-            className="p-1 sm:p-1.5 hover:bg-zinc-800 rounded-lg text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed flex-shrink-0"
+            className="text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 flex-shrink-0"
             title={t('undoTitle')}
           >
-            <svg className="w-3.5 sm:w-4 h-3.5 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h10a5 5 0 015 5v2M3 10l4-4m-4 4l4 4" />
-            </svg>
-          </button>
-          <button
+            <Undo2 className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
+          </Button>
+          <Button
             id="redo-btn"
+            variant="ghost"
+            size="icon-sm"
             onClick={redo}
             disabled={!canRedo}
-            className="p-1 sm:p-1.5 hover:bg-zinc-800 rounded-lg text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed flex-shrink-0"
+            className="text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 flex-shrink-0"
             title={t('redoTitle')}
           >
-            <svg className="w-3.5 sm:w-4 h-3.5 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M21 10H11a5 5 0 00-5 5v2m15-7l-4-4m4 4l-4 4" />
-            </svg>
-          </button>
+            <Redo2 className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
+          </Button>
           <div className="w-px h-4 bg-zinc-800 hidden sm:block mx-1" />
-          <button
+          {selectedLines?.size > 0 && (
+            <span className="text-[10px] font-mono tabular-nums text-primary/80 select-none whitespace-nowrap">
+              {selectedLines.size}/{lines.length}
+            </span>
+          )}
+          <Button
             id="select-all-btn"
-            onClick={() => setSelectedLines(new Set(lines.map((_, i) => i)))}
-            className="p-1 sm:p-1.5 hover:bg-primary/20 rounded-lg text-zinc-400 hover:text-primary transition-colors cursor-pointer flex-shrink-0"
-            title={t('selectAll')}
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => {
+              if (selectedLines?.size === lines.length) {
+                setSelectedLines(new Set());
+              } else {
+                setSelectedLines(new Set(lines.map((_, i) => i)));
+              }
+            }}
+            className={`flex-shrink-0 ${
+              selectedLines?.size > 0
+                ? 'text-primary hover:text-zinc-300 hover:bg-zinc-800'
+                : 'text-zinc-400 hover:text-primary hover:bg-primary/20'
+            }`}
+            title={selectedLines?.size === lines.length ? t('deselectAll') : t('selectAll')}
           >
-            <svg className="w-3.5 sm:w-4 h-3.5 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-            </svg>
-          </button>
-          <button
+            {selectedLines?.size > 0
+              ? <ListChecks className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
+              : <MousePointerClick className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
+            }
+          </Button>
+          <Button
             id="clear-timestamps-btn"
+            variant="ghost"
+            size="icon-sm"
             onClick={handleClearTimestamps}
-            className="p-1 sm:p-1.5 hover:bg-orange-500/10 rounded-lg text-orange-400 hover:text-orange-300 transition-colors cursor-pointer flex-shrink-0"
+            className="text-orange-400 hover:text-orange-300 hover:bg-orange-500/10 flex-shrink-0"
             title={t('clearTimestamps')}
           >
-            <svg className="w-3.5 sm:w-4 h-3.5 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+            <TimerOff className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
+          </Button>
           <div className="w-px h-4 bg-zinc-800 hidden sm:block mx-1" />
-          <button
+          <Button
+            variant="ghost"
+            size="icon-sm"
             onClick={() => {
               requestConfirm(t('confirmRemoveAll'), () => {
                 setLines([]);
@@ -109,13 +129,10 @@ export default function EditorToolbar({
                 setSyncMode(false);
               });
             }}
-            className="p-1 sm:p-1.5 hover:bg-red-500/10 rounded-lg text-red-400 hover:text-red-300 transition-colors cursor-pointer flex-shrink-0"
-            title={t('removeAllLyrics')}
-          >
-            <svg className="w-3 sm:w-4 h-3 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
-          </button>
+            className="text-red-400 hover:text-red-300 hover:bg-red-500/10 flex-shrink-0"
+            title={t('removeAllLyrics')}          >
+            <Trash2 className="w-3 sm:w-4 h-3 sm:h-4" />
+          </Button>
         </div>
       )}
     </div>

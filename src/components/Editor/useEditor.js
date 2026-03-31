@@ -222,7 +222,7 @@ export function useEditor({
       } else if (matchKey(e, settings.shortcuts?.nudgeRight?.[0] || 'ArrowRight')) {
         e.preventDefault();
         handleNudge(settings.editor?.nudge?.default || 0.1);
-      } else if (e.key === 'Escape' && focusedTimestampRef.current) {
+      } else if (matchKey(e, settings.shortcuts?.deselect?.[0] || 'Escape') && focusedTimestampRef.current) {
         e.preventDefault();
         setFocusedTimestamp(null);
       }
@@ -242,6 +242,7 @@ export function useEditor({
     settings.shortcuts?.nudgeRight,
     settings.shortcuts?.nudgeLeftFine,
     settings.shortcuts?.nudgeRightFine,
+    settings.shortcuts?.deselect,
   ]);
 
   // ——— Line operations ———
@@ -349,10 +350,21 @@ export function useEditor({
   // ——— Selection ———
 
   const handleLineClick = (i, e) => {
+    const rangeKey = settings.shortcuts?.rangeSelect?.[0] || 'Shift';
+    const toggleKey = settings.shortcuts?.toggleSelect?.[0] || 'Ctrl';
+    const modActive = (mod) => {
+      if (mod === 'Shift') return e.shiftKey;
+      if (mod === 'Ctrl') return e.ctrlKey || e.metaKey;
+      if (mod === 'Alt') return e.altKey;
+      return false;
+    };
+    const isRange = modActive(rangeKey);
+    const isToggle = modActive(toggleKey);
+
     // Modifier keys: handle selection without touching lock
-    if (e.ctrlKey || e.metaKey || e.shiftKey) {
+    if (isRange || isToggle) {
       setActiveLineIndex(i);
-      if (e.shiftKey && lastClickedRef.current != null) {
+      if (isRange && lastClickedRef.current != null) {
         const start = Math.min(lastClickedRef.current, i);
         const end = Math.max(lastClickedRef.current, i);
         setSelectedLines((prev) => {
@@ -360,7 +372,7 @@ export function useEditor({
           for (let idx = start; idx <= end; idx++) next.add(idx);
           return next;
         });
-      } else if (e.ctrlKey || e.metaKey) {
+      } else if (isToggle) {
         setSelectedLines((prev) => {
           const next = new Set(prev);
           if (next.has(i)) next.delete(i);
@@ -387,6 +399,15 @@ export function useEditor({
 
   const clearSelection = useCallback(() => {
     setSelectedLines(new Set());
+  }, []);
+
+  const handleToggleLine = useCallback((i) => {
+    setSelectedLines((prev) => {
+      const next = new Set(prev);
+      if (next.has(i)) next.delete(i);
+      else next.add(i);
+      return next;
+    });
   }, []);
 
   const handleBulkClearTimestamps = useCallback(() => {
@@ -425,7 +446,7 @@ export function useEditor({
     const handler = (e) => {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
-      if (e.key === 'Escape' && selectedLines.size > 0) {
+      if (matchKey(e, settings.shortcuts?.deselect?.[0] || 'Escape') && selectedLines.size > 0) {
         clearSelection();
         return;
       }
@@ -473,6 +494,7 @@ export function useEditor({
     settings.shortcuts?.addLine,
     settings.shortcuts?.clearTimestamp,
     settings.shortcuts?.switchMode,
+    settings.shortcuts?.deselect,
     activeLineIndex,
     lines.length,
     handleAddLine,
@@ -526,6 +548,7 @@ export function useEditor({
     handleApplyOffset,
     handleLineClick,
     clearSelection,
+    handleToggleLine,
     handleBulkClearTimestamps,
     handleBulkDelete,
     handleBulkShift,
