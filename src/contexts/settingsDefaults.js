@@ -57,7 +57,11 @@ export const DEFAULT_SETTINGS = {
     addLine: ['Ctrl+Enter'],
     deleteLine: ['Delete'],
     clearTimestamp: ['Backspace'],
-    switchMode: ['Ctrl+m']
+    switchMode: ['Ctrl+m'],
+    deselect: ['Escape'],
+    showHelp: ['?'],
+    rangeSelect: ['Shift'],
+    toggleSelect: ['Ctrl'],
   },
   advanced: {
     autoSave: { enabled: false, interval: 3000 },

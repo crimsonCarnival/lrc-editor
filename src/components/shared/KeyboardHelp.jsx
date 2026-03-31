@@ -3,6 +3,15 @@ import useDraggable from '../../hooks/useDraggable';
 import { useTranslation } from 'react-i18next';
 import { Kbd, KbdGroup } from './Kbd';
 import { useSettings } from '../../contexts/useSettings';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { X } from 'lucide-react';
+import { KEY_SYMBOLS } from '../Settings/shared';
+import { matchKey } from '../../utils/keyboard';
+
+// Split a shortcut string like 'Ctrl+M' into display parts ['Ctrl', 'M']
+const resolveShortcut = (shortcut) =>
+  shortcut.split('+').map((k) => KEY_SYMBOLS[k] ?? k);
 
 export default function KeyboardHelp({ isOpen, onClose }) {
   const { t } = useTranslation();
@@ -12,78 +21,62 @@ export default function KeyboardHelp({ isOpen, onClose }) {
   useEffect(() => {
     if (!isOpen) return;
     const handler = (e) => {
-      if (e.key === 'Escape' || e.key === '?') {
+      if (
+        e.key === 'Escape' ||
+        matchKey(e, settings.shortcuts?.showHelp?.[0] || '?')
+      ) {
         e.preventDefault();
         onClose();
       }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, settings.shortcuts?.showHelp]);
 
-  if (!isOpen) return null;
-
-  const formatKeyName = (key) => {
-    switch (key) {
-      case 'Space': return 'Space';
-      case 'ArrowLeft': return '←';
-      case 'ArrowRight': return '→';
-      case 'ArrowUp': return '↑';
-      case 'ArrowDown': return '↓';
-      case 'Escape': return 'Esc';
-      default: return key;
-    }
-  };
+  const resolveModifier = (key) => [KEY_SYMBOLS[key] ?? key];
 
   const shortcuts = [
     { section: t('syncModeOnly'), items: [
-      { keys: [formatKeyName(settings.shortcuts?.mark?.[0] || 'Space')], desc: t('shortcutMark') },
-      { keys: [formatKeyName(settings.shortcuts?.nudgeLeft?.[0] || 'ArrowLeft')], desc: t('shortcutNudgeLeft', { val: settings.editor?.nudge?.default || 0.1 }) },
-      { keys: [formatKeyName(settings.shortcuts?.nudgeRight?.[0] || 'ArrowRight')], desc: t('shortcutNudgeRight', { val: settings.editor?.nudge?.default || 0.1 }) },
+      { keys: resolveShortcut(settings.shortcuts?.mark?.[0] || 'Space'), desc: t('shortcutMark') },
+      { keys: resolveShortcut(settings.shortcuts?.nudgeLeft?.[0] || 'ArrowLeft'), desc: t('shortcutNudgeLeft', { val: settings.editor?.nudge?.default || 0.1 }) },
+      { keys: resolveShortcut(settings.shortcuts?.nudgeRight?.[0] || 'ArrowRight'), desc: t('shortcutNudgeRight', { val: settings.editor?.nudge?.default || 0.1 }) },
     ]},
     { section: t('shortcutSelectionSection'), items: [
-      { keys: ['Shift', t('shortcutClick')], desc: t('shortcutRangeSelect') },
-      { keys: ['Ctrl', t('shortcutClick')], desc: t('shortcutToggleSelect') },
-      { keys: ['Esc'], desc: t('shortcutDeselect') },
-      { keys: ['Del'], desc: t('shortcutDeleteSelected') },
+      { keys: [...resolveModifier(settings.shortcuts?.rangeSelect?.[0] || 'Shift'), t('shortcutClick')], desc: t('shortcutRangeSelect') },
+      { keys: [...resolveModifier(settings.shortcuts?.toggleSelect?.[0] || 'Ctrl'), t('shortcutClick')], desc: t('shortcutToggleSelect') },
+      { keys: resolveShortcut(settings.shortcuts?.deselect?.[0] || 'Escape'), desc: t('shortcutDeselect') },
+      { keys: resolveShortcut(settings.shortcuts?.deleteLine?.[0] || 'Delete'), desc: t('shortcutDeleteSelected') },
       { keys: [t('shortcutDblClick')], desc: t('shortcutEditLine') },
     ]},
     { section: t('global'), items: [
       { keys: ['Ctrl', 'Z'], desc: t('shortcutUndo') },
       { keys: ['Ctrl', 'Y'], desc: t('shortcutRedo') },
-      { keys: ['?'], desc: t('shortcutHelp') },
+      { keys: resolveShortcut(settings.shortcuts?.showHelp?.[0] || '?'), desc: t('shortcutHelp') },
     ]},
   ];
 
   return (
-    <>
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] animate-fade-in"
-        onClick={onClose}
-      />
-      {/* Modal */}
-      <div className="fixed inset-0 z-[101] flex items-center justify-center p-4 pointer-events-none">
-        <div
-          className="w-full max-w-sm pointer-events-auto"
-          style={{ transform: `translate(${position.x}px, ${position.y}px)` }}
-        >
-          <div className="bg-zinc-900 border border-zinc-700 rounded-2xl shadow-2xl p-6 w-full animate-fade-in">
-            <div
-              className="flex items-center justify-between mb-5 cursor-grab active:cursor-grabbing select-none"
-              onPointerDown={handleMouseDown}
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent
+        className="bg-zinc-900 border border-zinc-700 shadow-2xl p-0 max-w-sm w-full [&>button]:hidden"
+        style={{ transform: `translate(${position.x}px, ${position.y}px)` }}
+      >
+        <div className="p-6">
+          <div
+            className="flex items-center justify-between mb-5 cursor-grab active:cursor-grabbing select-none"
+            onPointerDown={handleMouseDown}
           >
             <h3 className="text-sm font-semibold text-zinc-200 uppercase tracking-widest">
               {t('keyboardShortcuts')}
             </h3>
-            <button
+            <Button
+              variant="ghost"
+              size="icon-sm"
               onClick={onClose}
-              className="p-1 hover:bg-zinc-800 rounded-lg text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer"
+              className="text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800"
             >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+              <X className="w-4 h-4" />
+            </Button>
           </div>
 
           <div className="space-y-5">
@@ -98,11 +91,9 @@ export default function KeyboardHelp({ isOpen, onClose }) {
                       <span className="text-sm text-zinc-300">{s.desc}</span>
                       <KbdGroup>
                         {s.keys.map((k, i) => (
-                          <span key={i}>
+                          <span key={i} className="inline-flex items-center gap-1">
+                            {i > 0 && <span className="text-zinc-600 text-[10px]">+</span>}
                             <Kbd>{k}</Kbd>
-                            {i < s.keys.length - 1 && (
-                              <span className="text-zinc-600 mx-0.5">+</span>
-                            )}
                           </span>
                         ))}
                       </KbdGroup>
@@ -117,8 +108,7 @@ export default function KeyboardHelp({ isOpen, onClose }) {
             {t('shortcutHelp')}: <Kbd>?</Kbd>
           </p>
         </div>
-      </div>
-    </div>
-    </>
+      </DialogContent>
+    </Dialog>
   );
 }

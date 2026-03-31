@@ -5,6 +5,7 @@ import { useSettings } from '../contexts/useSettings';
 import useHistory from './useHistory';
 import useConfirm from './useConfirm';
 import { inferEndTimes, parseLrcSrtFile } from '../utils/lrc';
+import { matchKey } from '../utils/keyboard';
 
 const MAX_IMPORT_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
 
@@ -77,8 +78,16 @@ export function useAppState() {
   const [requestConfirm, confirmModal] = useConfirm();
 
   // ——— Manual save ———
+  // Build an ISO-8601 string in the local timezone, e.g. "2026-03-30T20:46:37.191-05:00"
+  function toLocalISOString(date, utcOffset) {
+    const [sign, hh, mm] = utcOffset.match(/([+-])(\d{2}):(\d{2})/).slice(1);
+    const offsetMs = (sign === '-' ? -1 : 1) * (Number(hh) * 60 + Number(mm)) * 60000;
+    const local = new Date(date.getTime() + offsetMs);
+    return local.toISOString().replace('Z', utcOffset);
+  }
+
   const buildSessionPayload = useCallback(() => {
-    const tzSetting = settings.advanced?.timezone;
+    const tzSetting = settings.advanced.timezone;
     const tz = (!tzSetting || tzSetting === 'auto')
       ? Intl.DateTimeFormat().resolvedOptions().timeZone
       : tzSetting;
@@ -112,11 +121,11 @@ export function useAppState() {
       syncMode,
       activeLineIndex,
       editorMode,
-      saveTime: now.toISOString(),
+      saveTime: toLocalISOString(now, utcOffset),
       timezone: tz,
       utcOffset,
     };
-  }, [lines, syncMode, activeLineIndex, editorMode, settings.advanced?.timezone]);
+  }, [lines, syncMode, activeLineIndex, editorMode, settings.advanced.timezone]);
 
   const handleManualSave = useCallback(() => {
     localStorage.setItem('lrc-syncer-session', JSON.stringify(buildSessionPayload()));
@@ -212,13 +221,13 @@ export function useAppState() {
       } else if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
         e.preventDefault();
         redo();
-      } else if (e.key === '?') {
+      } else if (matchKey(e, settings.shortcuts?.showHelp?.[0] || '?')) {
         setShowKeyboardHelp((prev) => !prev);
       }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [undo, redo]);
+  }, [undo, redo, settings.shortcuts?.showHelp]);
 
   // ——— Close language menu on outside click ———
   useEffect(() => {

@@ -1,31 +1,43 @@
 import React, { useState } from 'react';
+import { Switch } from '@/components/ui/switch';
+import { Kbd } from '@/components/ui/kbd';
+
+export const KEY_SYMBOLS = {
+  Space: ' ␣ ',
+  ArrowLeft: '←',
+  ArrowRight: '→',
+  ArrowUp: '↑',
+  ArrowDown: '↓',
+  Enter: '↵ Enter',
+  Backspace: '⌫',
+  Delete: 'Del',
+  Escape: 'Esc',
+  Tab: '⇥ ',
+  Shift: '⇧ Shift',
+  Ctrl: 'Ctrl',
+  Alt: 'Alt',
+  Meta: '⌘',
+};
 
 export function Toggle({ checked, onChange, id }) {
   return (
-    <button
+    <Switch
       id={id}
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      onClick={() => onChange(!checked)}
-      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 cursor-pointer flex-shrink-0 ${
-        checked ? 'bg-primary' : 'bg-zinc-700'
-      }`}
-    >
-      <span
-        className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow-sm transition-transform duration-200 ${
-          checked ? 'translate-x-[18px]' : 'translate-x-[3px]'
-        }`}
-      />
-    </button>
+      checked={checked}
+      onCheckedChange={onChange}
+      className="data-[state=checked]:bg-primary"
+    />
   );
 }
 
-export function SettingRow({ label, description, children }) {
+export function SettingRow({ label, description, icon: Icon, children }) {
   return (
     <div className="flex items-center justify-between gap-4 py-2.5">
       <div className="flex-1 min-w-0">
-        <p className="text-sm text-zinc-200">{label}</p>
+        <p className="text-sm text-zinc-200 flex items-center gap-1.5">
+          {Icon && <Icon className="w-3.5 h-3.5 text-zinc-500 shrink-0" />}
+          {label}
+        </p>
         {description && <p className="text-xs text-zinc-500 mt-0.5">{description}</p>}
       </div>
       <div className="flex-shrink-0">{children}</div>
@@ -33,7 +45,7 @@ export function SettingRow({ label, description, children }) {
   );
 }
 
-export function Section({ title, children, searchTerm }) {
+export function Section({ title, icon: Icon, children, searchTerm }) {
   const filteredChildren = React.Children.map(children, (child) => {
     if (!React.isValidElement(child)) return child;
 
@@ -59,12 +71,74 @@ export function Section({ title, children, searchTerm }) {
 
   return (
     <div className={`mb-5 ${searchTerm ? 'animate-fade-in' : ''}`}>
-      <h4 className="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-2 px-1">
+      <h4 className="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-2 px-1 flex items-center gap-1.5">
+        {Icon && <Icon className="w-3.5 h-3.5" />}
         {title}
       </h4>
       <div className="bg-zinc-800/40 rounded-xl px-4 divide-y divide-zinc-700/40">
         {filteredChildren}
       </div>
+    </div>
+  );
+}
+
+export function ModifierInput({ value, onChange, validateModifier }) {
+  const [recording, setRecording] = useState(false);
+  const [error, setError] = useState(false);
+
+  const handleKeyDown = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.key === 'Escape') {
+      setRecording(false);
+      return;
+    }
+    let mod = null;
+    if (e.key === 'Shift') mod = 'Shift';
+    else if (e.key === 'Control') mod = 'Ctrl';
+    else if (e.key === 'Alt') mod = 'Alt';
+    else if (e.key === 'Meta') mod = 'Ctrl';
+    else return;
+
+    if (validateModifier && !validateModifier(mod)) {
+      setError(true);
+      setTimeout(() => setError(false), 800);
+      setRecording(false);
+      return;
+    }
+    onChange(mod);
+    setRecording(false);
+  };
+
+  const displayVal = value ? (KEY_SYMBOLS[value] ?? value) : null;
+
+  return (
+    <div className="flex items-center gap-1.5">
+      <button
+        className={`px-2.5 py-1.5 rounded-lg min-w-[70px] flex items-center justify-center gap-0.5 transition-all outline-none ${
+          error
+            ? 'bg-red-500/20 border border-red-500 ring-2 ring-red-500/50'
+            : recording
+            ? 'bg-primary/10 border border-primary ring-2 ring-primary/40'
+            : 'bg-zinc-800/60 border border-zinc-700 hover:border-zinc-600 hover:bg-zinc-800'
+        }`}
+        onClick={() => setRecording(true)}
+        onKeyDown={recording ? handleKeyDown : undefined}
+        onBlur={() => setRecording(false)}
+      >
+        {error ? (
+          <span className="text-red-400 text-xs font-medium">Taken!</span>
+        ) : recording ? (
+          <span className="text-primary text-xs animate-pulse font-medium">Modifier…</span>
+        ) : displayVal ? (
+          <Kbd className="bg-zinc-700/60 text-zinc-200 border border-zinc-600/50 h-auto px-1.5 py-0.5 text-xs">
+            {displayVal}
+          </Kbd>
+        ) : (
+          <span className="text-zinc-500 text-xs">None</span>
+        )}
+      </button>
+      <span className="text-zinc-500 text-[10px]">+ Click</span>
     </div>
   );
 }
@@ -102,18 +176,33 @@ export function ShortcutInput({ value, onChange, onValidate }) {
 
   return (
     <button
-      className={`px-3 py-1.5 rounded-lg text-xs font-mono min-w-[80px] transition-all ${
+      className={`px-2.5 py-1.5 rounded-lg min-w-[80px] flex items-center justify-center gap-0.5 transition-all outline-none ${
         error
-          ? 'bg-red-500/20 text-red-400 border border-red-500 ring-2 ring-red-500/50'
+          ? 'bg-red-500/20 border border-red-500 ring-2 ring-red-500/50'
           : recording
-          ? 'bg-primary text-zinc-950 ring-2 ring-primary/50'
-          : 'bg-zinc-800 text-zinc-300 border border-zinc-700 hover:bg-zinc-700'
+          ? 'bg-primary/10 border border-primary ring-2 ring-primary/40'
+          : 'bg-zinc-800/60 border border-zinc-700 hover:border-zinc-600 hover:bg-zinc-800'
       }`}
       onClick={() => setRecording(true)}
       onKeyDown={recording ? handleKeyDown : undefined}
       onBlur={() => setRecording(false)}
     >
-      {error ? 'Taken!' : recording ? '...' : value || 'None'}
+      {error ? (
+        <span className="text-red-400 text-xs font-medium">Taken!</span>
+      ) : recording ? (
+        <span className="text-primary text-xs animate-pulse font-medium">Press key…</span>
+      ) : value ? (
+        value.split('+').map((part, idx) => (
+          <React.Fragment key={idx}>
+            {idx > 0 && <span className="text-zinc-600 text-[10px] mx-0.5">+</span>}
+            <Kbd className="bg-zinc-700/60 text-zinc-200 border border-zinc-600/50 h-auto px-1.5 py-0.5 text-xs">
+              {KEY_SYMBOLS[part] ?? part}
+            </Kbd>
+          </React.Fragment>
+        ))
+      ) : (
+        <span className="text-zinc-500 text-xs">None</span>
+      )}
     </button>
   );
 }
