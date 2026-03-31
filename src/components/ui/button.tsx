@@ -1,4 +1,4 @@
-import * as React from "react"
+import React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 import { Slot } from "radix-ui"
 
@@ -52,7 +52,6 @@ function Button({
     asChild?: boolean
   }) {
   const Comp = asChild ? Slot.Root : "button"
-
   return (
     <Comp
       data-slot="button"
