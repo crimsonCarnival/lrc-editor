@@ -1,4 +1,6 @@
 import { useTranslation } from 'react-i18next';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 
 export default function PreviewPasteArea({
   pastingType,
@@ -17,28 +19,30 @@ export default function PreviewPasteArea({
         <span className="text-xs sm:text-sm font-medium text-primary">
           {t('paste')} {pastingType === 'secondary' ? t('secondaryLyrics') : t('translation')} {t('lyricsHeader')}
         </span>
-        <button
+        <Button
+          variant="ghost"
+          size="sm"
           onClick={() => setPastingType(null)}
-          className="text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer flex-shrink-0"
+          className="text-zinc-500 hover:text-zinc-300 hover:bg-transparent h-auto p-0"
         >
           {t('cancel')}
-        </button>
+        </Button>
       </div>
       <p className="text-xs text-zinc-500">
         {t('pasteMatchesLineInstruction')}
       </p>
-      <textarea
+      <Textarea
         value={pasteText}
         onChange={(e) => setPasteText(e.target.value)}
-        className="flex-1 bg-zinc-900/50 border border-zinc-700/50 rounded-lg sm:rounded-xl p-3 sm:p-4 text-sm text-zinc-200 placeholder-zinc-600 resize-none font-mono leading-relaxed focus:outline-none focus:border-primary/50"
+        className="flex-1 bg-zinc-900/50 border-zinc-700/50 text-zinc-200 placeholder:text-zinc-600 resize-none font-mono leading-relaxed focus:border-primary/50 min-h-0"
         placeholder={t('pasteTextPlaceholder')}
       />
-      <button
+      <Button
         onClick={handleSavePaste}
-        className="w-full py-2 sm:py-3 bg-primary hover:bg-primary-dim text-zinc-950 font-semibold rounded-lg sm:rounded-xl transition-all shadow-lg cursor-pointer text-sm"
+        className="w-full py-2 sm:py-3 bg-primary hover:bg-primary-dim text-zinc-950 font-semibold rounded-lg sm:rounded-xl shadow-lg h-auto text-sm"
       >
         {t('saveTracks')}
-      </button>
+      </Button>
     </div>
   );
 }

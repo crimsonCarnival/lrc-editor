@@ -1,6 +1,10 @@
-import { useRef, useEffect } from 'react';
+﻿import { useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSettings } from '../../contexts/useSettings';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 
 export default function ExportPanel({
   showExportPanel,
@@ -38,13 +42,13 @@ export default function ExportPanel({
       <label className="block">
         <span className="text-xs text-zinc-400 font-medium">{t('filename')}</span>
         <div className="flex items-center gap-1 mt-1">
-          <input
+          <Input
             type="text"
             value={exportFilename}
             onChange={(e) => setExportFilename(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleExport()}
             placeholder="lyrics"
-            className="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/25 transition-all w-0"
+            className="flex-1 bg-zinc-800 border-zinc-700 text-zinc-100 placeholder-zinc-500 focus-visible:ring-primary/25 focus-visible:border-primary/50 w-0"
           />
           <span className="text-sm text-zinc-500 min-w-8">.{settings.export?.downloadFormat}</span>
         </div>
@@ -58,12 +62,12 @@ export default function ExportPanel({
             return (
               <div key={key} className="flex items-center gap-2">
                 <span className="text-xs text-zinc-500 w-16">{labels[key]}</span>
-                <input
+                <Input
                   type="text"
                   value={metadata[key]}
                   onChange={(e) => setMetadata(prev => ({ ...prev, [key]: e.target.value }))}
                   placeholder={labels[key]}
-                  className="flex-1 bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-xs text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-primary/50"
+                  className="flex-1 bg-zinc-800 border-zinc-700 text-xs text-zinc-100 placeholder-zinc-600 h-7 focus-visible:border-primary/50"
                 />
               </div>
             );
@@ -72,30 +76,33 @@ export default function ExportPanel({
       )}
 
       {hasTranslations && (
-        <label className="flex items-center gap-2 cursor-pointer">
-          <input
-            type="checkbox"
+        <div className="flex items-center gap-2">
+          <Checkbox
+            id="include-translations"
             checked={includeTranslations}
-            onChange={(e) => setIncludeTranslations(e.target.checked)}
-            className="w-4 h-4 rounded border-zinc-600 bg-zinc-800 text-primary focus:ring-primary/25 accent-primary cursor-pointer"
+            onCheckedChange={setIncludeTranslations}
+            className="border-zinc-600 bg-zinc-800 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
           />
-          <span className="text-xs text-zinc-400">{t('includeTranslations')}</span>
-        </label>
+          <Label htmlFor="include-translations" className="text-xs text-zinc-400 cursor-pointer">
+            {t('includeTranslations')}
+          </Label>
+        </div>
       )}
 
       <div className="flex gap-2 w-full mt-2">
-        <button
+        <Button
+          variant="outline"
           onClick={handleCopy}
-          className="flex-1 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-semibold text-sm rounded-lg transition-all cursor-pointer"
+          className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border-zinc-700 font-semibold text-sm h-10"
         >
           {wasCopied ? `${t('copied')} ${settings.export?.copyFormat.toUpperCase()}!` : t('copyToClipboard')}
-        </button>
-        <button
+        </Button>
+        <Button
           onClick={handleExport}
-          className="flex-1 py-2.5 bg-primary hover:bg-primary-dim text-zinc-950 font-semibold text-sm rounded-lg transition-all cursor-pointer"
+          className="flex-1 bg-primary hover:bg-primary-dim text-zinc-950 font-semibold text-sm h-10"
         >
           {t('download')}
-        </button>
+        </Button>
       </div>
     </div>
   );

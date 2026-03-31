@@ -1,7 +1,15 @@
-import { usePreview } from './usePreview';
+﻿import { usePreview } from './usePreview';
 import ExportPanel from './ExportPanel';
 import PreviewPasteArea from './PreviewPasteArea';
 import PreviewLine from './PreviewLine';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Eye } from 'lucide-react';
 
 export default function Preview(props) {
   const {
@@ -9,8 +17,6 @@ export default function Preview(props) {
     settings,
     containerRef,
     activeRef,
-    showMenu,
-    setShowMenu,
     pastingType,
     setPastingType,
     pasteText,
@@ -50,32 +56,35 @@ export default function Preview(props) {
       {/* Header */}
       <div className="flex items-center justify-between mb-2 sm:mb-4 gap-2 sm:gap-4 relative">
         <h2 className="text-xs sm:text-sm font-semibold tracking-widest text-zinc-400 flex items-center gap-2 overflow-hidden flex-1 pb-1">
-          <span className="uppercase shrink-0 text-xs sm:text-sm">{t('previewTitle')}</span>
+          <span className="uppercase shrink-0 text-xs sm:text-sm flex items-center gap-1.5"><Eye className="w-3.5 h-3.5" />{t('previewTitle')}</span>
         </h2>
         {hasSyncedLines && (
           <div className="relative flex items-center gap-1 text-zinc-300">
             {lines.some(l => l.translation) && (
-              <button
+              <Button
+                variant="ghost"
+                size="icon-sm"
                 onClick={() => setShowTranslationsInPreview(!showTranslationsInPreview)}
-                className={`p-1 sm:p-1.5 rounded-lg transition-colors flex-shrink-0 hover:bg-zinc-800 ${showTranslationsInPreview ? 'text-primary hover:text-primary-dim bg-zinc-800/50' : 'text-zinc-400 hover:text-zinc-200'}`}
+                className={`flex-shrink-0 ${showTranslationsInPreview ? 'text-primary hover:text-primary-dim bg-zinc-800/50 hover:bg-zinc-800' : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'}`}
                 title={t('toggleTranslations') || 'Toggle Translations'}
               >
                 <svg className="w-4 sm:w-5 h-4 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
                 </svg>
-              </button>
+              </Button>
             )}
             <div className="relative">
-              <button
+              <Button
+                variant="ghost"
+                size="icon-sm"
                 onClick={() => setShowExportPanel(!showExportPanel)}
-                className={`p-1 sm:p-1.5 rounded-lg transition-colors flex-shrink-0 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 ${showExportPanel ? 'bg-zinc-800 text-zinc-100' : ''}`}
+                className={`flex-shrink-0 ${showExportPanel ? 'bg-zinc-800 text-zinc-100 hover:bg-zinc-700' : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'}`}
                 title={t('export') || 'Export File'}
               >
                 <svg className="w-4 sm:w-5 h-4 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                 </svg>
-              </button>
-              
+              </Button>
               <ExportPanel
                 showExportPanel={showExportPanel}
                 setShowExportPanel={setShowExportPanel}
@@ -91,44 +100,37 @@ export default function Preview(props) {
                 handleCopy={handleCopy}
               />
             </div>
-            
+
             {/* Menu */}
-            <div className="relative">
-              <button
-                onClick={() => setShowMenu(!showMenu)}
-                className={`p-1 sm:p-1.5 rounded-lg transition-colors flex-shrink-0 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 ${showMenu ? 'bg-zinc-800 text-zinc-100' : ''}`}
-              >
-                <svg className="w-4 sm:w-5 h-4 sm:h-5" fill="currentColor" viewBox="0 0 24 24">
-                  <circle cx="5" cy="12" r="2" />
-                  <circle cx="12" cy="12" r="2" />
-                  <circle cx="19" cy="12" r="2" />
-                </svg>
-              </button>
-            {showMenu && (
-              <div className="absolute right-0 top-full mt-2 w-36 sm:w-48 glass bg-zinc-900/95 border border-zinc-800 rounded-lg sm:rounded-xl shadow-2xl p-2 z-50 animate-fade-in text-xs sm:text-sm text-zinc-300">
-                <button
-                  onClick={() => {
-                    setPastingType('secondary');
-                    setPasteText('');
-                    setShowMenu(false);
-                  }}
-                  className="w-full text-left px-3 py-2 hover:bg-zinc-800 rounded-lg transition-colors cursor-pointer"
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  className="text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 flex-shrink-0"
+                >
+                  <svg className="w-4 sm:w-5 h-4 sm:h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <circle cx="5" cy="12" r="2" />
+                    <circle cx="12" cy="12" r="2" />
+                    <circle cx="19" cy="12" r="2" />
+                  </svg>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-36 sm:w-48 bg-zinc-900 border-zinc-700/80" align="end">
+                <DropdownMenuItem
+                  onClick={() => { setPastingType('secondary'); setPasteText(''); }}
+                  className="text-xs sm:text-sm text-zinc-300 focus:bg-zinc-800 focus:text-zinc-100 cursor-pointer"
                 >
                   {t('secondaryLyrics')}
-                </button>
-                <button
-                  onClick={() => {
-                    setPastingType('translation');
-                    setPasteText('');
-                    setShowMenu(false);
-                  }}
-                  className="w-full text-left px-3 py-2 hover:bg-zinc-800 rounded-lg transition-colors cursor-pointer"
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => { setPastingType('translation'); setPasteText(''); }}
+                  className="text-xs sm:text-sm text-zinc-300 focus:bg-zinc-800 focus:text-zinc-100 cursor-pointer"
                 >
                   {t('translation')}
-                </button>
-              </div>
-            )}
-            </div>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         )}
       </div>
