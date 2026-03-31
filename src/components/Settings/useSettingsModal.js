@@ -68,6 +68,15 @@ export function useSettingsModal(isOpen, onClose, globalSettings, updateAllSetti
         'nudgeRightFine',
         'deselect',
         'showHelp',
+        'playPause',
+        'seekForward',
+        'seekBackward',
+        'mute',
+        'speedUp',
+        'speedDown',
+        'addSecondary',
+        'addTranslation',
+        'toggleTranslation',
       ];
       for (const k of shortcutKeys) {
         if (k !== currentKeyName && settings.shortcuts[k]?.includes(newKey)) return false;

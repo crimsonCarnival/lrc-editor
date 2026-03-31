@@ -11,7 +11,7 @@ const MAX_IMPORT_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
 
 export function useAppState() {
   const { t, i18n } = useTranslation();
-  const { settings } = useSettings();
+  const { settings, updateSetting } = useSettings();
 
   // ——— Theme ———
   useEffect(() => {
@@ -211,7 +211,7 @@ export function useAppState() {
     [setLines],
   );
 
-  // ——— Global Undo/Redo keyboard shortcut ———
+  // ——— Global keyboard shortcuts ———
   useEffect(() => {
     const handler = (e) => {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
@@ -223,11 +223,52 @@ export function useAppState() {
         redo();
       } else if (matchKey(e, settings.shortcuts?.showHelp?.[0] || '?')) {
         setShowKeyboardHelp((prev) => !prev);
+      // ——— Player shortcuts ———
+      } else if (matchKey(e, settings.shortcuts?.playPause?.[0] || 'Enter')) {
+        e.preventDefault();
+        playerRef.current?.togglePlay?.();
+      } else if (matchKey(e, settings.shortcuts?.seekBackward?.[0] || 'Alt+ArrowLeft')) {
+        e.preventDefault();
+        const cur = playerRef.current?.getCurrentTime?.() ?? 0;
+        playerRef.current?.seek?.(Math.max(0, cur - (settings.playback?.seekTime ?? 5)));
+      } else if (matchKey(e, settings.shortcuts?.seekForward?.[0] || 'Alt+ArrowRight')) {
+        e.preventDefault();
+        const cur = playerRef.current?.getCurrentTime?.() ?? 0;
+        playerRef.current?.seek?.(cur + (settings.playback?.seekTime ?? 5));
+      } else if (matchKey(e, settings.shortcuts?.mute?.[0] || 'm')) {
+        e.preventDefault();
+        updateSetting('playback.muted', !settings.playback.muted);
+      } else if (matchKey(e, settings.shortcuts?.speedUp?.[0] || '+')) {
+        e.preventDefault();
+        playerRef.current?.adjustSpeed?.(settings.editor?.nudge?.default ?? 0.1);
+      } else if (matchKey(e, settings.shortcuts?.speedDown?.[0] || '-')) {
+        e.preventDefault();
+        playerRef.current?.adjustSpeed?.(-(settings.editor?.nudge?.default ?? 0.1));
       }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [undo, redo, settings.shortcuts?.showHelp]);
+  }, [undo, redo, settings, updateSetting, playerRef]);
+
+  // ——— Block disruptive browser shortcuts ———
+  useEffect(() => {
+    const handler = (e) => {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      const key = e.key.toLowerCase();
+      // Ctrl+S → manual save instead of browser save dialog
+      if (key === 's' && !e.shiftKey && !e.altKey) {
+        e.preventDefault();
+        handleManualSave();
+        return;
+      }
+      // Block: bookmark (D), history (H), downloads (J), print (P), view-source (U)
+      if (!e.shiftKey && !e.altKey && ['d', 'h', 'j', 'p', 'u'].includes(key)) {
+        e.preventDefault();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [handleManualSave]);
 
   // ——— Close language menu on outside click ———
   useEffect(() => {

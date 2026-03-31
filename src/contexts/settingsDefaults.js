@@ -6,7 +6,8 @@ export const DEFAULT_SETTINGS = {
     speedBounds: { min: 0.25, max: 3 },
     showWaveform: true,
     loopCurrentLine: false,
-    speedPresets: [0.5, 0.75, 1, 1.25, 1.5, 2]
+    speedPresets: [0.5, 0.75, 1, 1.25, 1.5, 2],
+    seekTime: 5,
   },
   editor: {
     autoPauseOnMark: false,
@@ -62,6 +63,17 @@ export const DEFAULT_SETTINGS = {
     showHelp: ['?'],
     rangeSelect: ['Shift'],
     toggleSelect: ['Ctrl'],
+    // Player
+    playPause: ['Enter'],
+    seekForward: ['Alt+ArrowRight'],
+    seekBackward: ['Alt+ArrowLeft'],
+    mute: ['m'],
+    speedUp: ['+'],
+    speedDown: ['-'],
+    // Preview
+    addSecondary: ['Shift+H'],
+    addTranslation: ['Shift+T'],
+    toggleTranslation: ['t'],
   },
   advanced: {
     autoSave: { enabled: false, interval: 3000 },

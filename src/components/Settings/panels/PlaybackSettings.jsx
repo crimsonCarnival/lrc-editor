@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import NumberInput from '../../shared/NumberInput';
 import { Section, SettingRow, Toggle } from '../shared';
 import { usePlaybackSettings } from '../hooks/usePlaybackSettings';
-import { Headphones, RotateCcw, ChevronsDown, ChevronsUp, ActivitySquare } from 'lucide-react';
+import { Headphones, RotateCcw, ChevronsDown, ChevronsUp, ActivitySquare, Timer } from 'lucide-react';
 
 export default function PlaybackSettings({ settings, updateSetting, searchTerm }) {
   const { t } = useTranslation();
@@ -50,6 +50,16 @@ export default function PlaybackSettings({ settings, updateSetting, searchTerm }
           id="toggle-waveform"
           checked={settings.playback?.showWaveform ?? true}
           onChange={handleShowWaveformChange}
+        />
+      </SettingRow>
+      <SettingRow icon={Timer} label={t('settingsSeekTime')} description={t('settingsSeekTimeDesc')}>
+        <NumberInput
+          min={1}
+          max={60}
+          step={1}
+          value={settings.playback?.seekTime ?? 5}
+          onChange={(val) => updateSetting('playback.seekTime', Number(val))}
+          className="w-20"
         />
       </SettingRow>
     </Section>

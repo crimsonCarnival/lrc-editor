@@ -132,11 +132,14 @@ const Player = forwardRef(function Player(
       pause: () => {
         if (isPlaying) togglePlay();
       },
+      togglePlay: () => togglePlay(),
+      adjustSpeed: (delta) => applySpeed(playbackSpeed + delta),
+      getSpeed: () => playbackSpeed,
       seek,
       getAudioBlob: () => localBlobRef.current || null,
       loadLocalAudio: (file) => local.handleFileChange(file),
     }),
-    [source, isPlaying, togglePlay, seek, local, yt],
+    [source, isPlaying, togglePlay, seek, local, yt, applySpeed, playbackSpeed],
   );
 
   // ——— Remove media ———
