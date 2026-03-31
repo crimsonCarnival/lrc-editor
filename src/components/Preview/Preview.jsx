@@ -118,13 +118,13 @@ export default function Preview(props) {
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-36 sm:w-48 bg-zinc-900 border-zinc-700/80" align="end">
                 <DropdownMenuItem
-                  onClick={() => { setPastingType('secondary'); setPasteText(''); }}
+                  onClick={() => { setPastingType('secondary'); setPasteText(lines.map(l => l.secondary || '').join('\n')); }}
                   className="text-xs sm:text-sm text-zinc-300 focus:bg-zinc-800 focus:text-zinc-100 cursor-pointer"
                 >
                   {t('secondaryLyrics')}
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  onClick={() => { setPastingType('translation'); setPasteText(''); }}
+                  onClick={() => { setPastingType('translation'); setPasteText(lines.map(l => l.translation || '').join('\n')); }}
                   className="text-xs sm:text-sm text-zinc-300 focus:bg-zinc-800 focus:text-zinc-100 cursor-pointer"
                 >
                   {t('translation')}

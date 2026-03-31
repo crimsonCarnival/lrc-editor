@@ -30,6 +30,8 @@ export function useEditor({
   const [rawText, setRawText] = useState('');
   const [editingLineIndex, setEditingLineIndex] = useState(null);
   const [editingText, setEditingText] = useState('');
+  const [editingSecondary, setEditingSecondary] = useState('');
+  const [editingTranslation, setEditingTranslation] = useState('');
   const [dragIndex, setDragIndex] = useState(null);
   const [dragOverIndex, setDragOverIndex] = useState(null);
   const [offsetValue, setOffsetValue] = useState('');
@@ -120,7 +122,22 @@ export function useEditor({
   const shiftTime = useCallback(
     (index, delta) => {
       const numericDelta = Number(delta) || 0;
+      const currentLines = linesRef.current;
+      if (!currentLines[index]) return;
+
+      // Compute target time before updating state — state updaters must be pure
       let targetTime = null;
+      if (
+        focusedTimestamp?.lineIndex === index &&
+        focusedTimestamp.type === 'end' &&
+        currentLines[index].endTime != null
+      ) {
+        const newEndTime = Math.max(0, Number(currentLines[index].endTime) + numericDelta);
+        if (!isNaN(newEndTime)) targetTime = newEndTime;
+      } else if (currentLines[index].timestamp != null) {
+        const newTimestamp = Math.max(0, Number(currentLines[index].timestamp) + numericDelta);
+        if (!isNaN(newTimestamp)) targetTime = newTimestamp;
+      }
 
       setLines((prev) => {
         const updated = [...prev];
@@ -132,16 +149,10 @@ export function useEditor({
           updated[index].endTime != null
         ) {
           const newEndTime = Math.max(0, Number(updated[index].endTime) + numericDelta);
-          if (!isNaN(newEndTime)) {
-            updated[index] = { ...updated[index], endTime: newEndTime };
-            targetTime = newEndTime;
-          }
+          if (!isNaN(newEndTime)) updated[index] = { ...updated[index], endTime: newEndTime };
         } else if (updated[index].timestamp != null) {
           const newTimestamp = Math.max(0, Number(updated[index].timestamp) + numericDelta);
-          if (!isNaN(newTimestamp)) {
-            updated[index] = { ...updated[index], timestamp: newTimestamp };
-            targetTime = newTimestamp;
-          }
+          if (!isNaN(newTimestamp)) updated[index] = { ...updated[index], timestamp: newTimestamp };
         }
         return updated;
       });
@@ -261,10 +272,13 @@ export function useEditor({
     });
   };
 
-  const handleSaveLineText = (index, newText) => {
+  const handleSaveLineText = (index, newText, newSecondary, newTranslation) => {
     setLines((prev) => {
       const updated = [...prev];
-      updated[index] = { ...updated[index], text: newText };
+      const line = { ...updated[index], text: newText };
+      if (newSecondary !== undefined) line.secondary = newSecondary;
+      if (newTranslation !== undefined) line.translation = newTranslation;
+      updated[index] = line;
       return updated;
     });
   };
@@ -515,6 +529,10 @@ export function useEditor({
     setEditingLineIndex,
     editingText,
     setEditingText,
+    editingSecondary,
+    setEditingSecondary,
+    editingTranslation,
+    setEditingTranslation,
     dragIndex,
     dragOverIndex,
     offsetValue,

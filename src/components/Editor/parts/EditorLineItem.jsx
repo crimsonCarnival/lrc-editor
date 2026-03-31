@@ -32,6 +32,10 @@ const EditorLineItem = React.memo(({
   setEditingLineIndex,
   editingText,
   setEditingText,
+  editingSecondary,
+  setEditingSecondary,
+  editingTranslation,
+  setEditingTranslation,
   handleSaveLineText,
   playerRef,
   shiftTime,
@@ -144,55 +148,88 @@ const EditorLineItem = React.memo(({
       </span>
 
       {/* Lyrics text container */}
-      <div className="flex-1 min-w-0 flex items-center gap-2 overflow-x-auto whitespace-nowrap scrollbar-hide pb-0.5 mt-0.5" onDoubleClick={() => {
+      <div className="flex-1 min-w-0 flex items-start gap-2 overflow-x-hidden pb-0.5 mt-0.5" onDoubleClick={() => {
         setEditingLineIndex(i);
         setEditingText(line.text);
+        setEditingSecondary(line.secondary || '');
+        setEditingTranslation(line.translation || '');
       }}>
         {editingLineIndex === i ? (
-          <Input
-            type="text"
-            autoFocus
-            value={editingText}
-            onChange={(e) => setEditingText(e.target.value)}
-            onBlur={() => {
-              handleSaveLineText(i, editingText);
-              setEditingLineIndex(null);
+          <div
+            className="flex flex-col gap-1 w-full"
+            onBlur={(e) => {
+              if (!e.currentTarget.contains(e.relatedTarget)) {
+                handleSaveLineText(i, editingText, editingSecondary, editingTranslation);
+                setEditingLineIndex(null);
+              }
             }}
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
-                handleSaveLineText(i, editingText);
+                handleSaveLineText(i, editingText, editingSecondary, editingTranslation);
                 setEditingLineIndex(null);
               } else if (e.key === 'Escape') {
                 setEditingLineIndex(null);
               }
             }}
-            className="w-full bg-zinc-800 border-primary/50 text-xs text-zinc-100 h-7"
-          />
+          >
+            <Input
+              type="text"
+              autoFocus
+              value={editingText}
+              onChange={(e) => setEditingText(e.target.value)}
+              placeholder={t('primaryText') || 'Primary text'}
+              className="w-full bg-zinc-800 border-primary/50 text-xs text-zinc-100 h-7"
+            />
+            <Input
+              type="text"
+              value={editingSecondary}
+              onChange={(e) => setEditingSecondary(e.target.value)}
+              placeholder={t('secondaryText') || 'Secondary (bilingual)'}
+              className="w-full bg-zinc-800 border-zinc-600/50 text-xs text-zinc-400 h-6"
+            />
+            <Input
+              type="text"
+              value={editingTranslation}
+              onChange={(e) => setEditingTranslation(e.target.value)}
+              placeholder={t('translationText') || 'Translation'}
+              className="w-full bg-zinc-800 border-zinc-600/50 text-xs text-zinc-500 h-6 italic"
+            />
+          </div>
         ) : (
-          <div className="flex items-center gap-2 group/text">
-            <p
-              className={`text-xs transition-colors ${isActive
-                ? 'text-zinc-100 font-medium'
-                : isSynced
-                  ? 'text-zinc-300'
-                  : 'text-zinc-500'
-                }`}
-            >
-              {line.text || '♪'}
-            </p>
-            <Button
-              variant="ghost"
-              size="icon-xs"
-              onClick={(e) => {
-                e.stopPropagation();
-                setEditingLineIndex(i);
-                setEditingText(line.text);
-              }}
-              className="opacity-0 group-hover:opacity-100 text-zinc-500 hover:text-primary hover:bg-zinc-800/60"
-              title={t('editLine') || 'Edit text (Double-click)'}
-            >
-              <Pencil className="w-3 h-3" />
-            </Button>
+          <div className="flex flex-col gap-0.5 group/text min-w-0 w-full">
+            <div className="flex items-center gap-2">
+              <p
+                className={`text-xs transition-colors truncate ${isActive
+                  ? 'text-zinc-100 font-medium'
+                  : isSynced
+                    ? 'text-zinc-300'
+                    : 'text-zinc-500'
+                  }`}
+              >
+                {line.text || '♪'}
+              </p>
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setEditingLineIndex(i);
+                  setEditingText(line.text);
+                  setEditingSecondary(line.secondary || '');
+                  setEditingTranslation(line.translation || '');
+                }}
+                className="opacity-0 group-hover:opacity-100 flex-shrink-0 text-zinc-500 hover:text-primary hover:bg-zinc-800/60"
+                title={t('editLine') || 'Edit text (Double-click)'}
+              >
+                <Pencil className="w-3 h-3" />
+              </Button>
+            </div>
+            {line.secondary && (
+              <p className="text-[10px] text-zinc-500 leading-tight pl-0.5 truncate">{line.secondary}</p>
+            )}
+            {line.translation && (
+              <p className="text-[10px] text-zinc-500/70 italic leading-tight pl-0.5 truncate">{line.translation}</p>
+            )}
           </div>
         )}
       </div>

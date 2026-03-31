@@ -31,6 +31,10 @@ export default function Editor({
     setEditingLineIndex,
     editingText,
     setEditingText,
+    editingSecondary,
+    setEditingSecondary,
+    editingTranslation,
+    setEditingTranslation,
     dragIndex,
     dragOverIndex,
     offsetValue,
@@ -141,6 +145,10 @@ export default function Editor({
           setEditingLineIndex={setEditingLineIndex}
           editingText={editingText}
           setEditingText={setEditingText}
+          editingSecondary={editingSecondary}
+          setEditingSecondary={setEditingSecondary}
+          editingTranslation={editingTranslation}
+          setEditingTranslation={setEditingTranslation}
           handleSaveLineText={handleSaveLineText}
           playerRef={playerRef}
           shiftTime={shiftTime}
@@ -192,6 +200,10 @@ function VirtualizedLineList({
   setEditingLineIndex,
   editingText,
   setEditingText,
+  editingSecondary,
+  setEditingSecondary,
+  editingTranslation,
+  setEditingTranslation,
   handleSaveLineText,
   playerRef,
   shiftTime,
@@ -307,6 +319,10 @@ function VirtualizedLineList({
                   setEditingLineIndex={setEditingLineIndex}
                   editingText={editingText}
                   setEditingText={setEditingText}
+                  editingSecondary={editingSecondary}
+                  setEditingSecondary={setEditingSecondary}
+                  editingTranslation={editingTranslation}
+                  setEditingTranslation={setEditingTranslation}
                   handleSaveLineText={handleSaveLineText}
                   playerRef={playerRef}
                   shiftTime={shiftTime}
