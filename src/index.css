@@ -1,12 +1,22 @@
 @import "tailwindcss";
 @import "@fontsource-variable/geist";
 @import "tw-animate-css";
+
+@font-face {
+  font-family: 'Noto Serif JP Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 200 900;
+  src: url('../node_modules/@fontsource-variable/noto-serif-jp/files/noto-serif-jp-119-wght-normal.woff2') format('woff2-variations');
+  unicode-range: U+20,U+2027,U+3001-3002,U+3041-307f,U+3081-308f,U+3091-3093,U+3099-309a,U+309d-309e,U+30a1-30e1,U+30e3-30ed,U+30ef-30f0,U+30f2-30f4,U+30fb-30fe,U+ff0c,U+ff0e;
+}
 @import "shadcn/tailwind.css";
 
 @custom-variant dark (&:is(.dark *));
 
 @theme {
   --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-lyrics: "Noto Serif JP Variable", "Geist Variable", ui-sans-serif, sans-serif;
   --color-primary: #1DB954;
   --color-primary-dim: #1aa34a;
   --color-surface: rgba(255, 255, 255, 0.04);
