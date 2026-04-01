@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import useDraggable from '../../hooks/useDraggable';
 import { DEFAULT_SETTINGS } from '../../contexts/settingsDefaults';
 
@@ -29,6 +29,8 @@ export function useSettingsModal(isOpen, onClose, globalSettings, updateAllSetti
     return () => window.removeEventListener('keydown', handler);
   }, [isOpen, onClose]);
 
+  const autoSaveRef = useRef(null);
+
   const updateSetting = useCallback(
     (key, value) => {
       setSettings((prev) => {
@@ -42,13 +44,20 @@ export function useSettingsModal(isOpen, onClose, globalSettings, updateAllSetti
         current[keys[keys.length - 1]] = value;
 
         if (nextSettings.advanced.autoSave.enabled || prev.advanced?.autoSave?.enabled) {
-          updateAllSettings(nextSettings);
+          autoSaveRef.current = nextSettings;
         }
         return nextSettings;
       });
     },
-    [updateAllSettings],
+    [],
   );
+
+  useEffect(() => {
+    if (autoSaveRef.current) {
+      updateAllSettings(autoSaveRef.current);
+      autoSaveRef.current = null;
+    }
+  });
 
   const validateShortcut = useCallback(
     (newKey, currentKeyName) => {
