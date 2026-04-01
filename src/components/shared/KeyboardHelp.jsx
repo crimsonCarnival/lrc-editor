@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Kbd, KbdGroup } from './Kbd';
 import { useSettings } from '../../contexts/useSettings';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { X, Headphones, FileText, Eye } from 'lucide-react';
 import { KEY_SYMBOLS } from '../Settings/keySymbols';
 import { matchKey } from '../../utils/keyboard';
@@ -93,7 +93,9 @@ export default function KeyboardHelp({ isOpen, onClose }) {
       <DialogContent
         className="bg-zinc-900 border border-zinc-700 shadow-2xl p-0 max-w-sm w-full [&>button]:hidden"
         style={{ transform: `translate(${position.x}px, ${position.y}px)` }}
+        aria-describedby={undefined}
       >
+        <DialogTitle className="sr-only">{t('shortcuts.title')}</DialogTitle>
         <div className="flex flex-col">
           {/* Header */}
           <div
