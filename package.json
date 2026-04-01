@@ -8,8 +8,8 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview",
-    "deploy": "npx wrangler deploy",
+    "preview": "npm run build && wrangler dev",
+    "deploy": "npm run build && wrangler deploy",
     "postdeploy": "git checkout main"
   },
   "dependencies": {
@@ -32,6 +32,7 @@
     "wavesurfer.js": "^7.12.5"
   },
   "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.30.3",
     "@eslint/js": "^9.39.4",
     "@tailwindcss/vite": "^4.2.2",
     "@types/react": "^19.2.14",
