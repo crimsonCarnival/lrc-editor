@@ -227,10 +227,10 @@ export function useEditor({
       } else if (matchKey(e, settings.shortcuts?.nudgeRightFine?.[0] || 'Shift+ArrowRight')) {
         e.preventDefault();
         handleNudge(settings.editor?.nudge?.fine || 0.01);
-      } else if (matchKey(e, settings.shortcuts?.nudgeLeft?.[0] || 'ArrowLeft')) {
+      } else if (matchKey(e, settings.shortcuts?.nudgeLeft?.[0] || 'Alt+ArrowLeft')) {
         e.preventDefault();
         handleNudge(-(settings.editor?.nudge?.default || 0.1));
-      } else if (matchKey(e, settings.shortcuts?.nudgeRight?.[0] || 'ArrowRight')) {
+      } else if (matchKey(e, settings.shortcuts?.nudgeRight?.[0] || 'Alt+ArrowRight')) {
         e.preventDefault();
         handleNudge(settings.editor?.nudge?.default || 0.1);
       } else if (matchKey(e, settings.shortcuts?.deselect?.[0] || 'Escape') && focusedTimestampRef.current) {

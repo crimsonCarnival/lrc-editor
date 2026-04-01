@@ -58,7 +58,7 @@ export default function PlaybackSettings({ settings, updateSetting, searchTerm }
           max={60}
           step={1}
           value={settings.playback?.seekTime ?? 5}
-          onChange={(val) => updateSetting('playback.seekTime', Number(val))}
+          onChange={(e) => updateSetting('playback.seekTime', Math.max(1, parseInt(e.target.value, 10) || 5))}
           className="w-20"
         />
       </SettingRow>

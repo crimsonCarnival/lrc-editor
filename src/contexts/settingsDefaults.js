@@ -51,8 +51,8 @@ export const DEFAULT_SETTINGS = {
   },
   shortcuts: {
     mark: ['Space'],
-    nudgeLeft: ['ArrowLeft'],
-    nudgeRight: ['ArrowRight'],
+    nudgeLeft: ['Alt+ArrowLeft'],
+    nudgeRight: ['Alt+ArrowRight'],
     nudgeLeftFine: ['Shift+ArrowLeft'],
     nudgeRightFine: ['Shift+ArrowRight'],
     addLine: ['Ctrl+Enter'],
@@ -65,8 +65,8 @@ export const DEFAULT_SETTINGS = {
     toggleSelect: ['Ctrl'],
     // Player
     playPause: ['Enter'],
-    seekForward: ['Alt+ArrowRight'],
-    seekBackward: ['Alt+ArrowLeft'],
+    seekForward: ['ArrowRight'],
+    seekBackward: ['ArrowLeft'],
     mute: ['m'],
     speedUp: ['+'],
     speedDown: ['-'],

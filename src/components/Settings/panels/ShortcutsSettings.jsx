@@ -70,7 +70,7 @@ export default function ShortcutsSettings({ settings, updateSetting, searchTerm,
             }
           >
             <ShortcutInput
-              value={settings.shortcuts?.nudgeLeft?.[0] || 'ArrowLeft'}
+              value={settings.shortcuts?.nudgeLeft?.[0] || 'Alt+ArrowLeft'}
               onChange={handleShortcutChange('nudgeLeft')}
               onValidate={(v) => validateShortcut(v, 'nudgeLeft')}
             />
@@ -84,7 +84,7 @@ export default function ShortcutsSettings({ settings, updateSetting, searchTerm,
             }
           >
             <ShortcutInput
-              value={settings.shortcuts?.nudgeRight?.[0] || 'ArrowRight'}
+              value={settings.shortcuts?.nudgeRight?.[0] || 'Alt+ArrowRight'}
               onChange={handleShortcutChange('nudgeRight')}
               onValidate={(v) => validateShortcut(v, 'nudgeRight')}
             />
@@ -177,7 +177,7 @@ export default function ShortcutsSettings({ settings, updateSetting, searchTerm,
             description={t('settingsShortcutSeekBackwardDesc', { val: settings.playback?.seekTime ?? 5 }) || `Seek back ${settings.playback?.seekTime ?? 5}s`}
           >
             <ShortcutInput
-              value={settings.shortcuts?.seekBackward?.[0] || 'Alt+ArrowLeft'}
+              value={settings.shortcuts?.seekBackward?.[0] || 'ArrowLeft'}
               onChange={handleShortcutChange('seekBackward')}
               onValidate={(v) => validateShortcut(v, 'seekBackward')}
             />
@@ -188,7 +188,7 @@ export default function ShortcutsSettings({ settings, updateSetting, searchTerm,
             description={t('settingsShortcutSeekForwardDesc', { val: settings.playback?.seekTime ?? 5 }) || `Seek forward ${settings.playback?.seekTime ?? 5}s`}
           >
             <ShortcutInput
-              value={settings.shortcuts?.seekForward?.[0] || 'Alt+ArrowRight'}
+              value={settings.shortcuts?.seekForward?.[0] || 'ArrowRight'}
               onChange={handleShortcutChange('seekForward')}
               onValidate={(v) => validateShortcut(v, 'seekForward')}
             />

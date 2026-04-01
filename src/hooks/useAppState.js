@@ -227,11 +227,11 @@ export function useAppState() {
       } else if (matchKey(e, settings.shortcuts?.playPause?.[0] || 'Enter')) {
         e.preventDefault();
         playerRef.current?.togglePlay?.();
-      } else if (matchKey(e, settings.shortcuts?.seekBackward?.[0] || 'Alt+ArrowLeft')) {
+      } else if (matchKey(e, settings.shortcuts?.seekBackward?.[0] || 'ArrowLeft')) {
         e.preventDefault();
         const cur = playerRef.current?.getCurrentTime?.() ?? 0;
         playerRef.current?.seek?.(Math.max(0, cur - (settings.playback?.seekTime ?? 5)));
-      } else if (matchKey(e, settings.shortcuts?.seekForward?.[0] || 'Alt+ArrowRight')) {
+      } else if (matchKey(e, settings.shortcuts?.seekForward?.[0] || 'ArrowRight')) {
         e.preventDefault();
         const cur = playerRef.current?.getCurrentTime?.() ?? 0;
         playerRef.current?.seek?.(cur + (settings.playback?.seekTime ?? 5));

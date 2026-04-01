@@ -86,6 +86,27 @@ function upgradeLegacySettings(parsed) {
   return migrated;
 }
 
+// Migrate stored shortcut defaults that changed across versions.
+// Only rewrites values that exactly match the old default — custom bindings are preserved.
+const SHORTCUT_RENAMES = [
+  { key: 'nudgeLeft',    from: 'ArrowLeft',      to: 'Alt+ArrowLeft' },
+  { key: 'nudgeRight',   from: 'ArrowRight',     to: 'Alt+ArrowRight' },
+  { key: 'seekBackward', from: 'Alt+ArrowLeft',  to: 'ArrowLeft' },
+  { key: 'seekForward',  from: 'Alt+ArrowRight', to: 'ArrowRight' },
+];
+
+function migrateShortcutDefaults(settings) {
+  let changed = false;
+  const shortcuts = { ...settings.shortcuts };
+  for (const { key, from, to } of SHORTCUT_RENAMES) {
+    if (shortcuts[key]?.[0] === from) {
+      shortcuts[key] = [to];
+      changed = true;
+    }
+  }
+  return changed ? { ...settings, shortcuts } : settings;
+}
+
 export function SettingsProvider({ children }) {
   const [settings, setSettings] = useState(() => {
     try {
@@ -93,7 +114,7 @@ export function SettingsProvider({ children }) {
       if (stored) {
         const parsed = JSON.parse(stored);
         const migrated = upgradeLegacySettings(parsed);
-        return deepMerge(DEFAULT_SETTINGS, migrated);
+        return migrateShortcutDefaults(deepMerge(DEFAULT_SETTINGS, migrated));
       }
     } catch (e) {
       console.error('Failed to load settings', e);
