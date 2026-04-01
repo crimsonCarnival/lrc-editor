@@ -133,7 +133,7 @@ const Player = forwardRef(function Player(
         if (isPlaying) togglePlay();
       },
       togglePlay: () => togglePlay(),
-      adjustSpeed: (delta) => applySpeed(playbackSpeed + delta),
+      adjustSpeed: (delta) => applySpeed(Math.round((playbackSpeed + delta) * 1000) / 1000),
       getSpeed: () => playbackSpeed,
       seek,
       getAudioBlob: () => localBlobRef.current || null,
