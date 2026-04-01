@@ -104,13 +104,13 @@ export function useEditor({
           setLines(parsed);
           setActiveLineIndex(Math.max(0, parsed.findIndex((l) => l.timestamp == null)));
           setSyncMode(true);
-          toast.success(t('importedLines', { count: parsed.length }) || `Imported ${parsed.length} lines`);
+          toast.success(t('import.success', { count: parsed.length }) || `Imported ${parsed.length} lines`);
         } else {
-          toast.error(t('noLinesFound') || 'No lyrics found in file');
+          toast.error(t('import.noLines') || 'No lyrics found in file');
         }
       } catch (err) {
         console.error('Failed to parse lyrics file', err);
-        toast.error(t('importFailed') || 'Failed to parse lyrics file');
+        toast.error(t('import.failed') || 'Failed to parse lyrics file');
       }
     };
     reader.readAsText(file);
@@ -266,7 +266,7 @@ export function useEditor({
   );
 
   const handleClearTimestamps = () => {
-    requestConfirm(t('confirmClearTimestamps') || 'Clear all timestamps?', () => {
+    requestConfirm(t('confirm.clearTimestamps') || 'Clear all timestamps?', () => {
       setLines((prev) => clearAllTimestamps(prev, editorMode === 'srt'));
       setActiveLineIndex(0);
     });
@@ -284,7 +284,7 @@ export function useEditor({
   };
 
   const handleDeleteLine = (index) => {
-    requestConfirm(t('confirmDeleteLine') || 'Delete this line?', () => {
+    requestConfirm(t('confirm.deleteLine') || 'Delete this line?', () => {
       setLines((prev) => {
         const newLines = prev.filter((_, i) => i !== index);
         setActiveLineIndex((prevIdx) => {
@@ -425,7 +425,7 @@ export function useEditor({
   }, []);
 
   const handleBulkClearTimestamps = useCallback(() => {
-    requestConfirm(t('confirmBulkClear') || 'Clear timestamps for selected lines?', () => {
+    requestConfirm(t('confirm.bulkClear') || 'Clear timestamps for selected lines?', () => {
       setLines((prev) =>
         prev.map((l, idx) =>
           selectedLines.has(idx)
@@ -438,7 +438,7 @@ export function useEditor({
   }, [selectedLines, editorMode, setLines, clearSelection, requestConfirm, t]);
 
   const handleBulkDelete = useCallback(() => {
-    requestConfirm(t('confirmBulkDelete') || 'Delete selected lines?', () => {
+    requestConfirm(t('confirm.bulkDelete') || 'Delete selected lines?', () => {
       setLines((prev) => prev.filter((_, idx) => !selectedLines.has(idx)));
       setActiveLineIndex((prev) => {
         let offset = 0;

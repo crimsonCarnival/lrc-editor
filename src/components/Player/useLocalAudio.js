@@ -21,7 +21,7 @@ export default function useLocalAudio({
     if (!file) return;
 
     if (file.size > 150 * 1024 * 1024) {
-      toast.error(t('fileTooLarge') || 'Audio file is too large (max 150MB).');
+      toast.error(t('import.tooLarge') || 'Audio file is too large (max 150MB).');
       return;
     }
 

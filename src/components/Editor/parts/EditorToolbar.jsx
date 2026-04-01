@@ -28,7 +28,7 @@ export default function EditorToolbar({
       <div className="flex items-center gap-2 sm:gap-3">
         <h2 className="text-xs sm:text-sm font-semibold uppercase tracking-widest text-zinc-400 flex items-center gap-1.5">
           <FileText className="w-3.5 h-3.5" />
-          {t('editor')}
+          {t('editor.title')}
         </h2>
         <ToggleGroup
           type="single"
@@ -45,13 +45,13 @@ export default function EditorToolbar({
             value="lrc"
             className="px-2.5 py-1 text-[10px] sm:text-xs font-bold rounded-none border-0 data-[state=on]:bg-primary data-[state=on]:text-zinc-950 text-zinc-400 hover:text-zinc-200 hover:bg-transparent h-auto"
           >
-            {t('editorModeLRC')}
+            {t('editor.modeLRC')}
           </ToggleGroupItem>
           <ToggleGroupItem
             value="srt"
             className="px-2.5 py-1 text-[10px] sm:text-xs font-bold rounded-none border-0 data-[state=on]:bg-primary data-[state=on]:text-zinc-950 text-zinc-400 hover:text-zinc-200 hover:bg-transparent h-auto"
           >
-            {t('editorModeSRT')}
+            {t('editor.modeSRT')}
           </ToggleGroupItem>
         </ToggleGroup>
       </div>
@@ -64,7 +64,7 @@ export default function EditorToolbar({
             onClick={undo}
             disabled={!canUndo}
             className="text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 flex-shrink-0"
-            title={t('undoTitle')}
+            title={t('editor.undoTitle')}
           >
             <Undo2 className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
           </Button>
@@ -75,7 +75,7 @@ export default function EditorToolbar({
             onClick={redo}
             disabled={!canRedo}
             className="text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 flex-shrink-0"
-            title={t('redoTitle')}
+            title={t('editor.redoTitle')}
           >
             <Redo2 className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
           </Button>
@@ -101,7 +101,7 @@ export default function EditorToolbar({
                 ? 'text-primary hover:text-zinc-300 hover:bg-zinc-800'
                 : 'text-zinc-400 hover:text-primary hover:bg-primary/20'
             }`}
-            title={selectedLines?.size === lines.length ? t('deselectAll') : t('selectAll')}
+            title={selectedLines?.size === lines.length ? t('editor.selection.deselectAll') : t('editor.selection.selectAll')}
           >
             {selectedLines?.size > 0
               ? <ListChecks className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
@@ -114,7 +114,7 @@ export default function EditorToolbar({
             size="icon-sm"
             onClick={handleClearTimestamps}
             className="text-orange-400 hover:text-orange-300 hover:bg-orange-500/10 flex-shrink-0"
-            title={t('clearTimestamps')}
+            title={t('editor.selection.clearTimestamps')}
           >
             <TimerOff className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
           </Button>
@@ -123,14 +123,14 @@ export default function EditorToolbar({
             variant="ghost"
             size="icon-sm"
             onClick={() => {
-              requestConfirm(t('confirmRemoveAll'), () => {
+              requestConfirm(t('confirm.removeAll'), () => {
                 setLines([]);
                 setRawText('');
                 setSyncMode(false);
               });
             }}
             className="text-red-400 hover:text-red-300 hover:bg-red-500/10 flex-shrink-0"
-            title={t('removeAllLyrics')}          >
+            title={t('editor.removeAll')}          >
             <Trash2 className="w-3 sm:w-4 h-3 sm:h-4" />
           </Button>
         </div>

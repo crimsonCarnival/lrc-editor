@@ -219,7 +219,7 @@ const EditorLineItem = React.memo(({
                   setEditingTranslation(line.translation || '');
                 }}
                 className="opacity-0 group-hover:opacity-100 flex-shrink-0 text-zinc-500 hover:text-primary hover:bg-zinc-800/60"
-                title={t('editLine') || 'Edit text (Double-click)'}
+                title={t('editor.editLine') || 'Edit text (Double-click)'}
               >
                 <Pencil className="w-3 h-3" />
               </Button>
@@ -247,7 +247,7 @@ const EditorLineItem = React.memo(({
                 }
               }}
               className="text-zinc-500 hover:bg-primary/20 hover:text-primary mr-1"
-              title={t('jumpSync')}
+              title={t('editor.jumpSync')}
             >
               <Play className="w-3 h-3" fill="currentColor" />
             </Button>
@@ -277,7 +277,7 @@ const EditorLineItem = React.memo(({
                   size="icon-xs"
                   onClick={(e) => { e.stopPropagation(); handleAddLine(i); }}
                   className="text-zinc-500 hover:text-green-400 hover:bg-green-500/10"
-                  title={t('addLine')}
+                  title={t('editor.addLine')}
                 >
                   <Plus className="w-3 h-3" />
                 </Button>
@@ -286,7 +286,7 @@ const EditorLineItem = React.memo(({
                   size="icon-xs"
                   onClick={(e) => { e.stopPropagation(); handleClearLine(i); }}
                   className="text-zinc-500 hover:text-orange-400 hover:bg-orange-500/10"
-                  title={t('clearTimestamp')}
+                  title={t('editor.clearTimestamp')}
                 >
                   <X className="w-3 h-3" />
                 </Button>
@@ -300,7 +300,7 @@ const EditorLineItem = React.memo(({
             size="icon-xs"
             onClick={(e) => { e.stopPropagation(); handleDeleteLine(i); }}
             className="text-zinc-500 hover:text-red-400 hover:bg-red-500/10"
-            title={t('removeLine')}
+            title={t('editor.removeLine')}
           >
             <Trash2 className="w-3 h-3" />
           </Button>

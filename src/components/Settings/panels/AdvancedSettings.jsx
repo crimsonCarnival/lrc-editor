@@ -22,8 +22,8 @@ export default function AdvancedSettings({ settings, updateSetting, searchTerm }
   } = useAdvancedSettings(updateSetting);
 
   return (
-    <Section title={t('settingsAdvanced')} icon={SlidersHorizontal} searchTerm={searchTerm}>
-      <SettingRow icon={Save} label={t('settingsAutoSave')} description={t('settingsAutoSaveDesc')}>
+    <Section title={t('settings.advanced.label')} icon={SlidersHorizontal} searchTerm={searchTerm}>
+      <SettingRow icon={Save} label={t('settings.advanced.autoSave')} description={t('settings.advanced.autoSaveDesc')}>
         <Toggle
           id="toggle-auto-save"
           checked={settings.advanced?.autoSave?.enabled ?? false}
@@ -32,8 +32,8 @@ export default function AdvancedSettings({ settings, updateSetting, searchTerm }
       </SettingRow>
 
       {settings.advanced?.autoSave?.enabled && (
-        <SettingRow          icon={Timer}          label={t('settingsAutoSaveInterval')}
-          description={t('settingsAutoSaveIntervalDesc')}
+        <SettingRow          icon={Timer}          label={t('settings.advanced.autoSaveInterval')}
+          description={t('settings.advanced.autoSaveIntervalDesc')}
         >
           <Select
             value={String(settings.advanced?.autoSave?.interval ?? 30000)}
@@ -54,8 +54,8 @@ export default function AdvancedSettings({ settings, updateSetting, searchTerm }
 
       <SettingRow
         icon={ShieldAlert}
-        label={t('settingsConfirmDestructive')}
-        description={t('settingsConfirmDestructiveDesc')}
+        label={t('settings.advanced.confirmDestructive')}
+        description={t('settings.advanced.confirmDestructiveDesc')}
       >
         <Toggle
           id="toggle-confirm-destructive"
@@ -66,8 +66,8 @@ export default function AdvancedSettings({ settings, updateSetting, searchTerm }
 
       <SettingRow
         icon={Globe}
-        label={t('settingsTimezone') || 'Timezone'}
-        description={t('settingsTimezoneDesc') || 'Override detected timezone for saved timestamps'}
+        label={t('settings.advanced.timezone') || 'Timezone'}
+        description={t('settings.advanced.timezoneDesc') || 'Override detected timezone for saved timestamps'}
       >
         <Select
           value={settings.advanced?.timezone ?? 'auto'}
@@ -78,7 +78,7 @@ export default function AdvancedSettings({ settings, updateSetting, searchTerm }
           </SelectTrigger>
           <SelectContent className="bg-zinc-900 border-zinc-700">
             <SelectItem value="auto">
-              {t('settingsTimezoneAuto') || 'Auto'} ({Intl.DateTimeFormat().resolvedOptions().timeZone})
+              {t('settings.advanced.timezoneAuto') || 'Auto'} ({Intl.DateTimeFormat().resolvedOptions().timeZone})
             </SelectItem>
             {COMMON_TIMEZONES.map((tz) => (
               <SelectItem key={tz} value={tz}>{tz.replace(/_/g, ' ')}</SelectItem>

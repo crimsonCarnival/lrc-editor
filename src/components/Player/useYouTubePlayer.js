@@ -57,7 +57,7 @@ export default function useYouTubePlayer({
   const loadYouTube = useCallback(() => {
     const videoId = extractVideoId(ytUrl);
     if (!videoId) {
-      setYtError(t('invalidUrl') || 'Invalid YouTube URL');
+      setYtError(t('player.invalidUrl') || 'Invalid YouTube URL');
       return;
     }
     setYtError('');

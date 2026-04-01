@@ -27,7 +27,7 @@ export default function SelectionActionBar({
         size="icon-xs"
         onClick={handleBulkClearTimestamps}
         className="text-orange-400 hover:bg-orange-500/15 hover:text-orange-300"
-        title={t('clearTimestamps') || 'Clear timestamps'}
+        title={t('editor.selection.clearTimestamps') || 'Clear timestamps'}
       >
         <TimerOff className="w-3.5 h-3.5" />
       </Button>
@@ -55,7 +55,7 @@ export default function SelectionActionBar({
         size="icon-xs"
         onClick={handleBulkDelete}
         className="text-red-400 hover:bg-red-500/15 hover:text-red-300"
-        title={t('deleteSelected') || 'Delete selected'}
+        title={t('editor.selection.deleteSelected') || 'Delete selected'}
       >
         <Trash2 className="w-3.5 h-3.5" />
       </Button>
@@ -65,7 +65,7 @@ export default function SelectionActionBar({
         size="icon-xs"
         onClick={clearSelection}
         className="text-zinc-500 hover:text-zinc-200 hover:bg-zinc-700/60"
-        title={t('deselectAll') || 'Deselect all (Esc)'}
+        title={t('editor.selection.deselectAll') || 'Deselect all (Esc)'}
       >
         <X className="w-3.5 h-3.5" />
       </Button>

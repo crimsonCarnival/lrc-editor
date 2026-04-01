@@ -72,7 +72,7 @@ function AppInner() {
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm pointer-events-none transition-all">
           <div className="flex flex-col items-center gap-4 text-primary animate-bounce">
             <UploadCloud className="w-20 h-20" strokeWidth={1.5} />
-            <h2 className="text-3xl font-bold tracking-tight text-center px-4">{t('dropAudio') || 'Drop your audio or lyrics file here'}</h2>
+            <h2 className="text-3xl font-bold tracking-tight text-center px-4">{t('player.dropAudio') || 'Drop your audio or lyrics file here'}</h2>
           </div>
         </div>
       )}
@@ -85,7 +85,7 @@ function AppInner() {
           </div>
           <div className="overflow-hidden">
             <h1 className="text-base sm:text-lg font-bold text-zinc-100 tracking-tight truncate">
-              {t('appName')}
+              {t('app.name')}
             </h1>
           </div>
         </div>
@@ -97,7 +97,7 @@ function AppInner() {
               <Button
                 variant="outline"
                 className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 h-8 sm:h-9 bg-zinc-800/80 hover:bg-zinc-700 border-zinc-700/60 rounded-lg sm:rounded-xl text-zinc-200 flex-shrink-0"
-                title={t('settingsLanguageDesc') || 'Language'}
+                title={t('settings.interface.languageDesc') || 'Language'}
               >
                 <Globe className="w-4 h-4 text-zinc-400" strokeWidth={2} />
                 <span className="text-xs font-semibold uppercase">{i18n.resolvedLanguage?.split('-')[0] || 'en'}</span>
@@ -127,10 +127,10 @@ function AppInner() {
             variant="outline"
             onClick={() => setShowSettings(true)}
             className="px-2 sm:px-3 h-8 sm:h-9 bg-zinc-800/80 border-zinc-700/60 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700 rounded-lg sm:rounded-xl flex-shrink-0"
-            title={t('settingsTitle')}
+            title={t('settings.title')}
           >
             <SettingsIcon className="w-4 sm:w-[18px] h-4 sm:h-[18px]" strokeWidth={1.8} />
-            <span className="hidden sm:inline text-xs font-semibold">{t('settingsTitle')}</span>
+            <span className="hidden sm:inline text-xs font-semibold">{t('settings.title')}</span>
           </Button>
 
           {/* Help button */}
@@ -138,10 +138,10 @@ function AppInner() {
             variant="outline"
             onClick={() => setShowKeyboardHelp(prev => !prev)}
             className="px-2 sm:px-3 h-8 sm:h-9 bg-zinc-800/80 border-zinc-700/60 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700 rounded-lg sm:rounded-xl flex-shrink-0"
-            title={t('keyboardShortcuts') || 'Shortcuts'}
+            title={t('shortcuts.title') || 'Shortcuts'}
           >
             <Kbd>?</Kbd>
-            <span className="hidden sm:inline text-xs font-semibold">{t('keyboardShortcuts') || 'Help'}</span>
+            <span className="hidden sm:inline text-xs font-semibold">{t('shortcuts.title') || 'Help'}</span>
           </Button>
 
 
@@ -183,7 +183,7 @@ function AppInner() {
               ) : (
                 <div className="glass rounded-2xl p-5 flex flex-col items-center justify-center h-full animate-fade-in">
                   <Music2 className="w-10 h-10 text-zinc-700 mb-3" strokeWidth={1.5} />
-                  <p className="text-sm text-zinc-500 text-center whitespace-pre-line">{t('noMediaText')}</p>
+                  <p className="text-sm text-zinc-500 text-center whitespace-pre-line">{t('player.noMedia')}</p>
                 </div>
               )}
             </div>
@@ -221,11 +221,11 @@ function AppInner() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
               </div>
-              <h3 className="text-lg font-bold text-zinc-100">{t('sessionRestoreTitle')}</h3>
+              <h3 className="text-lg font-bold text-zinc-100">{t('session.restoreTitle')}</h3>
             </div>
-            <p className="text-sm text-zinc-400 mb-2 leading-relaxed">{t('sessionRestoreMessage')}</p>
+            <p className="text-sm text-zinc-400 mb-2 leading-relaxed">{t('session.restoreMessage')}</p>
             <p className="text-xs text-zinc-500 mb-5">
-              {pendingSession.lines?.length || 0} {t('sessionRestoreLines')}
+              {pendingSession.lines?.length || 0} {t('session.restoreLines')}
             </p>
             <div className="flex gap-3">
               <Button
@@ -233,13 +233,13 @@ function AppInner() {
                 onClick={handleDiscardSession}
                 className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border-zinc-700 font-semibold text-sm rounded-xl h-10"
               >
-                {t('sessionDiscard')}
+                {t('session.discard')}
               </Button>
               <Button
                 onClick={handleRestoreSession}
                 className="flex-1 bg-primary hover:bg-primary-dim text-zinc-950 font-semibold text-sm rounded-xl h-10"
               >
-                {t('sessionRestore')}
+                {t('session.restore')}
               </Button>
             </div>
           </div>

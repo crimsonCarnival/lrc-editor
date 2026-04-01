@@ -14,12 +14,12 @@ import { Input } from '@/components/ui/input';
 import { X, Headphones, FileText, Download, Monitor, Keyboard, SlidersHorizontal } from 'lucide-react';
 
 const TABS = [
-  { id: 'playback', labelKey: 'settingsPlayback', icon: Headphones },
-  { id: 'editor', labelKey: 'settingsEditor', icon: FileText },
-  { id: 'export', labelKey: 'settingsExport', icon: Download },
-  { id: 'interface', labelKey: 'settingsInterface', icon: Monitor },
-  { id: 'shortcuts', labelKey: 'settingsShortcuts', fallback: 'Shortcuts', icon: Keyboard },
-  { id: 'advanced', labelKey: 'settingsAdvanced', icon: SlidersHorizontal },
+  { id: 'playback', labelKey: 'settings.playback.label', icon: Headphones },
+  { id: 'editor', labelKey: 'settings.editor.label', icon: FileText },
+  { id: 'export', labelKey: 'settings.export.label', icon: Download },
+  { id: 'interface', labelKey: 'settings.interface.label', icon: Monitor },
+  { id: 'shortcuts', labelKey: 'settings.shortcuts.label', fallback: 'Shortcuts', icon: Keyboard },
+  { id: 'advanced', labelKey: 'settings.advanced.label', icon: SlidersHorizontal },
 ];
 
 function tabPanelClass(tabId, activeTab, searchTerm) {
@@ -72,12 +72,12 @@ export default function SettingsModal({ isOpen, onClose }) {
             >
               <div className="flex items-center gap-4 flex-1">
                 <h3 className="text-sm font-semibold text-zinc-200 uppercase tracking-widest shrink-0">
-                  {t('settingsTitle')}
+                  {t('settings.title')}
                 </h3>
                 <Input
                   type="text"
-                  placeholder={t('searchSettings')}
-                  title={t('searchSettingsTitle')}
+                  placeholder={t('settings.search')}
+                  title={t('settings.searchTitle')}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   onPointerDown={(e) => e.stopPropagation()}
@@ -183,14 +183,14 @@ export default function SettingsModal({ isOpen, onClose }) {
                 onClick={handleReset}
                 className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-zinc-200 border-zinc-700 font-medium text-sm rounded-xl h-10"
               >
-                {t('settingsReset') || 'Reset to defaults'}
+                {t('settings.reset') || 'Reset to defaults'}
               </Button>
               {!settings.advanced?.autoSave?.enabled && (
                 <Button
                   onClick={handleApply}
                   className="flex-1 bg-primary hover:bg-primary-dim text-zinc-950 font-semibold text-sm rounded-xl h-10"
                 >
-                  {t('applyChanges') || 'Apply Changes'}
+                  {t('settings.applyChanges') || 'Apply Changes'}
                 </Button>
               )}
             </div>

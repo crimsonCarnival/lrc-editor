@@ -15,7 +15,7 @@ const VolumeControl = React.memo(function VolumeControl() {
         size="icon"
         onClick={() => updateSetting('playback.muted', !settings.playback.muted)}
         className="rounded-full bg-zinc-800/80 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700 flex-shrink-0"
-        title={settings.playback.muted ? t('unmute') || 'Unmute' : t('mute') || 'Mute'}
+        title={settings.playback.muted ? t('player.unmute') || 'Unmute' : t('player.mute') || 'Mute'}
       >
         {settings.playback.muted || settings.playback.volume === 0 ? (
           <VolumeX className="w-4 h-4" />

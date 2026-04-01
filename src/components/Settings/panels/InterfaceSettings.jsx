@@ -18,8 +18,8 @@ export default function InterfaceSettings({ settings, updateSetting, searchTerm 
   } = useInterfaceSettings(updateSetting);
 
   return (
-    <Section title={t('settingsInterface')} icon={Monitor} searchTerm={searchTerm}>
-      <SettingRow icon={Moon} label={t('settingsTheme')} description={t('settingsThemeDesc')}>
+    <Section title={t('settings.interface.label')} icon={Monitor} searchTerm={searchTerm}>
+      <SettingRow icon={Moon} label={t('settings.interface.theme')} description={t('settings.interface.themeDesc')}>
         <Select
           value={settings.interface?.theme ?? 'dark'}
           onValueChange={(val) => handleThemeChange({ target: { value: val } })}
@@ -28,13 +28,13 @@ export default function InterfaceSettings({ settings, updateSetting, searchTerm 
             <SelectValue />
           </SelectTrigger>
           <SelectContent className="bg-zinc-900 border-zinc-700">
-            <SelectItem value="dark">{t('themeDark')}</SelectItem>
-            <SelectItem value="light">{t('themeLight')}</SelectItem>
-            <SelectItem value="system">{t('themeSystem')}</SelectItem>
+            <SelectItem value="dark">{t('settings.options.themes.dark')}</SelectItem>
+            <SelectItem value="light">{t('settings.options.themes.light')}</SelectItem>
+            <SelectItem value="system">{t('settings.options.themes.system')}</SelectItem>
           </SelectContent>
         </Select>
       </SettingRow>
-      <SettingRow icon={Sparkles} label={t('settingsActiveLineHighlight')} description={t('settingsActiveLineHighlightDesc')}>
+      <SettingRow icon={Sparkles} label={t('settings.interface.activeLineHighlight')} description={t('settings.interface.activeLineHighlightDesc')}>
         <Select
           value={settings.editor?.display?.activeHighlight ?? 'glow'}
           onValueChange={(val) => handleActiveHighlightChange({ target: { value: val } })}
@@ -43,14 +43,14 @@ export default function InterfaceSettings({ settings, updateSetting, searchTerm 
             <SelectValue />
           </SelectTrigger>
           <SelectContent className="bg-zinc-900 border-zinc-700">
-            <SelectItem value="glow">{t('highlightGlow')}</SelectItem>
-            <SelectItem value="zoom">{t('highlightZoom')}</SelectItem>
-            <SelectItem value="color">{t('highlightColor')}</SelectItem>
-            <SelectItem value="dim">{t('highlightDim')}</SelectItem>
+            <SelectItem value="glow">{t('settings.options.highlights.glow')}</SelectItem>
+            <SelectItem value="zoom">{t('settings.options.highlights.zoom')}</SelectItem>
+            <SelectItem value="color">{t('settings.options.highlights.color')}</SelectItem>
+            <SelectItem value="dim">{t('settings.options.highlights.dim')}</SelectItem>
           </SelectContent>
         </Select>
       </SettingRow>
-      <SettingRow icon={Globe} label={t('settingsLanguage')} description={t('settingsLanguageDesc')}>
+      <SettingRow icon={Globe} label={t('settings.interface.language')} description={t('settings.interface.languageDesc')}>
         <Select
           value={settings.interface?.defaultLanguage ?? 'en'}
           onValueChange={(val) => handleLanguageChange({ target: { value: val } })}
@@ -64,7 +64,7 @@ export default function InterfaceSettings({ settings, updateSetting, searchTerm 
           </SelectContent>
         </Select>
       </SettingRow>
-      <SettingRow icon={ScrollText} label={t('settingsScrollBehavior')} description={t('settingsScrollBehaviorDesc')}>
+      <SettingRow icon={ScrollText} label={t('settings.interface.scrollBehavior')} description={t('settings.interface.scrollBehaviorDesc')}>
         <Select
           value={settings.editor?.scroll?.mode ?? 'smooth'}
           onValueChange={(val) => handleScrollModeChange({ target: { value: val } })}
@@ -73,12 +73,12 @@ export default function InterfaceSettings({ settings, updateSetting, searchTerm 
             <SelectValue />
           </SelectTrigger>
           <SelectContent className="bg-zinc-900 border-zinc-700">
-            <SelectItem value="smooth">{t('settingsScrollSmooth')}</SelectItem>
-            <SelectItem value="instant">{t('settingsScrollInstant')}</SelectItem>
+            <SelectItem value="smooth">{t('settings.interface.scrollSmooth')}</SelectItem>
+            <SelectItem value="instant">{t('settings.interface.scrollInstant')}</SelectItem>
           </SelectContent>
         </Select>
       </SettingRow>
-      <SettingRow icon={AlignCenter} label={t('settingsScrollBlock')} description={t('settingsScrollBlockDesc')}>
+      <SettingRow icon={AlignCenter} label={t('settings.interface.scrollBlock')} description={t('settings.interface.scrollBlockDesc')}>
         <Select
           value={settings.editor?.scroll?.alignment ?? 'center'}
           onValueChange={(val) => handleScrollAlignmentChange({ target: { value: val } })}
@@ -87,14 +87,14 @@ export default function InterfaceSettings({ settings, updateSetting, searchTerm 
             <SelectValue />
           </SelectTrigger>
           <SelectContent className="bg-zinc-900 border-zinc-700">
-            <SelectItem value="center">{t('settingsScrollCenter')}</SelectItem>
-            <SelectItem value="nearest">{t('settingsScrollNearest')}</SelectItem>
+            <SelectItem value="center">{t('settings.interface.scrollCenter')}</SelectItem>
+            <SelectItem value="nearest">{t('settings.interface.scrollNearest')}</SelectItem>
             <SelectItem value="start">Top</SelectItem>
             <SelectItem value="none">Disabled</SelectItem>
           </SelectContent>
         </Select>
       </SettingRow>
-      <SettingRow icon={AlignLeft} label={t('settingsPreviewAlignment')} description={t('settingsPreviewAlignmentDesc')}>
+      <SettingRow icon={AlignLeft} label={t('settings.interface.previewAlignment')} description={t('settings.interface.previewAlignmentDesc')}>
         <Select
           value={settings.interface?.previewAlignment ?? 'left'}
           onValueChange={(val) => handlePreviewAlignmentChange({ target: { value: val } })}
@@ -103,13 +103,13 @@ export default function InterfaceSettings({ settings, updateSetting, searchTerm 
             <SelectValue />
           </SelectTrigger>
           <SelectContent className="bg-zinc-900 border-zinc-700">
-            <SelectItem value="left">{t('settingsAlignLeft')}</SelectItem>
-            <SelectItem value="center">{t('settingsAlignCenter')}</SelectItem>
-            <SelectItem value="right">{t('settingsAlignRight')}</SelectItem>
+            <SelectItem value="left">{t('settings.interface.alignLeft')}</SelectItem>
+            <SelectItem value="center">{t('settings.interface.alignCenter')}</SelectItem>
+            <SelectItem value="right">{t('settings.interface.alignRight')}</SelectItem>
           </SelectContent>
         </Select>
       </SettingRow>
-      <SettingRow icon={Type} label={t('settingsFontSize')} description={t('settingsFontSizeDesc')}>
+      <SettingRow icon={Type} label={t('settings.interface.fontSize')} description={t('settings.interface.fontSizeDesc')}>
         <Select
           value={settings.interface?.fontSize ?? 'normal'}
           onValueChange={(val) => handleFontSizeChange({ target: { value: val } })}
@@ -118,14 +118,14 @@ export default function InterfaceSettings({ settings, updateSetting, searchTerm 
             <SelectValue />
           </SelectTrigger>
           <SelectContent className="bg-zinc-900 border-zinc-700">
-            <SelectItem value="small">{t('sizeSmall')}</SelectItem>
-            <SelectItem value="normal">{t('sizeNormal')}</SelectItem>
-            <SelectItem value="large">{t('sizeLarge')}</SelectItem>
-            <SelectItem value="xlarge">{t('sizeXLarge')}</SelectItem>
+            <SelectItem value="small">{t('settings.options.sizes.small')}</SelectItem>
+            <SelectItem value="normal">{t('settings.options.sizes.normal')}</SelectItem>
+            <SelectItem value="large">{t('settings.options.sizes.large')}</SelectItem>
+            <SelectItem value="xlarge">{t('settings.options.sizes.xLarge')}</SelectItem>
           </SelectContent>
         </Select>
       </SettingRow>
-      <SettingRow icon={Rows2} label={t('settingsSpacing')} description={t('settingsSpacingDesc')}>
+      <SettingRow icon={Rows2} label={t('settings.interface.spacing')} description={t('settings.interface.spacingDesc')}>
         <Select
           value={settings.interface?.spacing ?? 'normal'}
           onValueChange={(val) => handleSpacingChange({ target: { value: val } })}
@@ -134,9 +134,9 @@ export default function InterfaceSettings({ settings, updateSetting, searchTerm 
             <SelectValue />
           </SelectTrigger>
           <SelectContent className="bg-zinc-900 border-zinc-700">
-            <SelectItem value="compact">{t('spacingCompact')}</SelectItem>
-            <SelectItem value="normal">{t('spacingNormal')}</SelectItem>
-            <SelectItem value="relaxed">{t('spacingRelaxed')}</SelectItem>
+            <SelectItem value="compact">{t('settings.options.spacing.compact')}</SelectItem>
+            <SelectItem value="normal">{t('settings.options.spacing.normal')}</SelectItem>
+            <SelectItem value="relaxed">{t('settings.options.spacing.relaxed')}</SelectItem>
           </SelectContent>
         </Select>
       </SettingRow>

@@ -14,8 +14,8 @@ export default function PlaybackSettings({ settings, updateSetting, searchTerm }
   } = usePlaybackSettings(settings, updateSetting);
 
   return (
-    <Section title={t('settingsPlayback')} icon={Headphones} searchTerm={searchTerm}>
-      <SettingRow icon={RotateCcw} label={t('settingsAutoRewind')} description={t('settingsAutoRewindDesc')}>
+    <Section title={t('settings.playback.label')} icon={Headphones} searchTerm={searchTerm}>
+      <SettingRow icon={RotateCcw} label={t('settings.playback.autoRewind')} description={t('settings.playback.autoRewindDesc')}>
         <NumberInput
           min={0}
           max={10}
@@ -25,7 +25,7 @@ export default function PlaybackSettings({ settings, updateSetting, searchTerm }
           className="w-20"
         />
       </SettingRow>
-      <SettingRow icon={ChevronsDown} label={t('settingsMinSpeed')} description={t('settingsMinSpeedDesc')}>
+      <SettingRow icon={ChevronsDown} label={t('settings.playback.minSpeed')} description={t('settings.playback.minSpeedDesc')}>
         <NumberInput
           min={0.05}
           max={(settings.playback?.speedBounds?.max || 3) - 0.05}
@@ -35,7 +35,7 @@ export default function PlaybackSettings({ settings, updateSetting, searchTerm }
           className="w-20"
         />
       </SettingRow>
-      <SettingRow icon={ChevronsUp} label={t('settingsMaxSpeed')} description={t('settingsMaxSpeedDesc')}>
+      <SettingRow icon={ChevronsUp} label={t('settings.playback.maxSpeed')} description={t('settings.playback.maxSpeedDesc')}>
         <NumberInput
           min={(settings.playback?.speedBounds?.min || 0.25) + 0.05}
           max={10}
@@ -45,14 +45,14 @@ export default function PlaybackSettings({ settings, updateSetting, searchTerm }
           className="w-20"
         />
       </SettingRow>
-      <SettingRow icon={ActivitySquare} label={t('settingsShowWaveform')} description={t('settingsShowWaveformDesc')}>
+      <SettingRow icon={ActivitySquare} label={t('settings.playback.showWaveform')} description={t('settings.playback.showWaveformDesc')}>
         <Toggle
           id="toggle-waveform"
           checked={settings.playback?.showWaveform ?? true}
           onChange={handleShowWaveformChange}
         />
       </SettingRow>
-      <SettingRow icon={Timer} label={t('settingsSeekTime')} description={t('settingsSeekTimeDesc')}>
+      <SettingRow icon={Timer} label={t('settings.playback.seekTime')} description={t('settings.playback.seekTimeDesc')}>
         <NumberInput
           min={1}
           max={60}

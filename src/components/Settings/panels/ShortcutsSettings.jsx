@@ -16,10 +16,10 @@ export default function ShortcutsSettings({ settings, updateSetting, searchTerm,
   const [subTab, setSubTab] = useState('editor');
 
   const SUB_TABS = [
-    { id: 'editor',    icon: Keyboard,          label: t('settingsShortcuts') || 'Editor' },
-    { id: 'player',    icon: Headphones,         label: t('settingsPlayerShortcutsSection') || 'Player' },
-    { id: 'preview',   icon: Eye,               label: t('settingsPreviewShortcutsSection') || 'Preview' },
-    { id: 'modifiers', icon: MousePointerClick,  label: t('settingsShortcutClickModifiersSection') || 'Modifiers' },
+    { id: 'editor',    icon: Keyboard,          label: t('settings.shortcuts.label') || 'Editor' },
+    { id: 'player',    icon: Headphones,         label: t('settings.shortcuts.playerSection') || 'Player' },
+    { id: 'preview',   icon: Eye,               label: t('settings.shortcuts.previewSection') || 'Preview' },
+    { id: 'modifiers', icon: MousePointerClick,  label: t('settings.shortcuts.clickModifiersSection') || 'Modifiers' },
   ];
 
   // When searching, show all; otherwise show only the active sub-tab
@@ -49,11 +49,11 @@ export default function ShortcutsSettings({ settings, updateSetting, searchTerm,
       )}
 
       {show('editor') && (
-        <Section title={t('settingsShortcuts') || 'Editor'} icon={Keyboard} searchTerm={searchTerm}>
+        <Section title={t('settings.shortcuts.label') || 'Editor'} icon={Keyboard} searchTerm={searchTerm}>
           <SettingRow
             icon={MapPin}
-            label={t('settingsShortcutMarkLabel') || 'Mark Timestamp'}
-            description={t('settingsShortcutMarkDesc') || 'Key to mark start/end times'}
+            label={t('settings.shortcuts.markLabel') || 'Mark Timestamp'}
+            description={t('settings.shortcuts.markDesc') || 'Key to mark start/end times'}
           >
             <ShortcutInput
               value={settings.shortcuts?.mark?.[0] || 'Space'}
@@ -63,9 +63,9 @@ export default function ShortcutsSettings({ settings, updateSetting, searchTerm,
           </SettingRow>
           <SettingRow
             icon={ChevronLeft}
-            label={t('settingsShortcutNudgeLeftLabel') || 'Nudge Left'}
+            label={t('settings.shortcuts.nudgeLeftLabel') || 'Nudge Left'}
             description={
-              t('settingsShortcutNudgeLeftDesc', { val: settings.editor?.nudge?.default || 0.1 }) ||
+              t('settings.shortcuts.nudgeLeftDesc', { val: settings.editor?.nudge?.default || 0.1 }) ||
               `Subtract ${settings.editor?.nudge?.default || 0.1}s`
             }
           >
@@ -77,9 +77,9 @@ export default function ShortcutsSettings({ settings, updateSetting, searchTerm,
           </SettingRow>
           <SettingRow
             icon={ChevronRight}
-            label={t('settingsShortcutNudgeRightLabel') || 'Nudge Right'}
+            label={t('settings.shortcuts.nudgeRightLabel') || 'Nudge Right'}
             description={
-              t('settingsShortcutNudgeRightDesc', { val: settings.editor?.nudge?.default || 0.1 }) ||
+              t('settings.shortcuts.nudgeRightDesc', { val: settings.editor?.nudge?.default || 0.1 }) ||
               `Add ${settings.editor?.nudge?.default || 0.1}s`
             }
           >
@@ -91,8 +91,8 @@ export default function ShortcutsSettings({ settings, updateSetting, searchTerm,
           </SettingRow>
           <SettingRow
             icon={Plus}
-            label={t('settingsShortcutAddLineLabel') || 'Add Line'}
-            description={t('settingsShortcutAddLineDesc') || 'Add new line below active line'}
+            label={t('settings.shortcuts.addLineLabel') || 'Add Line'}
+            description={t('settings.shortcuts.addLineDesc') || 'Add new line below active line'}
           >
             <ShortcutInput
               value={settings.shortcuts?.addLine?.[0] || 'Ctrl+Enter'}
@@ -102,8 +102,8 @@ export default function ShortcutsSettings({ settings, updateSetting, searchTerm,
           </SettingRow>
           <SettingRow
             icon={Trash2}
-            label={t('settingsShortcutDeleteLineLabel') || 'Delete Line'}
-            description={t('settingsShortcutDeleteLineDesc') || 'Delete active line (or selection)'}
+            label={t('settings.shortcuts.deleteLineLabel') || 'Delete Line'}
+            description={t('settings.shortcuts.deleteLineDesc') || 'Delete active line (or selection)'}
           >
             <ShortcutInput
               value={settings.shortcuts?.deleteLine?.[0] || 'Delete'}
@@ -113,8 +113,8 @@ export default function ShortcutsSettings({ settings, updateSetting, searchTerm,
           </SettingRow>
           <SettingRow
             icon={X}
-            label={t('settingsShortcutClearTimestampLabel') || 'Clear Timestamp'}
-            description={t('settingsShortcutClearTimestampDesc') || 'Clear timestamp on active line'}
+            label={t('settings.shortcuts.clearTimestampLabel') || 'Clear Timestamp'}
+            description={t('settings.shortcuts.clearTimestampDesc') || 'Clear timestamp on active line'}
           >
             <ShortcutInput
               value={settings.shortcuts?.clearTimestamp?.[0] || 'Backspace'}
@@ -124,8 +124,8 @@ export default function ShortcutsSettings({ settings, updateSetting, searchTerm,
           </SettingRow>
           <SettingRow
             icon={RefreshCw}
-            label={t('settingsShortcutSwitchModeLabel') || 'Switch Mode'}
-            description={t('settingsShortcutSwitchModeDesc') || 'Toggle LRC/SRT editor mode'}
+            label={t('settings.shortcuts.switchModeLabel') || 'Switch Mode'}
+            description={t('settings.shortcuts.switchModeDesc') || 'Toggle LRC/SRT editor mode'}
           >
             <ShortcutInput
               value={settings.shortcuts?.switchMode?.[0] || 'Ctrl+M'}
@@ -135,8 +135,8 @@ export default function ShortcutsSettings({ settings, updateSetting, searchTerm,
           </SettingRow>
           <SettingRow
             icon={LogOut}
-            label={t('settingsShortcutDeselectLabel') || 'Deselect / Close'}
-            description={t('settingsShortcutDeselectDesc') || 'Clear selection or close dialogs'}
+            label={t('settings.shortcuts.deselectLabel') || 'Deselect / Close'}
+            description={t('settings.shortcuts.deselectDesc') || 'Clear selection or close dialogs'}
           >
             <ShortcutInput
               value={settings.shortcuts?.deselect?.[0] || 'Escape'}
@@ -146,8 +146,8 @@ export default function ShortcutsSettings({ settings, updateSetting, searchTerm,
           </SettingRow>
           <SettingRow
             icon={HelpCircle}
-            label={t('settingsShortcutShowHelpLabel') || 'Show Shortcuts'}
-            description={t('settingsShortcutShowHelpDesc') || 'Open the keyboard shortcuts dialog'}
+            label={t('settings.shortcuts.showHelpLabel') || 'Show Shortcuts'}
+            description={t('settings.shortcuts.showHelpDesc') || 'Open the keyboard shortcuts dialog'}
           >
             <ShortcutInput
               value={settings.shortcuts?.showHelp?.[0] || '?'}
@@ -159,11 +159,11 @@ export default function ShortcutsSettings({ settings, updateSetting, searchTerm,
       )}
 
       {show('player') && (
-        <Section title={t('settingsPlayerShortcutsSection') || 'Player'} icon={Headphones} searchTerm={searchTerm}>
+        <Section title={t('settings.shortcuts.playerSection') || 'Player'} icon={Headphones} searchTerm={searchTerm}>
           <SettingRow
             icon={Play}
-            label={t('settingsShortcutPlayPauseLabel') || 'Play / Pause'}
-            description={t('settingsShortcutPlayPauseDesc') || 'Toggle playback'}
+            label={t('settings.shortcuts.playPauseLabel') || 'Play / Pause'}
+            description={t('settings.shortcuts.playPauseDesc') || 'Toggle playback'}
           >
             <ShortcutInput
               value={settings.shortcuts?.playPause?.[0] || 'Enter'}
@@ -173,8 +173,8 @@ export default function ShortcutsSettings({ settings, updateSetting, searchTerm,
           </SettingRow>
           <SettingRow
             icon={SkipBack}
-            label={t('settingsShortcutSeekBackwardLabel') || 'Seek Backward'}
-            description={t('settingsShortcutSeekBackwardDesc', { val: settings.playback?.seekTime ?? 5 }) || `Seek back ${settings.playback?.seekTime ?? 5}s`}
+            label={t('settings.shortcuts.seekBackwardLabel') || 'Seek Backward'}
+            description={t('settings.shortcuts.seekBackwardDesc', { val: settings.playback?.seekTime ?? 5 }) || `Seek back ${settings.playback?.seekTime ?? 5}s`}
           >
             <ShortcutInput
               value={settings.shortcuts?.seekBackward?.[0] || 'ArrowLeft'}
@@ -184,8 +184,8 @@ export default function ShortcutsSettings({ settings, updateSetting, searchTerm,
           </SettingRow>
           <SettingRow
             icon={SkipForward}
-            label={t('settingsShortcutSeekForwardLabel') || 'Seek Forward'}
-            description={t('settingsShortcutSeekForwardDesc', { val: settings.playback?.seekTime ?? 5 }) || `Seek forward ${settings.playback?.seekTime ?? 5}s`}
+            label={t('settings.shortcuts.seekForwardLabel') || 'Seek Forward'}
+            description={t('settings.shortcuts.seekForwardDesc', { val: settings.playback?.seekTime ?? 5 }) || `Seek forward ${settings.playback?.seekTime ?? 5}s`}
           >
             <ShortcutInput
               value={settings.shortcuts?.seekForward?.[0] || 'ArrowRight'}
@@ -195,8 +195,8 @@ export default function ShortcutsSettings({ settings, updateSetting, searchTerm,
           </SettingRow>
           <SettingRow
             icon={VolumeX}
-            label={t('settingsShortcutMuteLabel') || 'Mute / Unmute'}
-            description={t('settingsShortcutMuteDesc') || 'Toggle audio mute'}
+            label={t('settings.shortcuts.muteLabel') || 'Mute / Unmute'}
+            description={t('settings.shortcuts.muteDesc') || 'Toggle audio mute'}
           >
             <ShortcutInput
               value={settings.shortcuts?.mute?.[0] || 'm'}
@@ -206,8 +206,8 @@ export default function ShortcutsSettings({ settings, updateSetting, searchTerm,
           </SettingRow>
           <SettingRow
             icon={ChevronsUp}
-            label={t('settingsShortcutSpeedUpLabel') || 'Speed Up'}
-            description={t('settingsShortcutSpeedUpDesc') || 'Increase playback speed by nudge amount'}
+            label={t('settings.shortcuts.speedUpLabel') || 'Speed Up'}
+            description={t('settings.shortcuts.speedUpDesc') || 'Increase playback speed by nudge amount'}
           >
             <ShortcutInput
               value={settings.shortcuts?.speedUp?.[0] || '+'}
@@ -217,8 +217,8 @@ export default function ShortcutsSettings({ settings, updateSetting, searchTerm,
           </SettingRow>
           <SettingRow
             icon={ChevronsDown}
-            label={t('settingsShortcutSpeedDownLabel') || 'Speed Down'}
-            description={t('settingsShortcutSpeedDownDesc') || 'Decrease playback speed by nudge amount'}
+            label={t('settings.shortcuts.speedDownLabel') || 'Speed Down'}
+            description={t('settings.shortcuts.speedDownDesc') || 'Decrease playback speed by nudge amount'}
           >
             <ShortcutInput
               value={settings.shortcuts?.speedDown?.[0] || '-'}
@@ -230,11 +230,11 @@ export default function ShortcutsSettings({ settings, updateSetting, searchTerm,
       )}
 
       {show('preview') && (
-        <Section title={t('settingsPreviewShortcutsSection') || 'Preview'} icon={Eye} searchTerm={searchTerm}>
+        <Section title={t('settings.shortcuts.previewSection') || 'Preview'} icon={Eye} searchTerm={searchTerm}>
           <SettingRow
             icon={Eye}
-            label={t('settingsShortcutToggleTranslationLabel') || 'Toggle Translations'}
-            description={t('settingsShortcutToggleTranslationDesc') || 'Show or hide translations in preview'}
+            label={t('settings.shortcuts.toggleTranslationLabel') || 'Toggle Translations'}
+            description={t('settings.shortcuts.toggleTranslationDesc') || 'Show or hide translations in preview'}
           >
             <ShortcutInput
               value={settings.shortcuts?.toggleTranslation?.[0] || 't'}
@@ -244,8 +244,8 @@ export default function ShortcutsSettings({ settings, updateSetting, searchTerm,
           </SettingRow>
           <SettingRow
             icon={Music2}
-            label={t('settingsShortcutAddSecondaryLabel') || 'Add Secondary Lyrics'}
-            description={t('settingsShortcutAddSecondaryDesc') || 'Open secondary lyrics paste panel'}
+            label={t('settings.shortcuts.addSecondaryLabel') || 'Add Secondary Lyrics'}
+            description={t('settings.shortcuts.addSecondaryDesc') || 'Open secondary lyrics paste panel'}
           >
             <ShortcutInput
               value={settings.shortcuts?.addSecondary?.[0] || 'Shift+H'}
@@ -255,8 +255,8 @@ export default function ShortcutsSettings({ settings, updateSetting, searchTerm,
           </SettingRow>
           <SettingRow
             icon={Languages}
-            label={t('settingsShortcutAddTranslationLabel') || 'Add Translations'}
-            description={t('settingsShortcutAddTranslationDesc') || 'Open translation paste panel'}
+            label={t('settings.shortcuts.addTranslationLabel') || 'Add Translations'}
+            description={t('settings.shortcuts.addTranslationDesc') || 'Open translation paste panel'}
           >
             <ShortcutInput
               value={settings.shortcuts?.addTranslation?.[0] || 'Shift+T'}
@@ -268,11 +268,11 @@ export default function ShortcutsSettings({ settings, updateSetting, searchTerm,
       )}
 
       {show('modifiers') && (
-        <Section title={t('settingsShortcutClickModifiersSection') || 'Click Modifiers'} icon={MousePointerClick} searchTerm={searchTerm}>
+        <Section title={t('settings.shortcuts.clickModifiersSection') || 'Click Modifiers'} icon={MousePointerClick} searchTerm={searchTerm}>
           <SettingRow
             icon={MousePointer}
-            label={t('settingsShortcutRangeSelectLabel') || 'Select a range'}
-            description={t('settingsShortcutRangeSelectDesc') || 'Hold + Click to select a continuous block of lines'}
+            label={t('settings.shortcuts.rangeSelectLabel') || 'Select a range'}
+            description={t('settings.shortcuts.rangeSelectDesc') || 'Hold + Click to select a continuous block of lines'}
           >
             <ModifierInput
               value={settings.shortcuts?.rangeSelect?.[0] || 'Shift'}
@@ -282,8 +282,8 @@ export default function ShortcutsSettings({ settings, updateSetting, searchTerm,
           </SettingRow>
           <SettingRow
             icon={MousePointerClick}
-            label={t('settingsShortcutToggleSelectLabel') || 'Pick individual lines'}
-            description={t('settingsShortcutToggleSelectDesc') || 'Hold + Click to add/remove single lines from the selection'}
+            label={t('settings.shortcuts.toggleSelectLabel') || 'Pick individual lines'}
+            description={t('settings.shortcuts.toggleSelectDesc') || 'Hold + Click to add/remove single lines from the selection'}
           >
             <ModifierInput
               value={settings.shortcuts?.toggleSelect?.[0] || 'Ctrl'}

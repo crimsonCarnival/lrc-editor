@@ -358,7 +358,7 @@ export function useAppState() {
 
       if (['lrc', 'srt'].includes(extension)) {
         if (file.size > MAX_IMPORT_FILE_SIZE) {
-          toast.error(t('fileTooLarge') || 'File too large (max 5 MB)');
+          toast.error(t('import.tooLarge') || 'File too large (max 5 MB)');
           return;
         }
 
@@ -367,7 +367,7 @@ export function useAppState() {
           const parsedLines = parseLrcSrtFile(text, file.name);
 
           if (parsedLines.length === 0) {
-            toast.error(t('noLinesFound') || 'No lyrics found in file');
+            toast.error(t('import.noLines') || 'No lyrics found in file');
             return;
           }
 
@@ -375,18 +375,18 @@ export function useAppState() {
             setLines(parsedLines);
             setEditorModeRaw(extension === 'srt' ? 'srt' : 'lrc');
             toast.success(
-              t('importedLines', { count: parsedLines.length }) || `Imported ${parsedLines.length} lines`,
+              t('import.success', { count: parsedLines.length }) || `Imported ${parsedLines.length} lines`,
             );
           };
 
           if (lines.length > 0 && settings.advanced.confirmDestructive) {
-            requestConfirm(t('confirmRemoveAll') || 'Replace existing lyrics?', applyImport);
+            requestConfirm(t('confirm.removeAll') || 'Replace existing lyrics?', applyImport);
           } else {
             applyImport();
           }
         } catch (err) {
           console.error('Failed to parse dropped lyrics file', err);
-          toast.error(t('importFailed') || 'Failed to parse lyrics file');
+          toast.error(t('import.failed') || 'Failed to parse lyrics file');
         }
       }
     },

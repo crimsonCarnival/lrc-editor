@@ -26,7 +26,7 @@ export default function ConfirmModal({ isOpen, title, message, onConfirm, onCanc
               </svg>
             </div>
             <AlertDialogTitle className="text-lg font-bold text-zinc-100">
-              {title || t('confirmAction')}
+              {title || t('confirm.action')}
             </AlertDialogTitle>
           </div>
           <AlertDialogDescription className="text-sm text-zinc-400 leading-relaxed mt-2">
@@ -38,13 +38,13 @@ export default function ConfirmModal({ isOpen, title, message, onConfirm, onCanc
             onClick={onCancel}
             className="flex-1 py-2.5 bg-zinc-700 hover:bg-zinc-600 border-zinc-600 text-zinc-300 font-semibold text-sm rounded-xl transition-all"
           >
-            {cancelText || t('cancel')}
+            {cancelText || t('confirm.cancel')}
           </AlertDialogCancel>
           <AlertDialogAction
             onClick={onConfirm}
             className="flex-1 py-2.5 bg-primary hover:bg-primary-dim text-zinc-950 font-semibold text-sm rounded-xl transition-all"
           >
-            {confirmText || t('confirm')}
+            {confirmText || t('confirm.confirm')}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

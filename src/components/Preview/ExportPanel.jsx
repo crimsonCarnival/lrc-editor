@@ -40,7 +40,7 @@ export default function ExportPanel({
   return (
     <div className="absolute right-0 top-full mt-2 rounded-lg sm:rounded-xl p-3 sm:p-4 space-y-2 sm:space-y-3 w-64 sm:w-72 z-50 animate-fade-in shadow-2xl bg-zinc-900 border border-zinc-700 font-sans text-left" ref={exportPanelRef}>
       <label className="block">
-        <span className="text-xs text-zinc-400 font-medium">{t('filename')}</span>
+        <span className="text-xs text-zinc-400 font-medium">{t('export.filename')}</span>
         <div className="flex items-center gap-1 mt-1">
           <Input
             type="text"
@@ -56,9 +56,9 @@ export default function ExportPanel({
 
       {settings.export?.downloadFormat === 'lrc' && (
         <div className="space-y-2 pt-2 border-t border-zinc-700/50">
-          <span className="text-xs text-zinc-400 font-medium">{t('exportMetadata', 'LRC Metadata')}</span>
+          <span className="text-xs text-zinc-400 font-medium">{t('export.metadata', 'LRC Metadata')}</span>
           {['ti', 'ar', 'al', 'lg'].map((key) => {
-            const labels = { ti: t('metaTitle', 'Title'), ar: t('metaArtist', 'Artist'), al: t('metaAlbum', 'Album'), lg: t('metaLanguage', 'Language') };
+            const labels = { ti: t('export.metaTitle', 'Title'), ar: t('export.metaArtist', 'Artist'), al: t('export.metaAlbum', 'Album'), lg: t('export.metaLanguage', 'Language') };
             return (
               <div key={key} className="flex items-center gap-2">
                 <span className="text-xs text-zinc-500 w-16">{labels[key]}</span>
@@ -84,7 +84,7 @@ export default function ExportPanel({
             className="border-zinc-600 bg-zinc-800 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
           />
           <Label htmlFor="include-translations" className="text-xs text-zinc-400 cursor-pointer">
-            {t('includeTranslations')}
+            {t('preview.includeTranslations')}
           </Label>
         </div>
       )}
@@ -95,13 +95,13 @@ export default function ExportPanel({
           onClick={handleCopy}
           className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border-zinc-700 font-semibold text-sm h-10"
         >
-          {wasCopied ? `${t('copied')} ${settings.export?.copyFormat.toUpperCase()}!` : t('copyToClipboard')}
+          {wasCopied ? `${t('common.copied')} ${settings.export?.copyFormat.toUpperCase()}!` : t('preview.copyToClipboard')}
         </Button>
         <Button
           onClick={handleExport}
           className="flex-1 bg-primary hover:bg-primary-dim text-zinc-950 font-semibold text-sm h-10"
         >
-          {t('download')}
+          {t('export.download')}
         </Button>
       </div>
     </div>

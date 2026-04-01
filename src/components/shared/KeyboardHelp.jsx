@@ -15,9 +15,9 @@ const resolveShortcut = (shortcut) =>
   shortcut.split('+').map((k) => KEY_SYMBOLS[k] ?? k);
 
 const HELP_TABS = [
-  { id: 'player', icon: Headphones, labelKey: 'helpTabPlayer' },
-  { id: 'editor', icon: FileText,   labelKey: 'helpTabEditor' },
-  { id: 'preview', icon: Eye,       labelKey: 'helpTabPreview' },
+  { id: 'player', icon: Headphones, labelKey: 'shortcuts.tabs.player' },
+  { id: 'editor', icon: FileText,   labelKey: 'shortcuts.tabs.editor' },
+  { id: 'preview', icon: Eye,       labelKey: 'shortcuts.tabs.preview' },
 ];
 
 export default function KeyboardHelp({ isOpen, onClose }) {
@@ -49,39 +49,39 @@ export default function KeyboardHelp({ isOpen, onClose }) {
 
   const tabContent = {
     player: [
-      { section: t('helpSectionPlayback'), items: [
-        { keys: resolveShortcut(settings.shortcuts?.playPause?.[0] || 'Enter'),            desc: t('shortcutPlayPause') },
-        { keys: resolveShortcut(settings.shortcuts?.seekBackward?.[0] || 'Alt+ArrowLeft'), desc: t('shortcutSeekBackward', { val: seekTime }) },
-        { keys: resolveShortcut(settings.shortcuts?.seekForward?.[0] || 'Alt+ArrowRight'), desc: t('shortcutSeekForward', { val: seekTime }) },
-        { keys: resolveShortcut(settings.shortcuts?.mute?.[0] || 'm'),                    desc: t('shortcutMute') },
-        { keys: resolveShortcut(settings.shortcuts?.speedUp?.[0] || '+'),                  desc: t('shortcutSpeedUp') },
-        { keys: resolveShortcut(settings.shortcuts?.speedDown?.[0] || '-'),                desc: t('shortcutSpeedDown') },
+      { section: t('shortcuts.sections.playback'), items: [
+        { keys: resolveShortcut(settings.shortcuts?.playPause?.[0] || 'Enter'),            desc: t('shortcuts.playPause') },
+        { keys: resolveShortcut(settings.shortcuts?.seekBackward?.[0] || 'ArrowLeft'), desc: t('shortcuts.seekBackward', { val: seekTime }) },
+        { keys: resolveShortcut(settings.shortcuts?.seekForward?.[0] || 'ArrowRight'), desc: t('shortcuts.seekForward', { val: seekTime }) },
+        { keys: resolveShortcut(settings.shortcuts?.mute?.[0] || 'm'),                    desc: t('shortcuts.mute') },
+        { keys: resolveShortcut(settings.shortcuts?.speedUp?.[0] || '+'),                  desc: t('shortcuts.speedUp') },
+        { keys: resolveShortcut(settings.shortcuts?.speedDown?.[0] || '-'),                desc: t('shortcuts.speedDown') },
       ]},
     ],
     editor: [
-      { section: t('syncModeOnly'), items: [
-        { keys: resolveShortcut(settings.shortcuts?.mark?.[0] || 'Space'),       desc: t('shortcutMark') },
-        { keys: resolveShortcut(settings.shortcuts?.nudgeLeft?.[0] || 'ArrowLeft'),  desc: t('shortcutNudgeLeft', { val: nudge }) },
-        { keys: resolveShortcut(settings.shortcuts?.nudgeRight?.[0] || 'ArrowRight'), desc: t('shortcutNudgeRight', { val: nudge }) },
+      { section: t('editor.syncModeOnly'), items: [
+        { keys: resolveShortcut(settings.shortcuts?.mark?.[0] || 'Space'),       desc: t('shortcuts.mark') },
+        { keys: resolveShortcut(settings.shortcuts?.nudgeLeft?.[0] || 'Alt+ArrowLeft'),  desc: t('shortcuts.nudgeLeft', { val: nudge }) },
+        { keys: resolveShortcut(settings.shortcuts?.nudgeRight?.[0] || 'Alt+ArrowRight'), desc: t('shortcuts.nudgeRight', { val: nudge }) },
       ]},
-      { section: t('shortcutSelectionSection'), items: [
-        { keys: [...resolveModifier(settings.shortcuts?.rangeSelect?.[0] || 'Shift'), t('shortcutClick')],  desc: t('shortcutRangeSelect') },
-        { keys: [...resolveModifier(settings.shortcuts?.toggleSelect?.[0] || 'Ctrl'), t('shortcutClick')], desc: t('shortcutToggleSelect') },
-        { keys: resolveShortcut(settings.shortcuts?.deselect?.[0] || 'Escape'),    desc: t('shortcutDeselect') },
-        { keys: resolveShortcut(settings.shortcuts?.deleteLine?.[0] || 'Delete'),   desc: t('shortcutDeleteSelected') },
-        { keys: [t('shortcutDblClick')],                                            desc: t('shortcutEditLine') },
+      { section: t('shortcuts.selection.title'), items: [
+        { keys: [...resolveModifier(settings.shortcuts?.rangeSelect?.[0] || 'Shift'), t('shortcuts.selection.click')],  desc: t('shortcuts.selection.rangeSelect') },
+        { keys: [...resolveModifier(settings.shortcuts?.toggleSelect?.[0] || 'Ctrl'), t('shortcuts.selection.click')], desc: t('shortcuts.selection.toggleSelect') },
+        { keys: resolveShortcut(settings.shortcuts?.deselect?.[0] || 'Escape'),    desc: t('shortcuts.selection.deselect') },
+        { keys: resolveShortcut(settings.shortcuts?.deleteLine?.[0] || 'Delete'),   desc: t('shortcuts.selection.deleteSelected') },
+        { keys: [t('shortcuts.selection.dblClick')],                                            desc: t('shortcuts.selection.editLine') },
       ]},
-      { section: t('global'), items: [
-        { keys: ['Ctrl', 'Z'],                                                        desc: t('shortcutUndo') },
-        { keys: ['Ctrl', 'Y'],                                                        desc: t('shortcutRedo') },
-        { keys: resolveShortcut(settings.shortcuts?.showHelp?.[0] || '?'),           desc: t('shortcutHelp') },
+      { section: t('common.global'), items: [
+        { keys: ['Ctrl', 'Z'],                                                        desc: t('shortcuts.undo') },
+        { keys: ['Ctrl', 'Y'],                                                        desc: t('shortcuts.redo') },
+        { keys: resolveShortcut(settings.shortcuts?.showHelp?.[0] || '?'),           desc: t('shortcuts.help') },
       ]},
     ],
     preview: [
-      { section: t('helpSectionPreview'), items: [
-        { keys: resolveShortcut(settings.shortcuts?.toggleTranslation?.[0] || 't'),  desc: t('shortcutToggleTranslation') },
-        { keys: resolveShortcut(settings.shortcuts?.addSecondary?.[0] || 'Shift+H'), desc: t('shortcutAddSecondary') },
-        { keys: resolveShortcut(settings.shortcuts?.addTranslation?.[0] || 'Shift+T'), desc: t('shortcutAddTranslation') },
+      { section: t('shortcuts.sections.preview'), items: [
+        { keys: resolveShortcut(settings.shortcuts?.toggleTranslation?.[0] || 't'),  desc: t('shortcuts.toggleTranslation') },
+        { keys: resolveShortcut(settings.shortcuts?.addSecondary?.[0] || 'Shift+H'), desc: t('shortcuts.addSecondary') },
+        { keys: resolveShortcut(settings.shortcuts?.addTranslation?.[0] || 'Shift+T'), desc: t('shortcuts.addTranslation') },
       ]},
     ],
   };
@@ -101,7 +101,7 @@ export default function KeyboardHelp({ isOpen, onClose }) {
             onPointerDown={handleMouseDown}
           >
             <h3 className="text-sm font-semibold text-zinc-200 uppercase tracking-widest">
-              {t('keyboardShortcuts')}
+              {t('shortcuts.title')}
             </h3>
             <Button
               variant="ghost"

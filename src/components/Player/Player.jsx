@@ -145,7 +145,7 @@ const Player = forwardRef(function Player(
   // ——— Remove media ———
 
   const removeMedia = useCallback(() => {
-    requestConfirm(t('confirmRemoveMedia') || 'Remove currently loaded media?', () => {
+    requestConfirm(t('confirm.removeMedia') || 'Remove currently loaded media?', () => {
       if (source === 'local') local.remove();
       else if (source === 'youtube') yt.remove();
       setIsPlaying(false);
@@ -164,7 +164,7 @@ const Player = forwardRef(function Player(
       {/* Header */}
       <div className="flex flex-row items-center justify-between gap-2 sm:gap-4 mb-1">
         <h2 className="text-xs sm:text-sm font-semibold tracking-widest text-zinc-400 flex items-center gap-2 overflow-hidden flex-1 pb-0.5 min-w-0">
-          <span className="uppercase shrink-0 text-xs sm:text-sm flex items-center gap-1.5"><Headphones className="w-3.5 h-3.5" />{t('playerTitle')}</span>
+          <span className="uppercase shrink-0 text-xs sm:text-sm flex items-center gap-1.5"><Headphones className="w-3.5 h-3.5" />{t('player.title')}</span>
           {mediaTitle && (
             <div className="flex items-center gap-1 px-1.5 py-0.5 rounded text-xs min-w-0 flex-1">
               <Music2 className="w-2.5 h-2.5 text-primary shrink-0" strokeWidth={2.5} />
@@ -186,14 +186,14 @@ const Player = forwardRef(function Player(
               value="local"
               className="px-2 py-1.5 text-[10px] sm:text-xs font-medium rounded-md data-[state=on]:bg-primary data-[state=on]:text-zinc-950 data-[state=on]:shadow-lg text-zinc-400 hover:text-zinc-200 hover:bg-transparent h-auto"
             >
-              {t('localFile')}
+              {t('player.localFile')}
             </ToggleGroupItem>
             <ToggleGroupItem
               id="source-youtube"
               value="youtube"
               className="px-2 py-1.5 text-[10px] sm:text-xs font-medium rounded-md data-[state=on]:bg-primary data-[state=on]:text-zinc-950 data-[state=on]:shadow-lg text-zinc-400 hover:text-zinc-200 hover:bg-transparent h-auto"
             >
-              {t('youtube')}
+              {t('player.youtube')}
             </ToggleGroupItem>
           </ToggleGroup>
         ) : (
@@ -202,7 +202,7 @@ const Player = forwardRef(function Player(
             variant="ghost"
             onClick={removeMedia}
             className="gap-1 sm:gap-1.5 px-2 py-1.5 text-xs font-medium text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg shrink-0 h-auto"
-            title={t('remove')}
+            title={t('player.remove')}
           >
             <Trash2 className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
           </Button>
@@ -218,7 +218,7 @@ const Player = forwardRef(function Player(
           >
             <Music2 className="w-5 h-5 text-zinc-500 group-hover:text-primary transition-colors" />
             <span className="text-sm text-zinc-400 group-hover:text-zinc-200 transition-colors">
-              {t('dropAudio')}
+              {t('player.dropAudio')}
             </span>
             <input
               id="audio-file-input"
@@ -260,7 +260,7 @@ const Player = forwardRef(function Player(
               value={yt.ytUrl}
               onChange={(e) => { yt.setYtUrl(e.target.value); yt.setYtError(''); }}
               onKeyDown={(e) => e.key === 'Enter' && yt.loadYouTube()}
-              placeholder={t('pasteUrl')}
+              placeholder={t('player.pasteUrl')}
               className={`flex-1 bg-zinc-800/60 text-zinc-100 placeholder-zinc-500 ${yt.ytError ? 'border-red-500/70 focus-visible:ring-red-500/25' : 'border-zinc-700 focus-visible:ring-primary/25'}`}
             />
             <Button
@@ -268,7 +268,7 @@ const Player = forwardRef(function Player(
               onClick={yt.loadYouTube}
               className="px-4 bg-red-600 hover:bg-red-500 text-white text-sm font-medium rounded-lg"
             >
-              {t('load')}
+              {t('player.load')}
             </Button>
           </div>
           {yt.ytError && (

@@ -204,7 +204,7 @@ export function usePreview({ lines, setLines, playbackPosition, playerRef, durat
     }
 
     setShowExportPanel(false);
-    toast.success(t('exportSuccess') || 'File downloaded');
+    toast.success(t('export.success') || 'File downloaded');
   };
 
   const handleCopy = async () => {
@@ -222,7 +222,7 @@ export function usePreview({ lines, setLines, playbackPosition, playerRef, durat
       setTimeout(() => setWasCopied(false), 2000);
     } catch (err) {
       console.error('Failed to copy', err);
-      toast.error(t('copyFailed') || 'Failed to copy to clipboard');
+      toast.error(t('export.copyFailed') || 'Failed to copy to clipboard');
     }
   };
 

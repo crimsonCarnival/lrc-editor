@@ -39,7 +39,7 @@ const SpeedControl = React.memo(function SpeedControl({
       <DropdownMenuTrigger asChild>
         <Button
           id="speed-btn"
-          title={t('speed') || 'Speed'}
+          title={t('player.speed') || 'Speed'}
           className={`h-8 sm:h-9 px-2 sm:px-2.5 font-mono font-semibold rounded-full flex-shrink-0 gap-1 ${
             playbackSpeed !== 1
               ? 'bg-primary text-zinc-950 shadow-lg shadow-primary/30 hover:bg-primary-dim'
@@ -71,7 +71,7 @@ const SpeedControl = React.memo(function SpeedControl({
         </div>
         <div className="border-t border-zinc-700/60 p-2" onPointerDown={(e) => e.stopPropagation()}>
           <label className="text-[10px] text-zinc-500 font-medium uppercase tracking-wider mb-1 block">
-            {t('customSpeed') || 'Custom'} ({MIN_SPEED}–{MAX_SPEED}x)
+            {t('player.customSpeed') || 'Custom'} ({MIN_SPEED}–{MAX_SPEED}x)
           </label>
           <div className="flex gap-1.5">
             <NumberInput

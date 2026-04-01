@@ -35,7 +35,7 @@ export default function PreviewLine({
       onClick={() => handleLineClick(line, i)}
       onMouseEnter={() => handleLineHover(i)}
       onMouseLeave={handleLineHoverEnd}
-      title={isLocked ? t('previewLocked') : t('previewHoverHint')}
+      title={isLocked ? t('preview.locked') : t('preview.hoverHint')}
       className={`group px-2 sm:px-4 py-1 sm:py-2 rounded-lg transition-all duration-500 ease-out flex flex-col cursor-pointer select-none relative ${
         settings.interface?.previewAlignment === 'right' ? 'items-end text-right' :
         settings.interface?.previewAlignment === 'center' ? 'items-center text-center' :

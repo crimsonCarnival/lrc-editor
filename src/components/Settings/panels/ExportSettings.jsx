@@ -15,8 +15,8 @@ export default function ExportSettings({ settings, updateSetting, searchTerm }) 
   } = useExportSettings(updateSetting);
 
   return (
-    <Section title={t('settingsExport')} icon={Download} searchTerm={searchTerm}>
-      <SettingRow icon={WrapText} label={t('settingsLineEndings')} description={t('settingsLineEndingsDesc')}>
+    <Section title={t('settings.export.label')} icon={Download} searchTerm={searchTerm}>
+      <SettingRow icon={WrapText} label={t('settings.export.lineEndings')} description={t('settings.export.lineEndingsDesc')}>
         <Select
           value={settings.export?.lineEndings ?? 'lf'}
           onValueChange={(val) => handleLineEndingsChange({ target: { value: val } })}
@@ -30,7 +30,7 @@ export default function ExportSettings({ settings, updateSetting, searchTerm }) 
           </SelectContent>
         </Select>
       </SettingRow>
-      <SettingRow icon={Clipboard} label={t('settingsCopyFormat')} description={t('settingsCopyFormatDesc')}>
+      <SettingRow icon={Clipboard} label={t('settings.export.copyFormat')} description={t('settings.export.copyFormatDesc')}>
         <Select
           value={settings.export?.copyFormat ?? 'lrc'}
           onValueChange={(val) => handleCopyFormatChange({ target: { value: val } })}
@@ -44,7 +44,7 @@ export default function ExportSettings({ settings, updateSetting, searchTerm }) 
           </SelectContent>
         </Select>
       </SettingRow>
-      <SettingRow icon={FileDown} label={t('settingsDownloadFormat')} description={t('settingsDownloadFormatDesc')}>
+      <SettingRow icon={FileDown} label={t('settings.export.downloadFormat')} description={t('settings.export.downloadFormatDesc')}>
         <Select
           value={settings.export?.downloadFormat ?? 'lrc'}
           onValueChange={(val) => handleDownloadFormatChange({ target: { value: val } })}
@@ -58,7 +58,7 @@ export default function ExportSettings({ settings, updateSetting, searchTerm }) 
           </SelectContent>
         </Select>
       </SettingRow>
-      <SettingRow icon={Clock} label={t('settingsTimestampPrecision')} description={t('settingsTimestampPrecisionDesc')}>
+      <SettingRow icon={Clock} label={t('settings.export.timestampPrecision')} description={t('settings.export.timestampPrecisionDesc')}>
         <Select
           value={settings.export?.timestampPrecision ?? 'hundredths'}
           onValueChange={(val) => handleTimestampPrecisionChange({ target: { value: val } })}
@@ -72,7 +72,7 @@ export default function ExportSettings({ settings, updateSetting, searchTerm }) 
           </SelectContent>
         </Select>
       </SettingRow>
-      <SettingRow icon={FileText} label={t('settingsFilenamePattern')} description={t('settingsFilenamePatternDesc')}>
+      <SettingRow icon={FileText} label={t('settings.export.filenamePattern')} description={t('settings.export.filenamePatternDesc')}>
         <Select
           value={settings.export?.defaultFilenamePattern ?? 'fixed'}
           onValueChange={(val) => handleFilenamePatternChange({ target: { value: val } })}
@@ -81,8 +81,8 @@ export default function ExportSettings({ settings, updateSetting, searchTerm }) 
             <SelectValue />
           </SelectTrigger>
           <SelectContent className="bg-zinc-900 border-zinc-700">
-            <SelectItem value="fixed">{t('settingsFilenameFixed')}</SelectItem>
-            <SelectItem value="media">{t('settingsFilenameMedia')}</SelectItem>
+            <SelectItem value="fixed">{t('settings.export.filenameFixed')}</SelectItem>
+            <SelectItem value="media">{t('settings.export.filenameMedia')}</SelectItem>
           </SelectContent>
         </Select>
       </SettingRow>

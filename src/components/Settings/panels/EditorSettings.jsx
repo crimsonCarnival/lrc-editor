@@ -18,11 +18,11 @@ export default function EditorSettings({ settings, updateSetting, searchTerm }) 
   } = useEditorSettings(updateSetting);
 
   return (
-    <Section title={t('settingsEditor')} icon={FileText} searchTerm={searchTerm}>
+    <Section title={t('settings.editor.label')} icon={FileText} searchTerm={searchTerm}>
       <SettingRow
         icon={PauseCircle}
-        label={t('settingsAutoPauseOnMark')}
-        description={t('settingsAutoPauseOnMarkDesc')}
+        label={t('settings.playback.autoPauseOnMark')}
+        description={t('settings.playback.autoPauseOnMarkDesc')}
       >
         <Toggle
           id="toggle-auto-pause-on-mark"
@@ -32,8 +32,8 @@ export default function EditorSettings({ settings, updateSetting, searchTerm }) 
       </SettingRow>
       <SettingRow
         icon={SlidersHorizontal}
-        label={t('settingsNudgeIncrement')}
-        description={t('settingsNudgeIncrementDesc')}
+        label={t('settings.editor.nudgeIncrement')}
+        description={t('settings.editor.nudgeIncrementDesc')}
       >
         <NumberInput
           min={0.01}
@@ -44,28 +44,28 @@ export default function EditorSettings({ settings, updateSetting, searchTerm }) 
           className="w-20"
         />
       </SettingRow>
-      <SettingRow icon={ChevronDown} label={t('settingsAutoAdvance')} description={t('settingsAutoAdvanceDesc')}>
+      <SettingRow icon={ChevronDown} label={t('settings.editor.autoAdvance')} description={t('settings.editor.autoAdvanceDesc')}>
         <Toggle
           id="toggle-auto-advance"
           checked={settings.editor?.autoAdvance?.enabled ?? true}
           onChange={handleAutoAdvanceChange}
         />
       </SettingRow>
-      <SettingRow icon={SkipForward} label={t('settingsSkipBlank')} description={t('settingsSkipBlankDesc')}>
+      <SettingRow icon={SkipForward} label={t('settings.editor.skipBlank')} description={t('settings.editor.skipBlankDesc')}>
         <Toggle
           id="toggle-skip-blank"
           checked={settings.editor?.autoAdvance?.skipBlank ?? false}
           onChange={handleSkipBlankChange}
         />
       </SettingRow>
-      <SettingRow icon={MoveHorizontal} label={t('settingsShowShiftAll')} description={t('settingsShowShiftAllDesc')}>
+      <SettingRow icon={MoveHorizontal} label={t('settings.editor.showShiftAll')} description={t('settings.editor.showShiftAllDesc')}>
         <Toggle
           id="toggle-shift-all"
           checked={settings.editor?.showShiftAll ?? true}
           onChange={handleShowShiftAllChange}
         />
       </SettingRow>
-      <SettingRow icon={Hash} label={t('settingsShowLineNumbers') || 'Line numbers'} description={t('settingsShowLineNumbersDesc') || 'Show line numbers in the editor'}>
+      <SettingRow icon={Hash} label={t('settings.editor.showLineNumbers') || 'Line numbers'} description={t('settings.editor.showLineNumbersDesc') || 'Show line numbers in the editor'}>
         <Toggle
           id="toggle-line-numbers"
           checked={settings.editor?.showLineNumbers ?? true}
@@ -74,8 +74,8 @@ export default function EditorSettings({ settings, updateSetting, searchTerm }) 
       </SettingRow>
       <SettingRow
         icon={Clock}
-        label={t('settingsEditorTimestampPrecision')}
-        description={t('settingsEditorTimestampPrecisionDesc')}
+        label={t('settings.editor.timestampPrecision')}
+        description={t('settings.editor.timestampPrecisionDesc')}
       >
         <Select
           value={settings.editor?.timestampPrecision ?? 'hundredths'}
