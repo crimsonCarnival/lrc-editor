@@ -1,8 +1,9 @@
 import { lazy, Suspense } from 'react';
 import Player from './components/Player';
-import Editor from './components/Editor';
-import Preview from './components/Preview';
 import { SettingsProvider } from './contexts/SettingsContext';
+
+const Editor = lazy(() => import('./components/Editor'));
+const Preview = lazy(() => import('./components/Preview'));
 import { useAppState } from './hooks/useAppState';
 import { Kbd } from './components/shared/Kbd';
 import { Button } from './components/ui/button';
