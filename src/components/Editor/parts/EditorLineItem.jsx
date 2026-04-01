@@ -4,6 +4,7 @@ import { formatTimestamp } from '../../../utils/lrc';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Kbd } from '../../shared/Kbd';
 import { Pencil, Play, ChevronLeft, ChevronRight, Plus, X, Trash2 } from 'lucide-react';
 
 const EditorLineItem = React.memo(({
@@ -43,6 +44,7 @@ const EditorLineItem = React.memo(({
   handleClearLine,
   handleDeleteLine,
   handleToggleLine,
+  handleMark,
   isLastLine
 }) => {
   const { t } = useTranslation();
@@ -233,6 +235,20 @@ const EditorLineItem = React.memo(({
           </div>
         )}
       </div>
+      {/* Mark button — always visible on the active unsaved line */}
+      {isActive && editingLineIndex !== i && (
+        <Button
+          onClick={(e) => { e.stopPropagation(); handleMark(); }}
+          title={t('editor.mark')}
+          className="h-7 px-2 gap-1.5 bg-primary/20 hover:bg-primary/30 border border-primary/40 text-primary font-semibold rounded-lg flex-shrink-0 text-xs"
+        >
+          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          <Kbd className="text-primary/80">{settings.shortcuts?.mark?.[0] === 'Space' ? '␣' : (settings.shortcuts?.mark?.[0] || '␣')}</Kbd>
+        </Button>
+      )}
       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
         {isSynced && (
           <>

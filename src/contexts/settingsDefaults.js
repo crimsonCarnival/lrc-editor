@@ -14,6 +14,7 @@ export const DEFAULT_SETTINGS = {
     nudge: { fine: 0.01, coarse: 0.1, default: 0.1 },
     autoAdvance: { enabled: true, skipBlank: false, mode: 'next' },
     showShiftAll: true,
+    shiftAllAmount: 0.5,
     showLineNumbers: true,
     timestampPrecision: 'hundredths',
     srt: {

@@ -34,7 +34,6 @@ export function useEditor({
   const [editingTranslation, setEditingTranslation] = useState('');
   const [dragIndex, setDragIndex] = useState(null);
   const [dragOverIndex, setDragOverIndex] = useState(null);
-  const [offsetValue, setOffsetValue] = useState('');
   const [selectedLines, setSelectedLines] = useState(new Set());
   // awaitingEndMark is derived: only non-null when the stored context still matches
   const [awaitingEndMarkFor, setAwaitingEndMarkFor] = useState(null); // null | { lineIndex, mode }
@@ -354,12 +353,11 @@ export function useEditor({
 
   // ——— Global offset ———
 
-  const handleApplyOffset = () => {
-    const delta = parseFloat(offsetValue);
-    if (isNaN(delta) || delta === 0) return;
+  const handleApplyOffset = useCallback((direction) => {
+    const amount = settings.editor?.shiftAllAmount ?? 0.5;
+    const delta = direction * amount;
     setLines((prev) => applyGlobalOffset(prev, delta));
-    setOffsetValue('');
-  };
+  }, [settings.editor?.shiftAllAmount, setLines]);
 
   // ——— Selection ———
 
@@ -535,8 +533,6 @@ export function useEditor({
     setEditingTranslation,
     dragIndex,
     dragOverIndex,
-    offsetValue,
-    setOffsetValue,
     selectedLines,
     setSelectedLines,
     awaitingEndMark,

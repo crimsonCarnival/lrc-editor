@@ -37,8 +37,6 @@ export default function Editor({
     setEditingTranslation,
     dragIndex,
     dragOverIndex,
-    offsetValue,
-    setOffsetValue,
     selectedLines,
     setSelectedLines,
     awaitingEndMark,
@@ -156,10 +154,8 @@ export default function Editor({
           handleClearLine={handleClearLine}
           handleDeleteLine={handleDeleteLine}
           listRef={listRef}
-          handleMark={handleMark}
-          offsetValue={offsetValue}
-          setOffsetValue={setOffsetValue}
           handleApplyOffset={handleApplyOffset}
+          handleMark={handleMark}
           handleBulkClearTimestamps={handleBulkClearTimestamps}
           handleBulkShift={handleBulkShift}
           handleBulkDelete={handleBulkDelete}
@@ -212,8 +208,6 @@ function VirtualizedLineList({
   handleDeleteLine,
   listRef,
   handleMark,
-  offsetValue,
-  setOffsetValue,
   handleApplyOffset,
   handleBulkClearTimestamps,
   handleBulkShift,
@@ -330,6 +324,7 @@ function VirtualizedLineList({
                   handleClearLine={handleClearLine}
                   handleDeleteLine={handleDeleteLine}
                   handleToggleLine={handleToggleLine}
+                  handleMark={handleMark}
                   isLastLine={i === lines.length - 1}
                 />
               </div>
@@ -348,10 +343,7 @@ function VirtualizedLineList({
       />
 
       <EditorSyncControls
-        handleMark={handleMark}
         settings={settings}
-        offsetValue={offsetValue}
-        setOffsetValue={setOffsetValue}
         handleApplyOffset={handleApplyOffset}
         selectedLines={selectedLines}
         editorMode={editorMode}

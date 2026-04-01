@@ -2,12 +2,13 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Section, SettingRow, ShortcutInput, ModifierInput } from '../shared';
 import { useShortcutsSettings } from '../hooks/useShortcutsSettings';
+import NumberInput from '../../shared/NumberInput';
 import { Button } from '@/components/ui/button';
 import {
   MapPin, ChevronLeft, ChevronRight, Plus, Trash2, X, RefreshCw, LogOut, HelpCircle,
   MousePointer, MousePointerClick, Keyboard,
   Headphones, Play, SkipBack, SkipForward, VolumeX, ChevronsUp, ChevronsDown,
-  Eye, Music2, Languages,
+  Eye, Music2, Languages, MoveHorizontal,
 } from 'lucide-react';
 
 export default function ShortcutsSettings({ settings, updateSetting, searchTerm, validateShortcut }) {
@@ -153,6 +154,20 @@ export default function ShortcutsSettings({ settings, updateSetting, searchTerm,
               value={settings.shortcuts?.showHelp?.[0] || '?'}
               onChange={handleShortcutChange('showHelp')}
               onValidate={(v) => validateShortcut(v, 'showHelp')}
+            />
+          </SettingRow>
+          <SettingRow
+            icon={MoveHorizontal}
+            label={t('settings.editor.shiftAllAmount') || 'Shift All amount'}
+            description={t('settings.editor.shiftAllAmountDesc') || 'Seconds applied per Shift All button press'}
+          >
+            <NumberInput
+              min={0.01}
+              max={60}
+              step={0.1}
+              value={settings.editor?.shiftAllAmount ?? 0.5}
+              onChange={(e) => updateSetting('editor.shiftAllAmount', Math.max(0.01, parseFloat(e.target.value) || 0.5))}
+              className="w-20"
             />
           </SettingRow>
         </Section>
