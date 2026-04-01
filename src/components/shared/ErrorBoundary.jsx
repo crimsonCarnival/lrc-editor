@@ -12,6 +12,17 @@ export default class ErrorBoundary extends Component {
 
   componentDidCatch(error, info) {
     console.error('ErrorBoundary caught:', error, info);
+    // Chunk load failures happen when a new deploy invalidates old hashed assets.
+    // Auto-reload silently to fetch the fresh bundle.
+    const msg = error?.message || '';
+    const isChunkError =
+      msg.includes('dynamically imported module') ||
+      msg.includes('Failed to fetch') ||
+      msg.includes('Importing a module script failed') ||
+      msg.includes('Unable to preload');
+    if (isChunkError) {
+      window.location.reload();
+    }
   }
 
   render() {
@@ -55,22 +66,7 @@ export default class ErrorBoundary extends Component {
             <p style={{ fontSize: '0.875rem', color: '#a1a1aa', marginBottom: '1.5rem', lineHeight: 1.6 }}>
               The app encountered an unexpected error. You can try reloading, or reset all data to recover.
             </p>
-            <pre style={{
-              fontSize: '0.75rem',
-              color: '#f87171',
-              background: 'rgba(239,68,68,0.1)',
-              border: '1px solid rgba(239,68,68,0.2)',
-              borderRadius: '0.5rem',
-              padding: '0.75rem',
-              marginBottom: '1.5rem',
-              overflow: 'auto',
-              maxHeight: '6rem',
-              textAlign: 'left',
-              whiteSpace: 'pre-wrap',
-              wordBreak: 'break-word',
-            }}>
-              {this.state.error?.message || 'Unknown error'}
-            </pre>
+
             <div style={{ display: 'flex', gap: '0.75rem' }}>
               <button
                 onClick={() => window.location.reload()}

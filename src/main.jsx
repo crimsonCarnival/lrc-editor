@@ -1,5 +1,10 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+
+// Auto-reload when a new deployment invalidates lazy-loaded chunks
+window.addEventListener('vite:preloadError', () => {
+  window.location.reload();
+});
 import { Toaster } from 'react-hot-toast'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import './index.css'
