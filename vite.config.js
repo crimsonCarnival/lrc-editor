@@ -7,7 +7,6 @@ export default defineConfig({
   resolve: {
     tsconfigPaths: true,
   },
-  base: '/lrc-editor',
   build: {
     chunkSizeWarningLimit: 600,
     rollupOptions: {
