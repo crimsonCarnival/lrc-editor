@@ -5,11 +5,14 @@ const WaveformDisplay = React.memo(function WaveformDisplay({
   audioRef, 
   localUrl, 
   showWaveform, 
+  waveformSnap,
   onTimeUpdate 
 }) {
   const wavesurferRef = useRef(null);
   const waveContainerRef = useRef(null);
   const cleanupListenersRef = useRef(null);
+  const waveformSnapRef = useRef(waveformSnap);
+  waveformSnapRef.current = waveformSnap;
 
   const initWaveform = useCallback(async (url, audioEl) => {
     // Dynamically import wavesurfer.js
@@ -92,7 +95,8 @@ const WaveformDisplay = React.memo(function WaveformDisplay({
 
         const x = e.clientX - rect.left;
         const percentage = Math.max(0, Math.min(x / rect.width, 1));
-        const time = percentage * (audioEl.duration || 0);
+        const rawTime = percentage * (audioEl.duration || 0);
+        const time = waveformSnapRef.current ? Math.round(rawTime) : rawTime;
 
         audioEl.currentTime = time;
         onTimeUpdate?.(time);
@@ -106,7 +110,8 @@ const WaveformDisplay = React.memo(function WaveformDisplay({
 
       const x = e.clientX - rect.left;
       const percentage = Math.max(0, Math.min(x / rect.width, 1));
-      const time = percentage * (audioEl.duration || 0);
+      const rawTime = percentage * (audioEl.duration || 0);
+      const time = waveformSnapRef.current ? Math.round(rawTime) : rawTime;
 
       isFollowingCursor = true;
       audioEl.currentTime = time;
