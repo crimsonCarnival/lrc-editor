@@ -453,6 +453,32 @@ export function useEditor({
     setLines((prev) => applyBulkShift(prev, selectedLines, delta));
   };
 
+  const handleAddExtraTimestamp = useCallback((lineIndex) => {
+    const time = playerRef?.current?.getCurrentTime?.() ?? playbackPositionRef.current;
+    setLines((prev) => {
+      const updated = [...prev];
+      const line = updated[lineIndex];
+      if (!line || line.timestamp == null) return prev;
+      // Prevent adding a timestamp that already exists (within 0.05s tolerance)
+      const allTs = [line.timestamp, ...(line.extraTimestamps || [])];
+      if (allTs.some((t) => Math.abs(t - time) < 0.05)) return prev;
+      const extras = [...(line.extraTimestamps || []), time].sort((a, b) => a - b);
+      updated[lineIndex] = { ...line, extraTimestamps: extras };
+      return updated;
+    });
+  }, [playerRef, setLines]);
+
+  const handleRemoveExtraTimestamp = useCallback((lineIndex, tsIndex) => {
+    setLines((prev) => {
+      const updated = [...prev];
+      const line = updated[lineIndex];
+      if (!line?.extraTimestamps?.length) return prev;
+      const extras = line.extraTimestamps.filter((_, i) => i !== tsIndex);
+      updated[lineIndex] = { ...line, extraTimestamps: extras.length ? extras : undefined };
+      return updated;
+    });
+  }, [setLines]);
+
   // ——— Global keybinds ———
   useEffect(() => {
     const handler = (e) => {
@@ -566,6 +592,8 @@ export function useEditor({
     handleBulkClearTimestamps,
     handleBulkDelete,
     handleBulkShift,
+    handleAddExtraTimestamp,
+    handleRemoveExtraTimestamp,
     // extras
     requestConfirm,
     confirmModal,

@@ -68,6 +68,8 @@ export default function Editor({
     handleBulkClearTimestamps,
     handleBulkDelete,
     handleBulkShift,
+    handleAddExtraTimestamp,
+    handleRemoveExtraTimestamp,
     requestConfirm,
     confirmModal,
     settings,
@@ -161,6 +163,9 @@ export default function Editor({
           handleBulkDelete={handleBulkDelete}
           clearSelection={clearSelection}
           handleToggleLine={handleToggleLine}
+          handleAddExtraTimestamp={handleAddExtraTimestamp}
+          handleRemoveExtraTimestamp={handleRemoveExtraTimestamp}
+          updateSetting={updateSetting}
         />
       )}
 
@@ -214,6 +219,9 @@ function VirtualizedLineList({
   handleBulkDelete,
   clearSelection,
   handleToggleLine,
+  handleAddExtraTimestamp,
+  handleRemoveExtraTimestamp,
+  updateSetting,
 }) {
   const scrollAlignment = settings.editor?.scroll?.alignment || 'center';
   const scrollMode = settings.editor?.scroll?.mode || 'smooth';
@@ -324,6 +332,8 @@ function VirtualizedLineList({
                   handleClearLine={handleClearLine}
                   handleDeleteLine={handleDeleteLine}
                   handleToggleLine={handleToggleLine}
+                  handleAddExtraTimestamp={handleAddExtraTimestamp}
+                  handleRemoveExtraTimestamp={handleRemoveExtraTimestamp}
                   handleMark={handleMark}
                   isLastLine={i === lines.length - 1}
                 />
@@ -344,6 +354,7 @@ function VirtualizedLineList({
 
       <EditorSyncControls
         settings={settings}
+        updateSetting={updateSetting}
         handleApplyOffset={handleApplyOffset}
         selectedLines={selectedLines}
         editorMode={editorMode}

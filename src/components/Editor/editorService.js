@@ -31,6 +31,9 @@ export function applyBulkShift(lines, selectedIndices, delta) {
     if (result.endTime != null) {
       result.endTime = Math.max(0, Number(l.endTime) + numericDelta);
     }
+    if (result.extraTimestamps?.length) {
+      result.extraTimestamps = result.extraTimestamps.map((t) => Math.max(0, Number(t) + numericDelta));
+    }
     return result;
   });
 }
@@ -45,6 +48,7 @@ export function applyGlobalOffset(lines, delta) {
     ...l,
     timestamp: l.timestamp != null ? Math.max(0, l.timestamp + numericDelta) : null,
     endTime: l.endTime != null ? Math.max(0, l.endTime + numericDelta) : l.endTime,
+    extraTimestamps: l.extraTimestamps?.map((t) => Math.max(0, t + numericDelta)),
   }));
 }
 
@@ -65,7 +69,7 @@ export function clearAllTimestamps(lines, isSrt) {
 export function clearLineTimestamp(lines, index, isSrt) {
   return lines.map((l, i) =>
     i === index
-      ? { ...l, timestamp: null, ...(isSrt && { endTime: null }) }
+      ? { ...l, timestamp: null, ...(isSrt && { endTime: null }), extraTimestamps: undefined }
       : l,
   );
 }

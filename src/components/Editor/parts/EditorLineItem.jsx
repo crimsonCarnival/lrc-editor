@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Kbd } from '../../shared/Kbd';
-import { Pencil, Play, ChevronLeft, ChevronRight, Plus, X, Trash2 } from 'lucide-react';
+import { Pencil, Play, ChevronLeft, ChevronRight, Plus, X, Trash2, Repeat } from 'lucide-react';
 
 const EditorLineItem = React.memo(({
   line,
@@ -44,6 +44,8 @@ const EditorLineItem = React.memo(({
   handleClearLine,
   handleDeleteLine,
   handleToggleLine,
+  handleAddExtraTimestamp,
+  handleRemoveExtraTimestamp,
   handleMark,
   isLastLine
 }) => {
@@ -137,15 +139,57 @@ const EditorLineItem = React.memo(({
             </span>
           </>
         ) : (
-          <span
-            onClick={() => setFocusedTimestamp(focusedTimestamp?.lineIndex === i && focusedTimestamp?.type === 'start' ? null : { lineIndex: i, type: 'start' })}
-            className={`cursor-pointer px-1 py-0.5 rounded transition-all inline-block ${focusedTimestamp?.lineIndex === i && focusedTimestamp?.type === 'start'
-              ? 'bg-primary/40 ring-1 ring-primary/60 text-primary font-semibold'
-              : 'hover:bg-zinc-700/40'
+          <div className="flex flex-col gap-1">
+            {/* Primary timestamp chip */}
+            <button
+              type="button"
+              onClick={() => setFocusedTimestamp(focusedTimestamp?.lineIndex === i && focusedTimestamp?.type === 'start' ? null : { lineIndex: i, type: 'start' })}
+              className={`flex items-center rounded px-1.5 py-0.5 text-[10px] font-mono tabular-nums transition-all w-fit ${
+                focusedTimestamp?.lineIndex === i && focusedTimestamp?.type === 'start'
+                  ? 'bg-primary/25 ring-1 ring-primary/50 text-primary font-semibold'
+                  : isSynced
+                    ? 'bg-zinc-800 border border-zinc-700/50 text-primary hover:border-primary/40 hover:bg-zinc-700/60'
+                    : 'text-zinc-600 hover:bg-zinc-800/50 border border-transparent'
               }`}
-          >
-            {isSynced ? formatTimestamp(line.timestamp, settings.editor?.timestampPrecision || 'hundredths') : '--:--.--'}
-          </span>
+            >
+              {isSynced ? formatTimestamp(line.timestamp, settings.editor?.timestampPrecision || 'hundredths') : '--:--.--'}
+            </button>
+
+            {/* Extra timestamp chips */}
+            {isSynced && line.extraTimestamps?.map((ts, tsIdx) => (
+              <div key={tsIdx} className="flex items-center gap-0.5 group/extra">
+                <button
+                  type="button"
+                  className="flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-mono tabular-nums bg-zinc-800/70 border border-zinc-700/30 text-primary/60 hover:text-primary hover:border-primary/30 transition-all"
+                  onClick={(e) => { e.stopPropagation(); playerRef?.current?.seek?.(ts); }}
+                  title={t('editor.jumpSync')}
+                >
+                  <Repeat className="w-2 h-2 opacity-60 flex-shrink-0" />
+                  {formatTimestamp(ts, settings.editor?.timestampPrecision || 'hundredths')}
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); handleRemoveExtraTimestamp(i, tsIdx); }}
+                  className="opacity-0 group-hover/extra:opacity-100 text-zinc-600 hover:text-red-400 transition-all p-0.5"
+                  title={t('editor.removeExtraTimestamp')}
+                >
+                  <X className="w-2.5 h-2.5" />
+                </button>
+              </div>
+            ))}
+
+            {/* Add repeat — icon-only, appears on row hover */}
+            {isSynced && editingLineIndex !== i && (
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); handleAddExtraTimestamp(i); }}
+                className="opacity-0 group-hover:opacity-100 w-fit rounded px-1.5 py-0.5 text-zinc-500 hover:text-primary hover:bg-zinc-800/60 border border-transparent hover:border-zinc-700/40 transition-all"
+                title={t('editor.addExtraTimestamp')}
+              >
+                <Plus className="w-2.5 h-2.5" />
+              </button>
+            )}
+          </div>
         )}
       </span>
 
@@ -179,21 +223,21 @@ const EditorLineItem = React.memo(({
               autoFocus
               value={editingText}
               onChange={(e) => setEditingText(e.target.value)}
-              placeholder={t('primaryText') || 'Primary text'}
+              placeholder={t('editor.primaryText')}
               className="w-full bg-zinc-800 border-primary/50 text-xs text-zinc-100 h-7"
             />
             <Input
               type="text"
               value={editingSecondary}
               onChange={(e) => setEditingSecondary(e.target.value)}
-              placeholder={t('secondaryText') || 'Secondary (bilingual)'}
+              placeholder={t('editor.secondaryText')}
               className="w-full bg-zinc-800 border-zinc-600/50 text-xs text-zinc-400 h-6"
             />
             <Input
               type="text"
               value={editingTranslation}
               onChange={(e) => setEditingTranslation(e.target.value)}
-              placeholder={t('translationText') || 'Translation'}
+              placeholder={t('editor.translationText')}
               className="w-full bg-zinc-800 border-zinc-600/50 text-xs text-zinc-500 h-6 italic"
             />
           </div>
@@ -246,7 +290,6 @@ const EditorLineItem = React.memo(({
             <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
           </svg>
-          <Kbd className="text-primary/80">{settings.shortcuts?.mark?.[0] === 'Space' ? '␣' : (settings.shortcuts?.mark?.[0] || '␣')}</Kbd>
         </Button>
       )}
       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">

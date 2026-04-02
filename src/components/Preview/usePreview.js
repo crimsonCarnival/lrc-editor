@@ -80,28 +80,47 @@ export function usePreview({ lines, setLines, playbackPosition, playerRef, durat
     return indices;
   }, [lines]);
 
+  // Expanded flat list of {lineIdx, ts} including extraTimestamps, sorted by ts.
+  // Used for binary-search active-line detection so repeated-chorus lines activate at every timestamp.
+  const syncedEntries = useMemo(() => {
+    const entries = [];
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      if (line.timestamp != null) {
+        entries.push({ lineIdx: i, ts: line.timestamp });
+        if (line.extraTimestamps?.length) {
+          for (const ts of line.extraTimestamps) {
+            entries.push({ lineIdx: i, ts });
+          }
+        }
+      }
+    }
+    entries.sort((a, b) => a.ts - b.ts);
+    return entries;
+  }, [lines]);
+
   const currentIndex = useMemo(() => {
-    if (!syncedIndices.length) return -1;
+    if (!syncedEntries.length) return -1;
 
     let low = 0;
-    let high = syncedIndices.length - 1;
+    let high = syncedEntries.length - 1;
     let bestIdx = -1;
 
     while (low <= high) {
       const mid = (low + high) >>> 1;
-      const trueIdx = syncedIndices[mid];
-      const line = lines[trueIdx];
+      const { lineIdx, ts } = syncedEntries[mid];
+      const line = lines[lineIdx];
 
-      if (line.timestamp <= playbackPosition) {
+      if (ts <= playbackPosition) {
         if (editorMode === 'srt') {
           if (line.endTime != null && playbackPosition >= line.endTime) {
             low = mid + 1;
           } else {
-            bestIdx = trueIdx;
+            bestIdx = lineIdx;
             low = mid + 1;
           }
         } else {
-          bestIdx = trueIdx;
+          bestIdx = lineIdx;
           low = mid + 1;
         }
       } else {
@@ -110,7 +129,7 @@ export function usePreview({ lines, setLines, playbackPosition, playerRef, durat
     }
 
     return bestIdx;
-  }, [syncedIndices, lines, playbackPosition, editorMode]);
+  }, [syncedEntries, lines, playbackPosition, editorMode]);
 
   useEffect(() => {
     if (activeRef.current && containerRef.current && settings.editor?.scroll?.alignment !== 'none') {

@@ -58,15 +58,18 @@ export function compileLRC(lines, includeTranslations = false, precision = 'hund
   if (metadata.lg) header += `[lg:${sanitizeLrcTag(metadata.lg)}]\n`;
 
   const body = lines
-    .map((line) => {
+    .flatMap((line) => {
       if (line.timestamp != null) {
-        let output = `${formatTimestamp(line.timestamp, precision)} ${line.text}`;
-        if (includeTranslations && line.translation) {
-          output += `\n${formatTimestamp(line.timestamp, precision)} ${line.translation}`;
-        }
-        return output;
+        const allTs = [line.timestamp, ...(line.extraTimestamps || [])].sort((a, b) => a - b);
+        return allTs.map((ts) => {
+          let out = `${formatTimestamp(ts, precision)} ${line.text}`;
+          if (includeTranslations && line.translation) {
+            out += `\n${formatTimestamp(ts, precision)} ${line.translation}`;
+          }
+          return out;
+        });
       }
-      return line.text;
+      return [line.text];
     })
     .join('\n');
     
@@ -192,14 +195,24 @@ export function parseLrcSrtFile(content, filename) {
   } else {
     const lrcLines = content.replace(/\r\n/g, '\n').split('\n');
     lrcLines.forEach(line => {
-      const match = line.match(/\[(\d{1,2}):(\d{2}\.\d{2,3})\](.*)/);
-      if (match) {
-        const m = parseInt(match[1], 10);
-        const s = parseFloat(match[2]);
-        const text = match[3].trim();
-        parsedLines.push({ text, timestamp: m * 60 + s, id: crypto.randomUUID() });
-      } else if (line.trim() !== '' && !/^\[[^\]]*:[^\]]*\]/.test(line.trim())) {
-        parsedLines.push({ text: line.trim(), timestamp: null, id: crypto.randomUUID() });
+      // Greedily collect all consecutive leading [mm:ss.xx] timestamp brackets
+      let remaining = line.trim();
+      const tsStepRe = /^\[(\d{1,2}):(\d{2}\.\d{2,3})\]/;
+      const collectedTs = [];
+      let step;
+      while ((step = remaining.match(tsStepRe))) {
+        collectedTs.push(parseInt(step[1], 10) * 60 + parseFloat(step[2]));
+        remaining = remaining.slice(step[0].length);
+      }
+      if (collectedTs.length > 0) {
+        const text = remaining.trim();
+        collectedTs.sort((a, b) => a - b);
+        const [primary, ...extras] = collectedTs;
+        const entry = { text, timestamp: primary, id: crypto.randomUUID() };
+        if (extras.length > 0) entry.extraTimestamps = extras;
+        parsedLines.push(entry);
+      } else if (remaining !== '' && !/^\[[^\]]*:[^\]]*\]/.test(remaining)) {
+        parsedLines.push({ text: remaining.trim(), timestamp: null, id: crypto.randomUUID() });
       }
     });
   }
