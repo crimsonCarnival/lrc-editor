@@ -1,8 +1,8 @@
 ﻿import { useTranslation } from 'react-i18next';
-import { Section, SettingRow } from '../shared';
+import { Section, SettingRow, Toggle } from '../shared';
 import { useExportSettings } from '../hooks/useExportSettings';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Download, WrapText, Clipboard, FileDown, Clock, FileText } from 'lucide-react';
+import { Download, WrapText, Clipboard, FileDown, Clock, FileText, FilterX, ArrowUpDown } from 'lucide-react';
 
 export default function ExportSettings({ settings, updateSetting, searchTerm }) {
   const { t } = useTranslation();
@@ -85,6 +85,20 @@ export default function ExportSettings({ settings, updateSetting, searchTerm }) 
             <SelectItem value="media">{t('settings.export.filenameMedia')}</SelectItem>
           </SelectContent>
         </Select>
+      </SettingRow>
+      <SettingRow icon={FilterX} label={t('settings.export.stripEmptyLines')} description={t('settings.export.stripEmptyLinesDesc')}>
+        <Toggle
+          id="toggle-strip-empty"
+          checked={settings.export?.stripEmptyLines ?? false}
+          onChange={(v) => updateSetting('export.stripEmptyLines', v)}
+        />
+      </SettingRow>
+      <SettingRow icon={ArrowUpDown} label={t('settings.export.normalizeTimestamps')} description={t('settings.export.normalizeTimestampsDesc')}>
+        <Toggle
+          id="toggle-normalize-ts"
+          checked={settings.export?.normalizeTimestamps ?? false}
+          onChange={(v) => updateSetting('export.normalizeTimestamps', v)}
+        />
       </SettingRow>
     </Section>
   );
