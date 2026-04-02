@@ -190,16 +190,33 @@ export function usePreview({ lines, setLines, playbackPosition, playerRef, durat
     }
   };
 
+  const prepareExportLines = (inputLines) => {
+    let result = inputLines;
+    if (settings.export?.stripEmptyLines) {
+      result = result.filter(l => l.text.trim() !== '');
+    }
+    if (settings.export?.normalizeTimestamps) {
+      result = [...result].sort((a, b) => {
+        if (a.timestamp == null && b.timestamp == null) return 0;
+        if (a.timestamp == null) return 1;
+        if (b.timestamp == null) return -1;
+        return a.timestamp - b.timestamp;
+      });
+    }
+    return result;
+  };
+
   const handleExport = () => {
     const name = exportFilename.trim() || 'lyrics';
+    const exportLines = prepareExportLines(lines);
     let content = '';
 
     if (settings.export?.downloadFormat === 'srt') {
-      content = compileSRT(lines, duration, includeTranslations, settings.export?.lineEndings, settings.editor?.srt);
+      content = compileSRT(exportLines, duration, includeTranslations, settings.export?.lineEndings, settings.editor?.srt);
       downloadLRC(content, `${name}.srt`);
     } else {
       const filteredMetadata = Object.fromEntries(Object.entries(metadata).filter(([, v]) => v.trim() !== ''));
-      content = compileLRC(lines, includeTranslations, settings.export?.timestampPrecision, filteredMetadata, settings.export?.lineEndings);
+      content = compileLRC(exportLines, includeTranslations, settings.export?.timestampPrecision, filteredMetadata, settings.export?.lineEndings);
       downloadLRC(content, `${name}.lrc`);
     }
 
@@ -208,13 +225,14 @@ export function usePreview({ lines, setLines, playbackPosition, playerRef, durat
   };
 
   const handleCopy = async () => {
+    const exportLines = prepareExportLines(lines);
     let content = '';
 
     if (settings.export?.copyFormat === 'srt') {
-      content = compileSRT(lines, duration, includeTranslations, settings.export?.lineEndings, settings.editor?.srt);
+      content = compileSRT(exportLines, duration, includeTranslations, settings.export?.lineEndings, settings.editor?.srt);
     } else {
       const filteredMetadata = Object.fromEntries(Object.entries(metadata).filter(([, v]) => v.trim() !== ''));
-      content = compileLRC(lines, includeTranslations, settings.export?.timestampPrecision, filteredMetadata, settings.export?.lineEndings);
+      content = compileLRC(exportLines, includeTranslations, settings.export?.timestampPrecision, filteredMetadata, settings.export?.lineEndings);
     }
     try {
       await navigator.clipboard.writeText(content);
