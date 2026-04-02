@@ -23,7 +23,8 @@ export default {
       "invalidUrl": "URL de YouTube inválida. Verifica el enlace.",
       "volume": "Volumen",
       "mute": "Silenciar",
-      "unmute": "Activar sonido"
+      "unmute": "Activar sonido",
+      "loading": "Cargando tu canción.."
     },
 
     "editor": {
@@ -206,8 +207,6 @@ export default {
         "maxSpeedDesc": "Velocidad de reproducción más alta",
         "showWaveform": "Forma de onda",
         "showWaveformDesc": "Mostrar la visualización de onda de audio",
-        "waveformSnap": "Ajustar al segundo",
-        "waveformSnapDesc": "Hacer clic en la forma de onda salte al segundo entero más cercano",
         "seekTime": "Tiempo de búsqueda",
         "seekTimeDesc": "Segundos para avanzar/retroceder con los atajos de búsqueda"
       },
@@ -243,11 +242,7 @@ export default {
         "filenameFixed": "Fijo (\"lyrics\")",
         "filenameMedia": "Del título del medio",
         "lineEndings": "Finales de línea",
-        "lineEndingsDesc": "Formato para nuevas líneas en archivos exportados",
-        "stripEmptyLines": "Eliminar líneas vacías",
-        "stripEmptyLinesDesc": "Quitar líneas sin texto antes de exportar",
-        "normalizeTimestamps": "Ordenar por marca de tiempo",
-        "normalizeTimestampsDesc": "Ordenar todas las líneas por orden de marca de tiempo antes de exportar"
+        "lineEndingsDesc": "Formato para nuevas líneas en archivos exportados"
       },
 
       "interface": {
@@ -274,11 +269,7 @@ export default {
         "spacing": "Espaciado",
         "spacingDesc": "Espacio vertical entre líneas",
         "activeLineHighlight": "Estilo de línea activa",
-        "activeLineHighlightDesc": "Cómo se resalta la línea actual en la vista previa",
-        "dualLine": "Modo de dos líneas",
-        "dualLineDesc": "Mostrar solo la línea actual y la siguiente en la vista previa",
-        "showNextLine": "Mostrar siguiente línea",
-        "showNextLineDesc": "Vista previa de la línea siguiente debajo de la activa"
+        "activeLineHighlightDesc": "Cómo se resalta la línea actual en la vista previa"
       },
 
       "advanced": {

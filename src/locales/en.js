@@ -23,7 +23,8 @@ export default {
       "invalidUrl": "Invalid YouTube URL. Please check the link.",
       "volume": "Volume",
       "mute": "Mute",
-      "unmute": "Unmute"
+      "unmute": "Unmute",
+      "loading": "Loading song..."
     },
 
     "editor": {
@@ -206,8 +207,6 @@ export default {
         "maxSpeedDesc": "Highest playback speed available",
         "showWaveform": "Waveform",
         "showWaveformDesc": "Show the audio waveform visualization",
-        "waveformSnap": "Snap to second",
-        "waveformSnapDesc": "Snap waveform clicks to the nearest whole second",
         "seekTime": "Seek time",
         "seekTimeDesc": "Seconds to seek when using seek shortcuts"
       },
@@ -243,11 +242,7 @@ export default {
         "filenameFixed": "Fixed (\"lyrics\")",
         "filenameMedia": "From media title",
         "lineEndings": "Line endings",
-        "lineEndingsDesc": "Format for newlines in exported files",
-        "stripEmptyLines": "Strip empty lines",
-        "stripEmptyLinesDesc": "Remove lines with no text before exporting",
-        "normalizeTimestamps": "Sort by timestamp",
-        "normalizeTimestampsDesc": "Sort all lines by timestamp order before exporting"
+        "lineEndingsDesc": "Format for newlines in exported files"
       },
 
       "interface": {
@@ -274,11 +269,7 @@ export default {
         "spacing": "Spacing",
         "spacingDesc": "Vertical space between lines",
         "activeLineHighlight": "Active line style",
-        "activeLineHighlightDesc": "How the current line is highlighted in preview",
-        "dualLine": "Dual-line mode",
-        "dualLineDesc": "Show only the current and next line in preview",
-        "showNextLine": "Show next line",
-        "showNextLineDesc": "Preview the upcoming line below the active one"
+        "activeLineHighlightDesc": "How the current line is highlighted in preview"
       },
 
       "advanced": {
