@@ -36,17 +36,17 @@ export default function AdvancedSettings({ settings, updateSetting, searchTerm }
           description={t('settings.advanced.autoSaveIntervalDesc')}
         >
           <Select
-            value={String(settings.advanced?.autoSave?.interval ?? 30000)}
+            value={String(settings.advanced?.autoSave?.interval ?? 10)}
             onValueChange={(val) => handleAutoSaveIntervalChange({ target: { value: Number(val) } })}
           >
             <SelectTrigger className="bg-zinc-900 border-zinc-700 text-xs text-zinc-200 focus:border-primary/50 h-8 w-auto">
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="bg-zinc-900 border-zinc-700">
-              <SelectItem value="10000">10s</SelectItem>
-              <SelectItem value="30000">30s</SelectItem>
-              <SelectItem value="45000">45s</SelectItem>
-              <SelectItem value="60000">1m</SelectItem>
+              <SelectItem value="5">{t('settings.advanced.autoSaveActions', { count: 5 })}</SelectItem>
+              <SelectItem value="10">{t('settings.advanced.autoSaveActions', { count: 10 })}</SelectItem>
+              <SelectItem value="20">{t('settings.advanced.autoSaveActions', { count: 20 })}</SelectItem>
+              <SelectItem value="50">{t('settings.advanced.autoSaveActions', { count: 50 })}</SelectItem>
             </SelectContent>
           </Select>
         </SettingRow>

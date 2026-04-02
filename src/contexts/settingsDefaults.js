@@ -81,7 +81,7 @@ export const DEFAULT_SETTINGS = {
     toggleTranslation: ['t'],
   },
   advanced: {
-    autoSave: { enabled: false, interval: 3000 },
+    autoSave: { enabled: false, interval: 10 },
     confirmDestructive: true,
     timezone: 'auto'
   }
