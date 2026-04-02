@@ -30,30 +30,32 @@ export default function EditorToolbar({
           <FileText className="w-3.5 h-3.5" />
           {t('editor.title')}
         </h2>
-        <ToggleGroup
-          type="single"
-          value={editorMode}
-          onValueChange={(val) => {
-            if (!val) return;
-            setEditorMode(val);
-            updateSetting('export.copyFormat', val);
-            updateSetting('export.downloadFormat', val);
-          }}
-          className="bg-zinc-800/80 rounded-lg border border-zinc-700/60 overflow-hidden h-auto p-0 gap-0"
-        >
-          <ToggleGroupItem
-            value="lrc"
-            className="px-2.5 py-1 text-[10px] sm:text-xs font-bold rounded-none border-0 data-[state=on]:bg-primary data-[state=on]:text-zinc-950 text-zinc-400 hover:text-zinc-200 hover:bg-transparent h-auto"
+        {lines.length > 0 && (
+          <ToggleGroup
+            type="single"
+            value={editorMode}
+            onValueChange={(val) => {
+              if (!val) return;
+              setEditorMode(val);
+              updateSetting('export.copyFormat', val);
+              updateSetting('export.downloadFormat', val);
+            }}
+            className="bg-zinc-800/80 rounded-lg border border-zinc-700/60 overflow-hidden h-auto p-0 gap-0"
           >
-            {t('editor.modeLRC')}
-          </ToggleGroupItem>
-          <ToggleGroupItem
-            value="srt"
-            className="px-2.5 py-1 text-[10px] sm:text-xs font-bold rounded-none border-0 data-[state=on]:bg-primary data-[state=on]:text-zinc-950 text-zinc-400 hover:text-zinc-200 hover:bg-transparent h-auto"
-          >
-            {t('editor.modeSRT')}
-          </ToggleGroupItem>
-        </ToggleGroup>
+            <ToggleGroupItem
+              value="lrc"
+              className="px-2.5 py-1 text-[10px] sm:text-xs font-bold rounded-none border-0 data-[state=on]:bg-primary data-[state=on]:text-zinc-950 text-zinc-400 hover:text-zinc-200 hover:bg-transparent h-auto"
+            >
+              {t('editor.modeLRC')}
+            </ToggleGroupItem>
+            <ToggleGroupItem
+              value="srt"
+              className="px-2.5 py-1 text-[10px] sm:text-xs font-bold rounded-none border-0 data-[state=on]:bg-primary data-[state=on]:text-zinc-950 text-zinc-400 hover:text-zinc-200 hover:bg-transparent h-auto"
+            >
+              {t('editor.modeSRT')}
+            </ToggleGroupItem>
+          </ToggleGroup>
+        )}
       </div>
       {syncMode && (
         <div className="flex items-center justify-end gap-1 sm:gap-2 w-full">
