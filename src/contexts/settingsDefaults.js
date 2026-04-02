@@ -5,6 +5,7 @@ export const DEFAULT_SETTINGS = {
     autoRewindOnPause: { enabled: false, seconds: 2 },
     speedBounds: { min: 0.25, max: 3 },
     showWaveform: true,
+    waveformSnap: false,
     loopCurrentLine: false,
     speedPresets: [0.5, 0.75, 1, 1.25, 1.5, 2],
     seekTime: 5,
@@ -28,7 +29,8 @@ export const DEFAULT_SETTINGS = {
     },
     display: {
       activeHighlight: 'glow',
-      showNextLine: true
+      showNextLine: true,
+      dualLine: false
     },
     scroll: {
       mode: 'smooth',
@@ -41,7 +43,9 @@ export const DEFAULT_SETTINGS = {
     downloadFormat: 'lrc',
     timestampPrecision: 'hundredths',
     defaultFilenamePattern: 'fixed',
-    includeMetadata: true
+    includeMetadata: true,
+    stripEmptyLines: false,
+    normalizeTimestamps: false
   },
   interface: {
     theme: 'dark',
