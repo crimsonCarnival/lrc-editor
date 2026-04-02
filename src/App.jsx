@@ -15,6 +15,7 @@ import {
 } from './components/ui/dropdown-menu';
 import { Music2, UploadCloud, Globe, Settings as SettingsIcon } from 'lucide-react';
 import { useScrollLock } from './hooks/useScrollLock';
+import { useNetworkStatus } from './hooks/useNetworkStatus';
 
 const Settings = lazy(() => import('./components/Settings'));
 const KeyboardHelp = lazy(() => import('./components/shared/KeyboardHelp'));
@@ -58,6 +59,7 @@ function AppInner() {
   } = useAppState();
 
   useScrollLock(!!pendingSession);
+  useNetworkStatus();
 
   return (
     <div className="min-h-screen lg:h-screen bg-zinc-950 relative overflow-x-hidden flex flex-col">

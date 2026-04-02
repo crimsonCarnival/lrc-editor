@@ -125,6 +125,11 @@ export default {
       "tooLarge": "File too large (max 5 MB)"
     },
 
+    "network": {
+      "offline": "No internet connection",
+      "online": "Back online"
+    },
+
     "common": {
       "paste": "Paste",
       "apply": "Apply",
