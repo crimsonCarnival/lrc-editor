@@ -1,8 +1,8 @@
 ﻿import { useTranslation } from 'react-i18next';
-import { Section, SettingRow } from '../shared';
+import { Section, SettingRow, Toggle } from '../shared';
 import { useInterfaceSettings } from '../hooks/useInterfaceSettings';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Monitor, Moon, Sparkles, Globe, ScrollText, AlignCenter, AlignLeft, Type, Rows2 } from 'lucide-react';
+import { Monitor, Moon, Sparkles, Globe, ScrollText, AlignCenter, AlignLeft, Type, Rows2, LayoutList, ChevronDown } from 'lucide-react';
 
 export default function InterfaceSettings({ settings, updateSetting, searchTerm }) {
   const { t } = useTranslation();
@@ -139,6 +139,20 @@ export default function InterfaceSettings({ settings, updateSetting, searchTerm 
             <SelectItem value="relaxed">{t('settings.options.spacing.relaxed')}</SelectItem>
           </SelectContent>
         </Select>
+      </SettingRow>
+      <SettingRow icon={LayoutList} label={t('settings.interface.dualLine')} description={t('settings.interface.dualLineDesc')}>
+        <Toggle
+          id="toggle-dual-line"
+          checked={settings.editor?.display?.dualLine ?? false}
+          onChange={(v) => updateSetting('editor.display.dualLine', v)}
+        />
+      </SettingRow>
+      <SettingRow icon={ChevronDown} label={t('settings.interface.showNextLine')} description={t('settings.interface.showNextLineDesc')}>
+        <Toggle
+          id="toggle-show-next-line"
+          checked={settings.editor?.display?.showNextLine ?? true}
+          onChange={(v) => updateSetting('editor.display.showNextLine', v)}
+        />
       </SettingRow>
     </Section>
   );
