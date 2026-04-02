@@ -234,6 +234,7 @@ const Player = forwardRef(function Player(
         <div className="animate-fade-in space-y-3">
           <WaveformDisplay
             showWaveform={settings.playback?.showWaveform}
+            waveformSnap={settings.playback?.waveformSnap}
             audioRef={audioRef}
             localUrl={local.localUrl}
             onTimeUpdate={onTimeUpdate}
