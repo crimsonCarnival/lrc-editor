@@ -12,14 +12,20 @@ export default function useYouTubePlayer({
   onTitleChange,
   onMediaChange,
   isPlaying,
+  setSource,
+  initialYtUrl,
+  onYtUrlChange,
 }) {
   const ytPlayerRef = useRef(null);
   const ytInnerRef = useRef(null);
   const rafIdRef = useRef(null);
   const apiLoadedRef = useRef(false);
+  const onYtUrlChangeRef = useRef(onYtUrlChange);
+  useEffect(() => { onYtUrlChangeRef.current = onYtUrlChange; }, [onYtUrlChange]);
 
-  const [ytUrl, setYtUrl] = useState('');
+  const [ytUrl, setYtUrl] = useState(initialYtUrl || '');
   const [ytReady, setYtReady] = useState(false);
+  const [ytLoading, setYtLoading] = useState(false);
   const [ytError, setYtError] = useState('');
 
   // Load YouTube IFrame API
@@ -54,13 +60,17 @@ export default function useYouTubePlayer({
     }
   }, [containerRef]);
 
-  const loadYouTube = useCallback(() => {
-    const videoId = extractVideoId(ytUrl);
+  const loadYouTube = useCallback((urlOverride) => {
+    const urlToLoad = (typeof urlOverride === 'string') ? urlOverride : ytUrl;
+    const videoId = extractVideoId(urlToLoad);
     if (!videoId) {
       setYtError(t('player.invalidUrl') || 'Invalid YouTube URL');
       return;
     }
     setYtError('');
+    setSource('youtube');
+    setYtLoading(true);
+    if (typeof urlOverride === 'string') setYtUrl(urlOverride);
 
     if (ytPlayerRef.current) {
       try { ytPlayerRef.current.destroy(); } catch { /* ignore */ }
@@ -95,12 +105,14 @@ export default function useYouTubePlayer({
         events: {
           onReady: (e) => {
             setYtReady(true);
+            setYtLoading(false);
             const d = e.target.getDuration();
             updateDuration(d);
             e.target.setVolume(settings.playback.muted ? 0 : (settings.playback.volume * 100));
             const title = e.target.getVideoData()?.title;
             if (title) onTitleChange?.(title);
             onMediaChange?.(true);
+            onYtUrlChangeRef.current?.(urlToLoad);
           },
           onStateChange: (e) => {
             const playing = e.data === window.YT.PlayerState.PLAYING;
@@ -124,6 +136,7 @@ export default function useYouTubePlayer({
               150: 'Video cannot be embedded',
             };
             setYtError(errorCodes[e.data] || `YouTube error (code ${e.data})`);
+            setYtLoading(false);
             setYtReady(false);
           },
         },
@@ -135,7 +148,17 @@ export default function useYouTubePlayer({
     } else {
       window.onYouTubeIframeAPIReady = initPlayer;
     }
-  }, [containerRef, ytUrl, t, settings.playback.volume, settings.playback.muted, settings.playback.autoRewindOnPause?.enabled, settings.playback.autoRewindOnPause?.seconds, updateDuration, updateTime, setIsPlaying, setCurrentTime, onTitleChange, onMediaChange]);
+  }, [containerRef, ytUrl, t, settings.playback.volume, settings.playback.muted, settings.playback.autoRewindOnPause?.enabled, settings.playback.autoRewindOnPause?.seconds, updateDuration, updateTime, setIsPlaying, setCurrentTime, onTitleChange, onMediaChange, setSource]);
+
+  // Auto-load when initialYtUrl is provided (e.g., session restore)
+  const autoLoadedFromInitialRef = useRef(false);
+  useEffect(() => {
+    if (initialYtUrl && !autoLoadedFromInitialRef.current) {
+      autoLoadedFromInitialRef.current = true;
+      loadYouTube(initialYtUrl);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialYtUrl]);
 
   // Poll YouTube time with requestAnimationFrame
   useEffect(() => {
@@ -174,9 +197,12 @@ export default function useYouTubePlayer({
       ytInnerRef.current = inner;
     }
     setYtReady(false);
+    setYtLoading(false);
     setYtUrl('');
     setYtError('');
-  }, [containerRef]);
+    setSource('local');
+    onYtUrlChangeRef.current?.('');
+  }, [containerRef, setSource]);
 
   const play = useCallback(() => { ytPlayerRef.current?.playVideo(); }, []);
   const pause = useCallback(() => { ytPlayerRef.current?.pauseVideo(); }, []);
@@ -207,6 +233,7 @@ export default function useYouTubePlayer({
     ytUrl,
     setYtUrl,
     ytReady,
+    ytLoading,
     ytError,
     setYtError,
     loadYouTube,

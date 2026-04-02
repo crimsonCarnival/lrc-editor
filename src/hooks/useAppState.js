@@ -70,6 +70,10 @@ export function useAppState() {
   const [editorMode, setEditorModeRaw] = useState('lrc');
   const [isAutosaving, setIsAutosaving] = useState(false);
   const [isDraggingFile, setIsDraggingFile] = useState(false);
+  const [sessionYtUrl, setSessionYtUrl] = useState('');
+  const [restoredYtUrl, setRestoredYtUrl] = useState('');
+  const [restoredPosition, setRestoredPosition] = useState(0);
+  const [restoredSpeed, setRestoredSpeed] = useState(1);
   const maxDragDepth = useRef(0);
   const lastLoopSeekRef = useRef(0);
 
@@ -121,11 +125,14 @@ export function useAppState() {
       syncMode,
       activeLineIndex,
       editorMode,
+      ytUrl: sessionYtUrl || '',
+      playbackPosition,
+      playbackSpeed: playerRef.current?.getSpeed?.() ?? 1,
       saveTime: toLocalISOString(now, utcOffset),
       timezone: tz,
       utcOffset,
     };
-  }, [lines, syncMode, activeLineIndex, editorMode, settings.advanced.timezone]);
+  }, [lines, syncMode, activeLineIndex, editorMode, settings.advanced.timezone, sessionYtUrl, playbackPosition]);
 
   const handleManualSave = useCallback(() => {
     localStorage.setItem('lrc-syncer-session', JSON.stringify(buildSessionPayload()));
@@ -142,22 +149,29 @@ export function useAppState() {
     [editorMode, duration, setLines, settings.editor?.srt],
   );
 
-  // ——— Auto-save ———
+  // ——— Auto-save (action-count based) ———
+  const actionCountRef = useRef(0);
+  // Sync latest volatile values so the lines-only effect never captures stale closures
+  const autoSaveRef = useRef(null);
   useEffect(() => {
-    if (pendingSession !== null || !lines.length || !settings.advanced.autoSave.enabled) return;
-    const timeoutId = setTimeout(() => {
-      localStorage.setItem('lrc-syncer-session', JSON.stringify(buildSessionPayload()));
-      setIsAutosaving(true);
-      setTimeout(() => setIsAutosaving(false), 1200);
-    }, settings.advanced.autoSave.interval);
-    return () => clearTimeout(timeoutId);
-  }, [
-    buildSessionPayload,
-    pendingSession,
-    lines.length,
-    settings.advanced.autoSave.enabled,
-    settings.advanced.autoSave.interval,
-  ]);
+    autoSaveRef.current = {
+      pendingSession,
+      enabled: settings.advanced.autoSave.enabled,
+      interval: settings.advanced.autoSave.interval ?? 10,
+      buildPayload: buildSessionPayload,
+    };
+  });
+  useEffect(() => {
+    const s = autoSaveRef.current;
+    if (!s || s.pendingSession !== null || !lines.length || !s.enabled) return;
+    actionCountRef.current += 1;
+    if (actionCountRef.current < s.interval) return;
+    actionCountRef.current = 0;
+    localStorage.setItem('lrc-syncer-session', JSON.stringify(s.buildPayload()));
+    setIsAutosaving(true);
+    setTimeout(() => setIsAutosaving(false), 1200);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lines]);
 
   const handleRestoreSession = () => {
     if (pendingSession) {
@@ -186,6 +200,10 @@ export function useAppState() {
       const restoredMode = pendingSession.editorMode
         || (validLines.some((l) => l.endTime != null) ? 'srt' : 'lrc');
       setEditorModeRaw(restoredMode);
+      // Restore YouTube URL and playback state
+      if (pendingSession.ytUrl) setRestoredYtUrl(pendingSession.ytUrl);
+      if (typeof pendingSession.playbackPosition === 'number') setRestoredPosition(pendingSession.playbackPosition);
+      if (typeof pendingSession.playbackSpeed === 'number') setRestoredSpeed(pendingSession.playbackSpeed);
     }
     setPendingSession(null);
   };
@@ -200,15 +218,13 @@ export function useAppState() {
     (loaded) => {
       setHasMedia(loaded);
       if (!loaded) {
-        setLines([]);
-        setSyncMode(false);
-        setActiveLineIndex(0);
+        // Do NOT clear lines or syncMode — editor content is independent of media
         setPlaybackPosition(0);
         setDuration(0);
         setMediaTitle('');
       }
     },
-    [setLines],
+    [],
   );
 
   // ——— Global keyboard shortcuts ———
@@ -281,6 +297,10 @@ export function useAppState() {
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [showLangMenu]);
+
+  const handleYtUrlChange = useCallback((url) => {
+    setSessionYtUrl(url || '');
+  }, []);
 
   const handleTimeUpdate = useCallback((time) => {
     setPlaybackPosition(time);
@@ -445,6 +465,10 @@ export function useAppState() {
     handleMediaChange,
     handleTimeUpdate,
     handleDurationChange,
+    handleYtUrlChange,
+    restoredYtUrl,
+    restoredPosition,
+    restoredSpeed,
     confirmModal,
     isAutosaving,
   };

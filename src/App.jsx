@@ -38,7 +38,6 @@ function AppInner() {
     duration,
     mediaTitle,
     setMediaTitle,
-    hasMedia,
     showKeyboardHelp,
     setShowKeyboardHelp,
     showSettings,
@@ -54,6 +53,10 @@ function AppInner() {
     handleMediaChange,
     handleTimeUpdate,
     handleDurationChange,
+    handleYtUrlChange,
+    restoredYtUrl,
+    restoredPosition,
+    restoredSpeed,
     confirmModal,
     isAutosaving,
   } = useAppState();
@@ -74,7 +77,7 @@ function AppInner() {
       {isDraggingFile && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm pointer-events-none transition-all">
           <div className="flex flex-col items-center gap-4 text-primary animate-bounce">
-            <UploadCloud className="w-20 h-20" strokeWidth={1.5} />
+            <UploadCloud className="w-20 h-20" />
             <h2 className="text-3xl font-bold tracking-tight text-center px-4">{t('player.dropAudio') || 'Drop your audio or lyrics file here'}</h2>
           </div>
         </div>
@@ -163,32 +166,29 @@ function AppInner() {
               onTimeUpdate={handleTimeUpdate}
               onDurationChange={handleDurationChange}
               onMediaChange={handleMediaChange}
+              onYtUrlChange={handleYtUrlChange}
+              initialYtUrl={restoredYtUrl}
+              initialSeek={restoredPosition}
+              initialSpeed={restoredSpeed}
             />
             <div className="flex-1 min-h-0 flex flex-col">
-              {(hasMedia || lines.length > 0) ? (
-                <Editor
-                  lines={lines}
-                  setLines={setLines}
-                  syncMode={syncMode}
-                  setSyncMode={setSyncMode}
-                  activeLineIndex={activeLineIndex}
-                  setActiveLineIndex={setActiveLineIndex}
-                  playbackPosition={playbackPosition}
-                  playerRef={playerRef}
-                  undo={undo}
-                  redo={redo}
-                  canUndo={canUndo}
-                  canRedo={canRedo}
-                  editorMode={editorMode}
-                  setEditorMode={setEditorMode}
-                  duration={duration}
-                />
-              ) : (
-                <div className="glass rounded-2xl p-5 flex flex-col items-center justify-center h-full animate-fade-in">
-                  <Music2 className="w-10 h-10 text-zinc-700 mb-3" strokeWidth={1.5} />
-                  <p className="text-sm text-zinc-500 text-center whitespace-pre-line">{t('player.noMedia')}</p>
-                </div>
-              )}
+              <Editor
+                lines={lines}
+                setLines={setLines}
+                syncMode={syncMode}
+                setSyncMode={setSyncMode}
+                activeLineIndex={activeLineIndex}
+                setActiveLineIndex={setActiveLineIndex}
+                playbackPosition={playbackPosition}
+                playerRef={playerRef}
+                undo={undo}
+                redo={redo}
+                canUndo={canUndo}
+                canRedo={canRedo}
+                editorMode={editorMode}
+                setEditorMode={setEditorMode}
+                duration={duration}
+              />
             </div>
           </div>
 

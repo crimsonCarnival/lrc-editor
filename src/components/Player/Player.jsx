@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useRef, forwardRef, useImperativeHandle } from 'react';
+import { useState, useCallback, useMemo, useRef, forwardRef, useImperativeHandle, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSettings } from '../../contexts/useSettings';
 import useConfirm from '../../hooks/useConfirm';
@@ -10,13 +10,12 @@ import VolumeControl from './VolumeControl';
 import SpeedControl from './SpeedControl';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { Music2, Trash2, AlertTriangle, Play, Pause, Headphones } from 'lucide-react';
+import { Music2, Trash2, AlertTriangle, Play, Pause, Headphones, FolderOpen, Upload } from 'lucide-react';
 
 const ALL_SPEED_PRESETS = [0.25, 0.5, 0.75, 1, 1.25, 1.5];
 
 const Player = forwardRef(function Player(
-  { onTimeUpdate, onDurationChange, onMediaChange, playerRef: _legacyRef, mediaTitle, onTitleChange },
+  { onTimeUpdate, onDurationChange, onMediaChange, playerRef: _legacyRef, mediaTitle, onTitleChange, initialYtUrl, onYtUrlChange, initialSeek, initialSpeed },
   ref,
 ) {
   const { t } = useTranslation();
@@ -84,6 +83,9 @@ const Player = forwardRef(function Player(
     onTitleChange,
     onMediaChange,
     isPlaying,
+    setSource,
+    initialYtUrl,
+    onYtUrlChange,
   });
 
   const hasMedia = (source === 'local' && local.localUrl) || (source === 'youtube' && yt.ytReady);
@@ -142,6 +144,17 @@ const Player = forwardRef(function Player(
     [source, isPlaying, togglePlay, seek, local, yt, applySpeed, playbackSpeed],
   );
 
+  // ——— Apply restored seek/speed once after YouTube media is ready ———
+  const restoredValuesAppliedRef = useRef(false);
+  useEffect(() => {
+    if (yt.ytReady && !restoredValuesAppliedRef.current) {
+      restoredValuesAppliedRef.current = true;
+      if (initialSeek > 0) yt.seek(initialSeek);
+      // Apply speed directly to YouTube player (external call only)
+      if (initialSpeed && initialSpeed !== 1) yt.setSpeed(initialSpeed);
+    }
+  }, [yt.ytReady]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // ——— Remove media ———
 
   const removeMedia = useCallback(() => {
@@ -174,62 +187,132 @@ const Player = forwardRef(function Player(
             </div>
           )}
         </h2>
-        {!hasMedia ? (
-          <ToggleGroup
-            type="single"
-            value={source}
-            onValueChange={(val) => { if (val) setSource(val); }}
-            className="bg-zinc-800/60 rounded-lg p-0.5 shrink-0 flex-nowrap h-auto gap-0"
-          >
-            <ToggleGroupItem
-              id="source-local"
-              value="local"
-              className="px-2 py-1.5 text-[10px] sm:text-xs font-medium rounded-md data-[state=on]:bg-primary data-[state=on]:text-zinc-950 data-[state=on]:shadow-lg text-zinc-400 hover:text-zinc-200 hover:bg-transparent h-auto"
+        {hasMedia && (
+          <div className="flex items-center gap-1 shrink-0">
+            <label
+              htmlFor="audio-file-input"
+              className="flex items-center gap-1 px-2 py-1.5 text-xs font-medium text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700/60 rounded-lg cursor-pointer transition-colors"
+              title={t('player.changeSong')}
             >
-              {t('player.localFile')}
-            </ToggleGroupItem>
-            <ToggleGroupItem
-              id="source-youtube"
-              value="youtube"
-              className="px-2 py-1.5 text-[10px] sm:text-xs font-medium rounded-md data-[state=on]:bg-primary data-[state=on]:text-zinc-950 data-[state=on]:shadow-lg text-zinc-400 hover:text-zinc-200 hover:bg-transparent h-auto"
+              <Upload className="w-3.5 h-3.5" />
+              <input
+                id="audio-file-input"
+                type="file"
+                accept="audio/*"
+                onChange={local.handleFileChange}
+                className="hidden"
+              />
+            </label>
+            <Button
+              id="remove-media-btn"
+              variant="ghost"
+              onClick={removeMedia}
+              className="gap-1 px-2 py-1.5 text-xs font-medium text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg shrink-0 h-auto"
+              title={t('player.remove')}
             >
-              {t('player.youtube')}
-            </ToggleGroupItem>
-          </ToggleGroup>
-        ) : (
-          <Button
-            id="remove-media-btn"
-            variant="ghost"
-            onClick={removeMedia}
-            className="gap-1 sm:gap-1.5 px-2 py-1.5 text-xs font-medium text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg shrink-0 h-auto"
-            title={t('player.remove')}
-          >
-            <Trash2 className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
-          </Button>
+              <Trash2 className="w-3.5 h-3.5" />
+            </Button>
+          </div>
         )}
       </div>
 
-      {/* Local Source */}
-      {source === 'local' && !local.localUrl && (
-        <div className="space-y-3 animate-fade-in">
-          <label
-            htmlFor="audio-file-input"
-            className="flex items-center justify-center gap-2 border-2 border-dashed border-zinc-700 hover:border-primary/50 rounded-xl p-4 cursor-pointer transition-colors duration-200 group"
-          >
-            <Music2 className="w-5 h-5 text-zinc-500 group-hover:text-primary transition-colors" />
-            <span className="text-sm text-zinc-400 group-hover:text-zinc-200 transition-colors">
-              {t('player.dropAudio')}
-            </span>
-            <input
-              id="audio-file-input"
-              type="file"
-              accept="audio/*"
-              onChange={local.handleFileChange}
-              className="hidden"
-            />
-          </label>
+      {/* Loading placeholder while YouTube initialises */}
+      {!hasMedia && yt.ytLoading && (
+        <div className="flex items-center justify-center gap-3 py-6 animate-fade-in">
+          <svg className="w-5 h-5 text-primary animate-spin" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+          </svg>
+          <span className="text-sm text-zinc-400">{t('player.loading') || 'Loading…'}</span>
         </div>
       )}
+
+      {/* Unified media loader — shown when no media is loaded */}
+      {!hasMedia && !yt.ytLoading && (
+        <div className="animate-fade-in overflow-hidden">
+          {/* Drop zone — hidden once a URL has been entered */}
+          {!yt.ytUrl.trim() && (<>
+            <label
+              htmlFor="audio-file-input"
+              className="flex flex-col items-center justify-center gap-2 px-4 py-5 cursor-pointer group transition-colors rounded-xl"
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault();
+                const file = e.dataTransfer.files?.[0];
+                if (file) local.handleFileChange({ target: { files: [file] } });
+              }}
+            >
+              <div className="w-10 h-10 rounded-xl bg-zinc-800 border border-zinc-700/60 flex items-center justify-center group-hover:border-primary/40 group-hover:bg-zinc-700/60 transition-all">
+                <FolderOpen className="w-5 h-5 text-zinc-500 group-hover:text-primary transition-colors" />
+              </div>
+              <div className="text-center">
+                <p className="text-sm font-medium text-zinc-300 group-hover:text-zinc-100 transition-colors">{t('player.dropAudio')}</p>
+                <p className="text-[11px] text-zinc-600 mt-0.5">{t('player.dropHint')}</p>
+              </div>
+              <input
+                id="audio-file-input"
+                type="file"
+                accept="audio/*"
+                onChange={local.handleFileChange}
+                className="hidden"
+              />
+            </label>
+
+            {/* Divider */}
+            <div className="flex items-center gap-3 px-4 py-1">
+              <div className="flex-1 h-px bg-zinc-800" />
+              <span className="text-[11px] text-zinc-600 uppercase tracking-widest">{t('player.or')}</span>
+              <div className="flex-1 h-px bg-zinc-800" />
+            </div>
+          </>)}
+
+          {/* YouTube URL — always visible; shows clear button once a URL is present */}
+          <div className="px-1 py-2 space-y-2">
+            <div className="flex gap-2 items-center">
+              {yt.ytUrl.trim() && (
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  onClick={() => { yt.setYtUrl(''); yt.setYtError(''); }}
+                  className="w-7 h-8 text-zinc-500 hover:text-zinc-200 hover:bg-zinc-700/60 shrink-0"
+                  title={t('player.clearUrl')}
+                >
+                  ←
+                </Button>
+              )}
+              <div className="relative flex-1">
+                <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-red-500/70 shrink-0 pointer-events-none" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                </svg>
+                <Input
+                  id="youtube-url-input"
+                  type="text"
+                  value={yt.ytUrl}
+                  onChange={(e) => { yt.setYtUrl(e.target.value); yt.setYtError(''); }}
+                  onKeyDown={(e) => e.key === 'Enter' && yt.loadYouTube()}
+                  placeholder={t('player.pasteUrl')}
+                  className={`pl-7 bg-zinc-800/60 text-zinc-100 placeholder-zinc-500 ${yt.ytError ? 'border-red-500/70 focus-visible:ring-red-500/25' : 'border-zinc-700 focus-visible:ring-primary/25'}`}
+                />
+              </div>
+              <Button
+                id="load-youtube-btn"
+                onClick={yt.loadYouTube}
+                className="px-4 bg-red-600 hover:bg-red-500 text-white text-sm font-medium rounded-lg shrink-0"
+              >
+                {t('player.load')}
+              </Button>
+            </div>
+            {yt.ytError && (
+              <p className="text-xs text-red-400 flex items-center gap-1.5 animate-fade-in">
+                <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                {yt.ytError}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Local audio waveform */}
       {source === 'local' && local.localUrl && (
         <div className="animate-fade-in space-y-3">
           <WaveformDisplay
@@ -251,35 +334,6 @@ const Player = forwardRef(function Player(
         </div>
       )}
 
-      {/* YouTube Source */}
-      {source === 'youtube' && !yt.ytReady && (
-        <div className="space-y-3 animate-fade-in">
-          <div className="flex gap-2">
-          <Input
-              id="youtube-url-input"
-              type="text"
-              value={yt.ytUrl}
-              onChange={(e) => { yt.setYtUrl(e.target.value); yt.setYtError(''); }}
-              onKeyDown={(e) => e.key === 'Enter' && yt.loadYouTube()}
-              placeholder={t('player.pasteUrl')}
-              className={`flex-1 bg-zinc-800/60 text-zinc-100 placeholder-zinc-500 ${yt.ytError ? 'border-red-500/70 focus-visible:ring-red-500/25' : 'border-zinc-700 focus-visible:ring-primary/25'}`}
-            />
-            <Button
-              id="load-youtube-btn"
-              onClick={yt.loadYouTube}
-              className="px-4 bg-red-600 hover:bg-red-500 text-white text-sm font-medium rounded-lg"
-            >
-              {t('player.load')}
-            </Button>
-          </div>
-          {yt.ytError && (
-            <p className="text-xs text-red-400 flex items-center gap-1.5 animate-fade-in">
-              <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-              {yt.ytError}
-            </p>
-          )}
-        </div>
-      )}
       <div
         ref={ytContainerRef}
         className={`fixed -top-[9999px] -left-[9999px] w-0 h-0 opacity-0 pointer-events-none ${source === 'youtube' && yt.ytReady ? '' : 'hidden'}`}
