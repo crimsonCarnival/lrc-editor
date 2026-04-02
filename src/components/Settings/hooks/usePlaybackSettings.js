@@ -22,11 +22,13 @@ export function usePlaybackSettings(settings, updateSetting) {
   };
 
   const handleShowWaveformChange = (v) => updateSetting('playback.showWaveform', v);
+  const handleWaveformSnapChange = (v) => updateSetting('playback.waveformSnap', v);
 
   return {
     handleAutoRewindChange,
     handleMinSpeedChange,
     handleMaxSpeedChange,
     handleShowWaveformChange,
+    handleWaveformSnapChange,
   };
 }
