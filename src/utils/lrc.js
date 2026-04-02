@@ -198,7 +198,7 @@ export function parseLrcSrtFile(content, filename) {
         const s = parseFloat(match[2]);
         const text = match[3].trim();
         parsedLines.push({ text, timestamp: m * 60 + s, id: crypto.randomUUID() });
-      } else if (line.trim() !== '') {
+      } else if (line.trim() !== '' && !/^\[[^\]]*:[^\]]*\]/.test(line.trim())) {
         parsedLines.push({ text: line.trim(), timestamp: null, id: crypto.randomUUID() });
       }
     });
