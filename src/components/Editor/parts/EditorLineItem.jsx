@@ -254,6 +254,14 @@ const EditorLineItem = React.memo(({
               >
                 {line.text || '♪'}
               </p>
+              {line.words?.length > 0 && (
+                <span
+                  className="flex-shrink-0 text-[9px] font-mono text-accent-blue/60 px-1 py-0.5 bg-accent-blue/10 rounded border border-accent-blue/20 leading-none"
+                  title={`${line.words.length} word-level timestamps`}
+                >
+                  W:{line.words.length}
+                </span>
+              )}
               <Button
                 variant="ghost"
                 size="icon-xs"

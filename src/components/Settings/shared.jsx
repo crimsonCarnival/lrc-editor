@@ -127,7 +127,7 @@ export function ModifierInput({ value, onChange, validateModifier }) {
   );
 }
 
-export function ShortcutInput({ value, onChange, onValidate }) {
+export function ShortcutInput({ value, onChange, onValidate, conflict }) {
   const [recording, setRecording] = useState(false);
   const [error, setError] = useState(false);
 
@@ -159,34 +159,43 @@ export function ShortcutInput({ value, onChange, onValidate }) {
   };
 
   return (
-    <button
-      className={`px-2.5 py-1.5 rounded-lg min-w-[80px] flex items-center justify-center gap-0.5 transition-all outline-none ${
-        error
-          ? 'bg-red-500/20 border border-red-500 ring-2 ring-red-500/50'
-          : recording
-          ? 'bg-primary/10 border border-primary ring-2 ring-primary/40'
-          : 'bg-zinc-800/60 border border-zinc-700 hover:border-zinc-600 hover:bg-zinc-800'
-      }`}
-      onClick={() => setRecording(true)}
-      onKeyDown={recording ? handleKeyDown : undefined}
-      onBlur={() => setRecording(false)}
-    >
-      {error ? (
-        <span className="text-red-400 text-xs font-medium">Taken!</span>
-      ) : recording ? (
-        <span className="text-primary text-xs animate-pulse font-medium">Press key…</span>
-      ) : value ? (
-        value.split(/(?<=.)\+/).map((part, idx) => (
-          <React.Fragment key={idx}>
-            {idx > 0 && <span className="text-zinc-600 text-[10px] mx-0.5">+</span>}
-            <Kbd className="bg-zinc-700/60 text-zinc-200 border border-zinc-600/50 h-auto px-1.5 py-0.5 text-xs">
-              {KEY_SYMBOLS[part] ?? part}
-            </Kbd>
-          </React.Fragment>
-        ))
-      ) : (
-        <span className="text-zinc-500 text-xs">None</span>
+    <div className="flex flex-col items-end gap-0.5">
+      <button
+        className={`px-2.5 py-1.5 rounded-lg min-w-[80px] flex items-center justify-center gap-0.5 transition-all outline-none ${
+          error
+            ? 'bg-red-500/20 border border-red-500 ring-2 ring-red-500/50'
+            : conflict
+            ? 'border border-amber-500/70 bg-amber-500/10'
+            : recording
+            ? 'bg-primary/10 border border-primary ring-2 ring-primary/40'
+            : 'bg-zinc-800/60 border border-zinc-700 hover:border-zinc-600 hover:bg-zinc-800'
+        }`}
+        onClick={() => setRecording(true)}
+        onKeyDown={recording ? handleKeyDown : undefined}
+        onBlur={() => setRecording(false)}
+      >
+        {error ? (
+          <span className="text-red-400 text-xs font-medium">Taken!</span>
+        ) : recording ? (
+          <span className="text-primary text-xs animate-pulse font-medium">Press key…</span>
+        ) : value ? (
+          value.split(/(?<=.)\+/).map((part, idx) => (
+            <React.Fragment key={idx}>
+              {idx > 0 && <span className="text-zinc-600 text-[10px] mx-0.5">+</span>}
+              <Kbd className="bg-zinc-700/60 text-zinc-200 border border-zinc-600/50 h-auto px-1.5 py-0.5 text-xs">
+                {KEY_SYMBOLS[part] ?? part}
+              </Kbd>
+            </React.Fragment>
+          ))
+        ) : (
+          <span className="text-zinc-500 text-xs">None</span>
+        )}
+      </button>
+      {conflict && (
+        <span className="text-[10px] text-amber-400 font-medium leading-none">
+          ⚠ {conflict}
+        </span>
       )}
-    </button>
+    </div>
   );
 }

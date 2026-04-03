@@ -82,6 +82,18 @@ export function useEditor({
   // ——— Paste-area handlers ———
 
   const handleConfirmLyrics = () => {
+    const looksLikeLrc = /^\[(\d{1,2}):(\d{2}\.\d{2,3})\]/m.test(rawText);
+    const looksLikeSrt = /^\d+\r?\n\d{2}:\d{2}:\d{2},\d{3}\s*-->/m.test(rawText);
+    if (looksLikeLrc || looksLikeSrt) {
+      const filename = looksLikeSrt ? 'lyrics.srt' : 'lyrics.lrc';
+      const parsed = parseLrcSrtFile(rawText, filename);
+      if (parsed.length > 0) {
+        setLines(parsed);
+        setActiveLineIndex(Math.max(0, parsed.findIndex((l) => l.timestamp == null)));
+        setSyncMode(true);
+        return;
+      }
+    }
     const newTexts = rawText.split('\n').map((text) => text.trim());
     const updated = newTexts.map((text, i) => {
       const old = lines[i] || {};
@@ -114,6 +126,33 @@ export function useEditor({
     };
     reader.readAsText(file);
     e.target.value = '';
+  };
+
+  const handleUrlImport = async (url) => {
+    let parsedUrl;
+    try {
+      parsedUrl = new URL(url);
+      if (!['http:', 'https:'].includes(parsedUrl.protocol)) throw new Error();
+    } catch {
+      return { error: t('import.invalidUrl') || 'Invalid URL. Use http:// or https://' };
+    }
+    try {
+      const resp = await fetch(url);
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const text = await resp.text();
+      const filename = parsedUrl.pathname.split('/').pop() || 'lyrics.lrc';
+      const parsed = parseLrcSrtFile(text, filename);
+      if (parsed.length === 0) {
+        return { error: t('import.noLines') || 'No lyrics found in file' };
+      }
+      setLines(parsed);
+      setActiveLineIndex(Math.max(0, parsed.findIndex((l) => l.timestamp == null)));
+      setSyncMode(true);
+      toast.success(t('import.success', { count: parsed.length }) || `Imported ${parsed.length} lines`);
+      return { success: true };
+    } catch {
+      return { error: t('import.fetchError') || 'Failed to fetch. The server may not allow cross-origin requests.' };
+    }
   };
 
   // ——— Timestamp operations ———
@@ -574,6 +613,7 @@ export function useEditor({
     // handlers
     handleConfirmLyrics,
     handleFileUpload,
+    handleUrlImport,
     shiftTime,
     handleMark,
     handleClearLine,

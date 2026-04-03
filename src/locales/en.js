@@ -2,7 +2,8 @@ export default {
   "translation": {
     "app": {
       "name": "LRC Syncer",
-      "footer": "Lyrics Syncer — Runs entirely in your browser. No data leaves your device."
+      "footer": "Lyrics Syncer — Runs entirely in your browser. No data leaves your device.",
+      "shareSession": "Share"
     },
 
     "player": {
@@ -114,7 +115,10 @@ export default {
       "restoreMessage": "Your sync data from a previous session was saved. Please re-load your audio file to continue editing.",
       "restoreLines": "synced lines saved",
       "restore": "Restore",
-      "discard": "Discard"
+      "discard": "Discard",
+      "sharedSession": "Shared session from link",
+      "sharecopied": "Link copied to clipboard!",
+      "shareFailed": "Could not copy link. Try saving manually."
     },
 
     "confirm": {
@@ -133,7 +137,11 @@ export default {
       "success": "Imported {{count}} lines",
       "failed": "Failed to parse lyrics file",
       "noLines": "No lyrics found in file",
-      "tooLarge": "File too large (max 5 MB)"
+      "tooLarge": "File too large (max 5 MB)",
+      "fromUrl": "Import from URL",
+      "urlPlaceholder": "https://example.com/lyrics.lrc",
+      "fetchError": "Failed to fetch. The server may not allow cross-origin requests.",
+      "invalidUrl": "Invalid URL. Use http:// or https://"
     },
 
     "network": {
@@ -207,6 +215,8 @@ export default {
         "maxSpeedDesc": "Highest playback speed available",
         "showWaveform": "Waveform",
         "showWaveformDesc": "Show the audio waveform visualization",
+        "waveformSnap": "Waveform snap",
+        "waveformSnapDesc": "Snap playback position to closest second when clicking the waveform",
         "seekTime": "Seek time",
         "seekTimeDesc": "Seconds to seek when using seek shortcuts"
       },
@@ -242,7 +252,11 @@ export default {
         "filenameFixed": "Fixed (\"lyrics\")",
         "filenameMedia": "From media title",
         "lineEndings": "Line endings",
-        "lineEndingsDesc": "Format for newlines in exported files"
+        "lineEndingsDesc": "Format for newlines in exported files",
+        "stripEmptyLines": "Strip empty lines",
+        "stripEmptyLinesDesc": "Exclude lines with no text from exported files",
+        "normalizeTimestamps": "Normalize timestamps",
+        "normalizeTimestampsDesc": "Sort lines by timestamp order before exporting"
       },
 
       "interface": {
