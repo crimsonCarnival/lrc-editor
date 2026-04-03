@@ -1,18 +1,203 @@
-import React, { useEffect, useRef, useCallback } from 'react';
+import React, { useEffect, useRef, useCallback, useMemo, useState } from 'react';
 import { formatTime } from '../../utils/formatTime';
+import { ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
+
+const ZOOM_LEVELS = [0, 50, 100, 200, 400]; // 0 = fit to container
+const MARKER_CLICK_THRESHOLD = 8; // px — how close a click must be to snap to a marker
 
 const WaveformDisplay = React.memo(function WaveformDisplay({ 
   audioRef, 
   localUrl, 
   showWaveform, 
   waveformSnap,
-  onTimeUpdate 
+  onTimeUpdate,
+  lines,
+  playbackPosition,
+  duration,
 }) {
   const wavesurferRef = useRef(null);
   const waveContainerRef = useRef(null);
+  const overlayCanvasRef = useRef(null);
+  const wrapperRef = useRef(null); // outer wrapper for positioning the canvas overlay
   const cleanupListenersRef = useRef(null);
   const waveformSnapRef = useRef(waveformSnap);
   waveformSnapRef.current = waveformSnap;
+  const [zoomLevel, setZoomLevel] = useState(0);
+  const timestampsRef = useRef([]);
+
+  // Extract sorted timestamps from lines
+  const timestamps = useMemo(() => {
+    if (!lines) return [];
+    return lines
+      .filter((l) => l.timestamp != null)
+      .map((l) => l.timestamp)
+      .sort((a, b) => a - b);
+  }, [lines]);
+  timestampsRef.current = timestamps;
+
+  // Get the WaveSurfer internal scrollable wrapper for accurate dimensions
+  const getWsWrapper = useCallback(() => {
+    const ws = wavesurferRef.current;
+    if (!ws) return null;
+    // WaveSurfer 7.x: getWrapper() returns the inner wrapper element
+    if (typeof ws.getWrapper === 'function') return ws.getWrapper();
+    // Fallback: find the first scrollable child of the container (skip our canvas)
+    const container = waveContainerRef.current;
+    if (!container) return null;
+    for (const child of container.children) {
+      if (child.tagName !== 'CANVAS') return child;
+    }
+    return null;
+  }, []);
+
+  // Draw overlay: timestamp markers + active region shading
+  const drawOverlay = useCallback(() => {
+    const canvas = overlayCanvasRef.current;
+    const wrapper = wrapperRef.current;
+    if (!canvas || !wrapper || !duration) return;
+
+    const wsWrapper = getWsWrapper();
+    const scrollLeft = wsWrapper?.scrollLeft || 0;
+    const totalWidth = wsWrapper?.scrollWidth || wrapper.clientWidth;
+    const visibleWidth = wrapper.clientWidth;
+    const visibleHeight = wrapper.clientHeight;
+
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = visibleWidth * dpr;
+    canvas.height = visibleHeight * dpr;
+    canvas.style.width = visibleWidth + 'px';
+    canvas.style.height = visibleHeight + 'px';
+
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0, 0, visibleWidth, visibleHeight);
+
+    // Find active region (current timestamp → next timestamp)
+    let activeStart = null;
+    let activeEnd = null;
+    for (let i = 0; i < timestamps.length; i++) {
+      if (timestamps[i] <= playbackPosition) {
+        activeStart = timestamps[i];
+        activeEnd = timestamps[i + 1] ?? null;
+      }
+    }
+
+    // Helper: convert time to x pixel position (accounting for scroll)
+    const timeToX = (t) => (t / duration) * totalWidth - scrollLeft;
+
+    // Draw active region shading
+    if (activeStart != null) {
+      const x1 = timeToX(activeStart);
+      const x2 = activeEnd != null ? timeToX(activeEnd) : timeToX(playbackPosition);
+      const clampedX1 = Math.max(0, x1);
+      const clampedX2 = Math.min(visibleWidth, x2);
+      if (clampedX2 > clampedX1) {
+        ctx.fillStyle = 'rgba(29, 185, 84, 0.08)';
+        ctx.fillRect(clampedX1, 0, clampedX2 - clampedX1, visibleHeight);
+      }
+    }
+
+    // Draw timestamp markers
+    ctx.strokeStyle = 'rgba(29, 185, 84, 0.35)';
+    ctx.lineWidth = 1;
+    for (const ts of timestamps) {
+      const x = timeToX(ts);
+      if (x < -1 || x > visibleWidth + 1) continue; // off-screen
+      const px = Math.round(x) + 0.5;
+      ctx.beginPath();
+      ctx.moveTo(px, 0);
+      ctx.lineTo(px, visibleHeight);
+      ctx.stroke();
+
+      // Small tick at top
+      ctx.fillStyle = 'rgba(29, 185, 84, 0.6)';
+      ctx.fillRect(px - 1.5, 0, 3, 3);
+    }
+  }, [timestamps, playbackPosition, duration, getWsWrapper]);
+
+  // Redraw overlay on each render
+  useEffect(() => {
+    drawOverlay();
+  }, [drawOverlay]);
+
+  // Also redraw on resize and scroll
+  useEffect(() => {
+    if (!showWaveform) return;
+    const handleResize = () => drawOverlay();
+    window.addEventListener('resize', handleResize);
+
+    // Listen for scroll on WaveSurfer's internal wrapper
+    const wsWrapper = getWsWrapper();
+    const handleScroll = () => drawOverlay();
+    wsWrapper?.addEventListener('scroll', handleScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      wsWrapper?.removeEventListener('scroll', handleScroll);
+    };
+  }, [showWaveform, drawOverlay, getWsWrapper]);
+
+  // Handle clicks on the overlay — snap to nearest marker if close enough
+  const handleOverlayClick = useCallback((e) => {
+    const wrapper = wrapperRef.current;
+    const audioEl = audioRef.current;
+    if (!wrapper || !audioEl || !duration) return;
+
+    const wsWrapper = getWsWrapper();
+    const scrollLeft = wsWrapper?.scrollLeft || 0;
+    const totalWidth = wsWrapper?.scrollWidth || wrapper.clientWidth;
+    const rect = wrapper.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+
+    // Find closest marker
+    let closestTs = null;
+    let closestDist = Infinity;
+    for (const ts of timestampsRef.current) {
+      const markerX = (ts / duration) * totalWidth - scrollLeft;
+      const dist = Math.abs(markerX - clickX);
+      if (dist < closestDist) {
+        closestDist = dist;
+        closestTs = ts;
+      }
+    }
+
+    if (closestTs != null && closestDist <= MARKER_CLICK_THRESHOLD) {
+      // Snap to the marker timestamp
+      audioEl.currentTime = closestTs;
+      onTimeUpdate?.(closestTs);
+    } else {
+      // Normal seek — compute time from click position
+      const percentage = Math.max(0, Math.min(clickX / rect.width, 1));
+      const rawTime = percentage * (audioEl.duration || 0);
+      const time = waveformSnapRef.current ? Math.round(rawTime) : rawTime;
+      audioEl.currentTime = time;
+      onTimeUpdate?.(time);
+    }
+  }, [duration, getWsWrapper, onTimeUpdate, audioRef]);
+
+  // Zoom controls
+  const handleZoomIn = useCallback(() => {
+    setZoomLevel((prev) => {
+      const idx = ZOOM_LEVELS.indexOf(prev);
+      const next = idx < ZOOM_LEVELS.length - 1 ? ZOOM_LEVELS[idx + 1] : prev;
+      wavesurferRef.current?.zoom(next);
+      return next;
+    });
+  }, []);
+
+  const handleZoomOut = useCallback(() => {
+    setZoomLevel((prev) => {
+      const idx = ZOOM_LEVELS.indexOf(prev);
+      const next = idx > 0 ? ZOOM_LEVELS[idx - 1] : prev;
+      wavesurferRef.current?.zoom(next);
+      return next;
+    });
+  }, []);
+
+  const handleZoomFit = useCallback(() => {
+    setZoomLevel(0);
+    wavesurferRef.current?.zoom(0);
+  }, []);
 
   const initWaveform = useCallback(async (url, audioEl) => {
     // Dynamically import wavesurfer.js
@@ -39,6 +224,8 @@ const WaveformDisplay = React.memo(function WaveformDisplay({
       interact: false,
       media: audioEl,
       backend: 'MediaElement',
+      autoScroll: true,
+      autoCenter: false,
     });
 
     ws.on('seeking', (time) => {
@@ -50,6 +237,9 @@ const WaveformDisplay = React.memo(function WaveformDisplay({
     let tooltipElement = null;
 
     const formatWaveTime = formatTime;
+
+    // Use the outer wrapper (wrapperRef) for mouse events since the overlay canvas sits on top
+    const eventTarget = wrapperRef.current;
 
     const createTooltip = () => {
       if (!tooltipElement) {
@@ -68,14 +258,14 @@ const WaveformDisplay = React.memo(function WaveformDisplay({
           white-space: nowrap;
           border: 1px solid rgba(29, 185, 84, 0.3);
         `;
-        waveContainerRef.current?.appendChild(tooltipElement);
+        eventTarget?.appendChild(tooltipElement);
       }
       return tooltipElement;
     };
 
     const updateTooltip = (e) => {
       const tooltip = createTooltip();
-      const rect = waveContainerRef.current?.getBoundingClientRect();
+      const rect = eventTarget?.getBoundingClientRect();
       if (!rect) return;
 
       const x = e.clientX - rect.left;
@@ -90,7 +280,7 @@ const WaveformDisplay = React.memo(function WaveformDisplay({
 
     const handleMouseMove = (e) => {
       if (isFollowingCursor) {
-        const rect = waveContainerRef.current?.getBoundingClientRect();
+        const rect = eventTarget?.getBoundingClientRect();
         if (!rect) return;
 
         const x = e.clientX - rect.left;
@@ -105,17 +295,9 @@ const WaveformDisplay = React.memo(function WaveformDisplay({
     };
 
     const handleMouseDown = (e) => {
-      const rect = waveContainerRef.current?.getBoundingClientRect();
-      if (!rect) return;
-
-      const x = e.clientX - rect.left;
-      const percentage = Math.max(0, Math.min(x / rect.width, 1));
-      const rawTime = percentage * (audioEl.duration || 0);
-      const time = waveformSnapRef.current ? Math.round(rawTime) : rawTime;
-
+      // Don't start drag on single clicks — let the overlay onClick handle marker snapping
+      // Only start drag-seek mode (isFollowingCursor) for continued mouse moves
       isFollowingCursor = true;
-      audioEl.currentTime = time;
-      onTimeUpdate?.(time);
     };
 
     const handleMouseUp = () => {
@@ -127,18 +309,17 @@ const WaveformDisplay = React.memo(function WaveformDisplay({
       isFollowingCursor = false;
     };
 
-    const container = waveContainerRef.current;
-    container?.addEventListener('mouseenter', createTooltip);
-    container?.addEventListener('mousemove', handleMouseMove, { passive: true });
-    container?.addEventListener('mouseleave', handleMouseLeave);
-    container?.addEventListener('mousedown', handleMouseDown);
+    eventTarget?.addEventListener('mouseenter', createTooltip);
+    eventTarget?.addEventListener('mousemove', handleMouseMove, { passive: true });
+    eventTarget?.addEventListener('mouseleave', handleMouseLeave);
+    eventTarget?.addEventListener('mousedown', handleMouseDown);
     window.addEventListener('mouseup', handleMouseUp);
 
     cleanupListenersRef.current = () => {
-      container?.removeEventListener('mouseenter', createTooltip);
-      container?.removeEventListener('mousemove', handleMouseMove);
-      container?.removeEventListener('mouseleave', handleMouseLeave);
-      container?.removeEventListener('mousedown', handleMouseDown);
+      eventTarget?.removeEventListener('mouseenter', createTooltip);
+      eventTarget?.removeEventListener('mousemove', handleMouseMove);
+      eventTarget?.removeEventListener('mouseleave', handleMouseLeave);
+      eventTarget?.removeEventListener('mousedown', handleMouseDown);
       window.removeEventListener('mouseup', handleMouseUp);
       if (tooltipElement && tooltipElement.parentNode) {
         tooltipElement.parentNode.removeChild(tooltipElement);
@@ -182,10 +363,46 @@ const WaveformDisplay = React.memo(function WaveformDisplay({
   if (!showWaveform) return null;
 
   return (
-    <div
-      ref={waveContainerRef}
-      className="w-full rounded-lg overflow-hidden bg-zinc-900/40 border border-zinc-800/50 cursor-pointer"
-    />
+    <div className="space-y-1">
+      <div ref={wrapperRef} className="relative w-full rounded-lg overflow-hidden bg-zinc-900/40 border border-zinc-800/50 cursor-pointer">
+        {/* WaveSurfer renders into this div */}
+        <div ref={waveContainerRef} className="w-full" />
+        {/* Overlay canvas — sibling to WaveSurfer container, not a child */}
+        <canvas
+          ref={overlayCanvasRef}
+          className="absolute inset-0 z-10"
+          style={{ cursor: 'pointer' }}
+          onClick={handleOverlayClick}
+        />
+      </div>
+      {/* Zoom controls */}
+      <div className="flex items-center justify-end gap-1">
+        <button
+          onClick={handleZoomOut}
+          disabled={zoomLevel === 0}
+          className="p-1 rounded text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/60 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          title="Zoom out"
+        >
+          <ZoomOut className="w-3.5 h-3.5" />
+        </button>
+        <button
+          onClick={handleZoomFit}
+          disabled={zoomLevel === 0}
+          className="px-1.5 py-0.5 rounded text-[10px] font-mono text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/60 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          title="Fit to view"
+        >
+          <Maximize2 className="w-3 h-3" />
+        </button>
+        <button
+          onClick={handleZoomIn}
+          disabled={zoomLevel === ZOOM_LEVELS[ZOOM_LEVELS.length - 1]}
+          className="p-1 rounded text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/60 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          title="Zoom in"
+        >
+          <ZoomIn className="w-3.5 h-3.5" />
+        </button>
+      </div>
+    </div>
   );
 });
 
