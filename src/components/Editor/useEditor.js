@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import { parseLrcSrtFile } from '../../utils/lrc';
 import { matchKey } from '../../utils/keyboard';
+import { toHiragana, toKatakana, parseRubyMarkup, hasCJK } from '../../utils/furigana';
 import { useTranslation } from 'react-i18next';
 import { useSettings } from '../../contexts/useSettings';
 import useConfirm from '../../hooks/useConfirm';
@@ -94,8 +95,32 @@ export function useEditor({
     if (editorMode === 'words') {
       setLines((prev) =>
         prev.map((line) => {
+          const text = (line.text || '').trim();
+          if (!text) return line;
+          const hasCJK = /[\u3000-\u9FFF\uF900-\uFAFF]/.test(text);
+
+          if (hasCJK) {
+            // CJK: always split into individual characters
+            const chars = [...text].filter(ch => ch.trim());
+            if (!chars.length) return line;
+            // If existing words, distribute their timestamps to the new char positions
+            if (line.words?.length) {
+              const newWords = chars.map((ch) => ({ word: ch, time: null }));
+              let charIdx = 0;
+              line.words.forEach((oldWord) => {
+                if (oldWord.time != null && charIdx < newWords.length) {
+                  newWords[charIdx].time = oldWord.time;
+                }
+                charIdx += [...oldWord.word].length;
+              });
+              return { ...line, words: newWords };
+            }
+            return { ...line, words: chars.map((word) => ({ word, time: null })) };
+          }
+
+          // Latin: keep existing words if present
           if (line.words?.length) return line;
-          const tokens = (line.text || '').trim().split(/\s+/).filter(Boolean);
+          const tokens = text.split(/\s+/).filter(Boolean);
           if (!tokens.length) return line;
           return { ...line, words: tokens.map((word) => ({ word, time: null })) };
         })
@@ -365,6 +390,8 @@ export function useEditor({
     if (!syncMode) return;
 
     const handler = (e) => {
+      // Ignore IME composition events (e.g. Japanese input)
+      if (e.isComposing || e.keyCode === 229) return;
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
       const handleNudge = (delta) => {
@@ -458,19 +485,85 @@ export function useEditor({
   const handleSaveLineText = (index, newText, newSecondary, newTranslation) => {
     setLines((prev) => {
       const updated = [...prev];
-      const line = { ...updated[index], text: newText };
-      if (newSecondary !== undefined) line.secondary = newSecondary;
-      if (newTranslation !== undefined) line.translation = newTranslation;
-      // Re-tokenize words while preserving existing timestamps by position
-      if (line.words) {
-        const tokens = (newText || '').trim().split(/\s+/).filter(Boolean);
-        const oldWords = line.words;
-        line.words = tokens.map((word, i) => ({ word, time: oldWords[i]?.time ?? null }));
+      const prevLine = updated[index];
+      const { plainText, segments } = parseRubyMarkup(newText || '');
+      const hasMarkup = segments.some(s => s.reading);
+      const line = { ...prevLine, text: plainText };
+      if (newSecondary !== undefined) line.secondary = newSecondary || undefined;
+      if (newTranslation !== undefined) line.translation = newTranslation || undefined;
+      // Always re-tokenize when text or markup changed
+      const textChanged = plainText !== (prevLine.text || '');
+      if (line.words && (textChanged || hasMarkup)) {
+        const isCJKText = hasCJK(plainText || '');
+        // Build a map from old char positions so timestamps survive edits
+        const oldWordAtPos = new Map();
+        let flat = 0;
+        for (const w of prevLine.words || []) {
+          for (let k = 0; k < [...w.word].length; k++) oldWordAtPos.set(flat + k, w);
+          flat += [...w.word].length;
+        }
+        let charPos = 0;
+        const newWords = [];
+        for (const seg of segments) {
+          const segChars = [...seg.text];
+          if (seg.reading) {
+            // Multi-char annotated segment — store as one word with the reading
+            const anchor = oldWordAtPos.get(charPos);
+            newWords.push({ word: seg.text, time: anchor?.time ?? null, reading: seg.reading });
+            charPos += segChars.length;
+          } else if (isCJKText) {
+            for (const ch of segChars) {
+              if (!ch.trim()) { charPos++; continue; }
+              const old = oldWordAtPos.get(charPos);
+              const w = { word: ch, time: old?.time ?? null };
+              if (old?.reading) w.reading = old.reading;
+              newWords.push(w);
+              charPos++;
+            }
+          } else {
+            const tokens = seg.text.trim().split(/\s+/).filter(Boolean);
+            for (const token of tokens) {
+              const old = oldWordAtPos.get(charPos);
+              newWords.push({ word: token, time: old?.time ?? null });
+              charPos += [...token].length;
+            }
+          }
+        }
+        line.words = newWords.filter(w => w.word.trim());
       }
       updated[index] = line;
       return updated;
     });
   };
+
+  const handleSetWordReading = useCallback((lineIndex, wordIndex, reading) => {
+    setLines((prev) => {
+      const updated = [...prev];
+      const line = { ...updated[lineIndex] };
+      const words = [...(line.words || [])];
+      const trimmed = reading?.trim() || null;
+      words[wordIndex] = trimmed
+        ? { ...words[wordIndex], reading: trimmed }
+        : (() => { const { reading: _r, ...rest } = words[wordIndex]; return rest; })();
+      line.words = words;
+      updated[lineIndex] = line;
+      return updated;
+    });
+  }, [setLines]);
+
+  const handleConvertReadings = useCallback((format) => {
+    setLines((prev) =>
+      prev.map((line) => {
+        if (!line.words?.some((w) => w.reading)) return line;
+        const newWords = line.words.map((w) => {
+          if (!w.reading) return w;
+          const converted = format === 'katakana' ? toKatakana(w.reading) : toHiragana(w.reading);
+          return converted === w.reading ? w : { ...w, reading: converted };
+        });
+        return { ...line, words: newWords };
+      })
+    );
+  }, [setLines]);
 
   const handleDeleteLine = (index) => {
     requestConfirm(t('confirm.deleteLine') || 'Delete this line?', () => {
@@ -814,6 +907,8 @@ export function useEditor({
     handleClearWordTimestamp,
     handleSetActiveWordIndex,
     handleSetTimestamp,
+    handleSetWordReading,
+    handleConvertReadings,
     activeWordIndex,
     overlappingLines,
     // extras

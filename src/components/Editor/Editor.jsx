@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useMemo, useCallback } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { useEditor } from './useEditor';
 import EditorToolbar from './parts/EditorToolbar';
@@ -85,6 +85,8 @@ export default function Editor({
     handleClearWordTimestamp,
     handleSetActiveWordIndex,
     handleSetTimestamp,
+    handleSetWordReading,
+    handleConvertReadings,
     overlappingLines,
   } = useEditor({
     lines,
@@ -130,6 +132,7 @@ export default function Editor({
         isAutosaving={isAutosaving}
         compact={compact}
         overlappingLines={overlappingLines}
+        onConvertReadings={handleConvertReadings}
       />
 
       <div className="flex flex-col flex-1 min-h-0 min-w-0">
@@ -196,6 +199,7 @@ export default function Editor({
           handleClearWordTimestamp={handleClearWordTimestamp}
           handleSetActiveWordIndex={handleSetActiveWordIndex}
           handleSetTimestamp={handleSetTimestamp}
+          handleSetWordReading={handleSetWordReading}
           playbackPosition={playbackPosition}
           overlappingLines={overlappingLines}
         />
@@ -259,6 +263,7 @@ function VirtualizedLineList({
   handleClearWordTimestamp,
   handleSetActiveWordIndex,
   handleSetTimestamp,
+  handleSetWordReading,
   playbackPosition,
   overlappingLines,
 }) {
@@ -384,6 +389,7 @@ function VirtualizedLineList({
                   handleClearWordTimestamp={handleClearWordTimestamp}
                   handleSetActiveWordIndex={handleSetActiveWordIndex}
                   handleSetTimestamp={handleSetTimestamp}
+                  handleSetWordReading={handleSetWordReading}
                   playbackPosition={playbackPosition}
                   isOverlapping={overlappingLines.has(i)}
                   upcomingDepth={upcomingDepth}

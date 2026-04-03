@@ -56,6 +56,8 @@ export default function EditorToolbar({
   isAutosaving,
   compact,
   overlappingLines,
+  onGenerateFurigana,
+  onConvertReadings,
 }) {
   const { t } = useTranslation();
   const hasAnyTimestamp = lines.some((l) => l.timestamp != null);
@@ -198,6 +200,23 @@ export default function EditorToolbar({
                 </DropdownMenuItem>
                 {editorMode === 'words' && (
                   <>
+                    <DropdownMenuSeparator className="bg-zinc-700/50" />
+                    <DropdownMenuItem
+                      onSelect={(e) => e.preventDefault()}
+                      onClick={() => {
+                        const current = settings.editor?.display?.readingFormat || 'hiragana';
+                        const next = current === 'hiragana' ? 'katakana' : 'hiragana';
+                        updateSetting('editor.display.readingFormat', next);
+                        onConvertReadings?.(next);
+                      }}
+                      className="text-xs text-zinc-400 focus:bg-zinc-800 focus:text-zinc-200 cursor-pointer gap-2 pl-6"
+                    >
+                      {(settings.editor?.display?.readingFormat || 'hiragana') === 'hiragana'
+                        ? <span className="text-[10px] font-medium text-zinc-500">あ → ア</span>
+                        : <span className="text-[10px] font-medium text-zinc-500">ア → あ</span>
+                      }
+                      {t(`editor.readingFormat.${settings.editor?.display?.readingFormat || 'hiragana'}`)}
+                    </DropdownMenuItem>
                     <DropdownMenuSeparator className="bg-zinc-700/50" />
                     <DropdownMenuItem
                       onSelect={(e) => e.preventDefault()}
@@ -447,7 +466,7 @@ export default function EditorToolbar({
           <div className="w-px h-4 bg-zinc-700/80" />
           {/* Actions dropdown: undo/redo/save/delete */}
           <ActionsDropdown t={t}>
-            <DropdownMenuContent className="w-40 bg-zinc-900 border-zinc-700/80" align="end">
+            <DropdownMenuContent className="w-48 bg-zinc-900 border-zinc-700/80" align="end">
               <DropdownMenuItem
                 onSelect={(e) => e.preventDefault()}
                 onClick={undo}
@@ -466,6 +485,27 @@ export default function EditorToolbar({
                 <Redo2 className="w-3.5 h-3.5" />
                 {t('editor.redo')} <span className="ml-auto text-[10px] text-zinc-500">Ctrl+Y</span>
               </DropdownMenuItem>
+              {editorMode === 'words' && (
+                <>
+                  <DropdownMenuSeparator className="bg-zinc-700/50" />
+                  <DropdownMenuItem
+                    onSelect={(e) => e.preventDefault()}
+                    onClick={() => {
+                      const current = settings.editor?.display?.readingFormat || 'hiragana';
+                      const next = current === 'hiragana' ? 'katakana' : 'hiragana';
+                      updateSetting('editor.display.readingFormat', next);
+                      onConvertReadings?.(next);
+                    }}
+                    className="text-xs text-zinc-400 focus:bg-zinc-800 focus:text-zinc-200 cursor-pointer gap-2 pl-6"
+                  >
+                    {(settings.editor?.display?.readingFormat || 'hiragana') === 'hiragana'
+                      ? <span className="text-[10px] font-medium text-zinc-500">あ → ア</span>
+                      : <span className="text-[10px] font-medium text-zinc-500">ア → あ</span>
+                    }
+                    {t(`editor.readingFormat.${settings.editor?.display?.readingFormat || 'hiragana'}`)}
+                  </DropdownMenuItem>
+                </>
+              )}
               <DropdownMenuSeparator className="bg-zinc-700/50" />
               <DropdownMenuItem
                 onClick={() => {
