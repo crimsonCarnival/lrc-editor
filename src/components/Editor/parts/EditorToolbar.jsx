@@ -219,23 +219,6 @@ export default function EditorToolbar({
                     )}
                   </>
                 )}
-                {handleManualSave && !settings.advanced?.autoSave?.enabled && (
-                  <>
-                    <DropdownMenuSeparator className="bg-zinc-700/50" />
-                    <DropdownMenuItem
-                      onSelect={(e) => e.preventDefault()}
-                      onClick={handleManualSave}
-                      className={`text-xs cursor-pointer gap-2 ${
-                        isAutosaving
-                          ? 'text-primary focus:bg-primary/10 focus:text-primary'
-                          : 'text-zinc-300 focus:bg-zinc-800 focus:text-zinc-100'
-                      }`}
-                    >
-                      {isAutosaving ? <Check className="w-3.5 h-3.5" /> : <Save className="w-3.5 h-3.5" />}
-                      {isAutosaving ? (t('session.saved') || 'Saved') : (t('session.save') || 'Save')}
-                    </DropdownMenuItem>
-                  </>
-                )}
                 <DropdownMenuSeparator className="bg-zinc-700/50" />
                 <DropdownMenuItem
                   onClick={() => {
@@ -255,7 +238,7 @@ export default function EditorToolbar({
           </>
         )}
 
-        {/* Sync progress */}
+        {/* Sync progress + save */}
         {syncMode && syncProgress && (
           <>
             <div className="flex-1" />
@@ -266,6 +249,21 @@ export default function EditorToolbar({
             }`} style={{ writingMode: 'vertical-lr' }}>
               {syncProgress.synced}/{syncProgress.total}
             </span>
+            {handleManualSave && !settings.advanced?.autoSave?.enabled && (
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={handleManualSave}
+                className={`flex-shrink-0 ${
+                  isAutosaving
+                    ? 'text-primary hover:bg-primary/10'
+                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'
+                }`}
+                title={isAutosaving ? (t('session.saved') || 'Saved') : (t('session.save') || 'Save')}
+              >
+                {isAutosaving ? <Check className="w-3.5 h-3.5" /> : <Save className="w-3.5 h-3.5" />}
+              </Button>
+            )}
           </>
         )}
       </div>
@@ -329,7 +327,7 @@ export default function EditorToolbar({
             </ToggleGroupItem>
           </ToggleGroup>
         )}
-        {/* Sync progress badge */}
+        {/* Sync progress badge + save */}
         {syncMode && syncProgress && (
           <Badge
             variant="outline"
@@ -341,6 +339,21 @@ export default function EditorToolbar({
           >
             {t('editor.syncProgress', { synced: syncProgress.synced, total: syncProgress.total })}
           </Badge>
+        )}
+        {syncMode && handleManualSave && !settings.advanced?.autoSave?.enabled && (
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={handleManualSave}
+            className={`flex-shrink-0 ${
+              isAutosaving
+                ? 'text-primary hover:bg-primary/10'
+                : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'
+            }`}
+            title={isAutosaving ? (t('session.saved') || 'Saved') : (t('session.save') || 'Save')}
+          >
+            {isAutosaving ? <Check className="w-3.5 sm:w-4 h-3.5 sm:h-4" /> : <Save className="w-3.5 sm:w-4 h-3.5 sm:h-4" />}
+          </Button>
         )}
         {/* Overlap warning */}
         {syncMode && overlappingLines?.size > 0 && (
@@ -453,25 +466,6 @@ export default function EditorToolbar({
                 <Redo2 className="w-3.5 h-3.5" />
                 {t('editor.redo')} <span className="ml-auto text-[10px] text-zinc-500">Ctrl+Y</span>
               </DropdownMenuItem>
-              {handleManualSave && !settings.advanced?.autoSave?.enabled && (
-                <>
-                  <DropdownMenuSeparator className="bg-zinc-700/50" />
-                  <DropdownMenuItem
-                    onSelect={(e) => e.preventDefault()}
-                    onClick={handleManualSave}
-                    className={`text-xs cursor-pointer gap-2 ${
-                      isAutosaving
-                        ? 'text-primary focus:bg-primary/10 focus:text-primary'
-                        : 'text-zinc-300 focus:bg-zinc-800 focus:text-zinc-100'
-                    }`}
-                  >
-                    {isAutosaving
-                      ? <Check className="w-3.5 h-3.5" />
-                      : <Save className="w-3.5 h-3.5" />}
-                    {isAutosaving ? (t('session.saved') || 'Saved') : (t('session.save') || 'Save')}
-                  </DropdownMenuItem>
-                </>
-              )}
               <DropdownMenuSeparator className="bg-zinc-700/50" />
               <DropdownMenuItem
                 onClick={() => {

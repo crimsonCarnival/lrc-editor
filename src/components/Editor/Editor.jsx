@@ -101,7 +101,10 @@ export default function Editor({
   });
 
   return (
-    <div className={`glass rounded-xl sm:rounded-2xl p-3 sm:p-5 flex ${compact ? 'flex-row gap-2' : 'flex-col'} h-full animate-fade-in`}>
+    <div
+      onMouseLeave={handleLineHoverEnd}
+      className={`glass rounded-xl sm:rounded-2xl p-3 sm:p-5 flex ${compact ? 'flex-row gap-2' : 'flex-col'} h-full animate-fade-in`}
+    >
       <EditorToolbar
         editorMode={editorMode}
         setEditorMode={setEditorMode}

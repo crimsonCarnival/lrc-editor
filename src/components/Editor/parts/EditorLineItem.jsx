@@ -614,6 +614,24 @@ const EditorLineItem = React.memo(({
             >
               <Play className="w-3 h-3" fill="currentColor" />
             </Button>
+            {line.nextTimestamp != null && (
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (playerRef?.current?.setLoop) {
+                    playerRef.current.setLoop(line.timestamp, line.endTime ?? line.nextTimestamp);
+                    playerRef.current.seek(line.timestamp);
+                    if (playerRef.current.play) playerRef.current.play();
+                  }
+                }}
+                className="text-zinc-500 hover:bg-accent-purple/20 hover:text-accent-purple mr-1"
+                title={t('editor.loopCurrentLine')}
+              >
+                <Repeat className="w-3 h-3" />
+              </Button>
+            )}
             {selectedLines.size === 0 && (
               <>
                 <Button
