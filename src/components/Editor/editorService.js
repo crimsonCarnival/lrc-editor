@@ -3,6 +3,32 @@
  */
 
 /**
+ * Detect duplicate/overlapping timestamps within a threshold.
+ * Returns a Set of line indices that have a timestamp within ±threshold of another line.
+ * @param {Array} lines
+ * @param {number} threshold - seconds (default 0.05)
+ * @returns {Set<number>}
+ */
+export function detectDuplicateTimestamps(lines, threshold = 0.05) {
+  const overlapping = new Set();
+  const timestamped = [];
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].timestamp != null) {
+      timestamped.push({ index: i, time: lines[i].timestamp });
+    }
+  }
+  for (let a = 0; a < timestamped.length; a++) {
+    for (let b = a + 1; b < timestamped.length; b++) {
+      if (Math.abs(timestamped[a].time - timestamped[b].time) <= threshold) {
+        overlapping.add(timestamped[a].index);
+        overlapping.add(timestamped[b].index);
+      }
+    }
+  }
+  return overlapping;
+}
+
+/**
  * Computes the next active line index after marking, respecting skipBlank.
  */
 export function computeNextIndex(lines, fromIndex, skipBlank) {
@@ -36,6 +62,87 @@ export function applyBulkShift(lines, selectedIndices, delta) {
     }
     return result;
   });
+}
+
+/**
+ * Evenly distribute timestamps for selected lines between the first and last synced lines.
+ * @param {Array} lines
+ * @param {Set<number>} selectedIndices
+ * @returns {Array}
+ */
+export function evenlyDistribute(lines, selectedIndices) {
+  const sorted = [...selectedIndices].sort((a, b) => a - b);
+  if (sorted.length < 2) return lines;
+  const first = sorted[0];
+  const last = sorted[sorted.length - 1];
+  const startTime = lines[first]?.timestamp;
+  const endTime = lines[last]?.timestamp;
+  if (startTime == null || endTime == null) return lines;
+  const step = (endTime - startTime) / (sorted.length - 1);
+  const updated = [...lines];
+  sorted.forEach((idx, i) => {
+    updated[idx] = { ...updated[idx], timestamp: startTime + step * i };
+  });
+  return updated;
+}
+
+/**
+ * Interpolate unsynced lines between synced ones within the selection.
+ * Finds synced "anchor" lines, then linearly distributes timestamps for unsynced lines between each pair.
+ * @param {Array} lines
+ * @param {Set<number>} selectedIndices
+ * @returns {Array}
+ */
+export function interpolateTimestamps(lines, selectedIndices) {
+  const sorted = [...selectedIndices].sort((a, b) => a - b);
+  if (sorted.length < 2) return lines;
+  // Find anchors (synced lines within selection)
+  const anchors = sorted.filter((idx) => lines[idx]?.timestamp != null);
+  if (anchors.length < 2) return lines;
+  const updated = [...lines];
+  for (let a = 0; a < anchors.length - 1; a++) {
+    const fromIdx = anchors[a];
+    const toIdx = anchors[a + 1];
+    const fromTime = updated[fromIdx].timestamp;
+    const toTime = updated[toIdx].timestamp;
+    // Find unsynced lines between these anchors within the selection
+    const between = sorted.filter((idx) => idx > fromIdx && idx < toIdx && updated[idx].timestamp == null);
+    if (between.length === 0) continue;
+    const totalSlots = between.length + 1;
+    const step = (toTime - fromTime) / totalSlots;
+    between.forEach((idx, i) => {
+      updated[idx] = { ...updated[idx], timestamp: fromTime + step * (i + 1) };
+    });
+  }
+  return updated;
+}
+
+/**
+ * Copy timestamps from one selection of lines to another set of lines (for repeated choruses).
+ * Copies timestamps from the first N selected lines (that have timestamps) to the last N selected lines.
+ * @param {Array} lines
+ * @param {Set<number>} selectedIndices
+ * @returns {{ lines: Array, copied: number }}
+ */
+export function copyTimestamps(lines, selectedIndices) {
+  const sorted = [...selectedIndices].sort((a, b) => a - b);
+  if (sorted.length < 2) return { lines, copied: 0 };
+  // Split into source (synced) and target (unsynced)
+  const synced = sorted.filter((idx) => lines[idx]?.timestamp != null);
+  const unsynced = sorted.filter((idx) => lines[idx]?.timestamp == null);
+  if (synced.length === 0 || unsynced.length === 0) return { lines, copied: 0 };
+  const updated = [...lines];
+  const count = Math.min(synced.length, unsynced.length);
+  for (let i = 0; i < count; i++) {
+    const src = synced[i];
+    const dst = unsynced[i];
+    updated[dst] = {
+      ...updated[dst],
+      timestamp: updated[src].timestamp,
+      ...(updated[src].endTime != null ? { endTime: updated[src].endTime } : {}),
+    };
+  }
+  return { lines: updated, copied: count };
 }
 
 /**

@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { TimerOff, ChevronLeft, ChevronRight, Trash2, X, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { TimerOff, ChevronLeft, ChevronRight, Trash2, X, ChevronsLeft, ChevronsRight, AlignVerticalSpaceAround, TrendingUp, Copy } from 'lucide-react';
 
 export default function SelectionActionBar({
   selectedLines,
@@ -10,6 +10,9 @@ export default function SelectionActionBar({
   handleBulkClearTimestamps,
   handleBulkShift,
   handleBulkDelete,
+  handleEvenlyDistribute,
+  handleInterpolate,
+  handleCopyTimestamps,
   clearSelection,
   handleApplyOffset,
 }) {
@@ -76,6 +79,34 @@ export default function SelectionActionBar({
           </Button>
         </>
       )}
+      <Separator orientation="vertical" className="h-4 bg-zinc-700/50" />
+      <Button
+        variant="ghost"
+        size="icon-xs"
+        onClick={handleEvenlyDistribute}
+        className="text-sky-400 hover:bg-sky-500/15 hover:text-sky-300"
+        title={t('editor.selection.evenlyDistribute') || 'Evenly distribute'}
+      >
+        <AlignVerticalSpaceAround className="w-3.5 h-3.5" />
+      </Button>
+      <Button
+        variant="ghost"
+        size="icon-xs"
+        onClick={handleInterpolate}
+        className="text-violet-400 hover:bg-violet-500/15 hover:text-violet-300"
+        title={t('editor.selection.interpolate') || 'Interpolate timestamps'}
+      >
+        <TrendingUp className="w-3.5 h-3.5" />
+      </Button>
+      <Button
+        variant="ghost"
+        size="icon-xs"
+        onClick={handleCopyTimestamps}
+        className="text-emerald-400 hover:bg-emerald-500/15 hover:text-emerald-300"
+        title={t('editor.selection.copyTimestamps') || 'Copy timestamps'}
+      >
+        <Copy className="w-3.5 h-3.5" />
+      </Button>
       <Separator orientation="vertical" className="h-4 bg-zinc-700/50" />
       <Button
         variant="ghost"

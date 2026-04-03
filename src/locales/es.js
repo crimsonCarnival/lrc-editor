@@ -87,7 +87,10 @@ export default {
         "deleteSelected": "Eliminar selección",
         "deselectAll": "Deseleccionar todo",
         "selectAll": "Seleccionar todo",
-        "rangeHint": "Shift+Clic para seleccionar rango"
+        "rangeHint": "Shift+Clic para seleccionar rango",
+        "evenlyDistribute": "Distribuir uniformemente",
+        "interpolate": "Interpolar marcas de tiempo",
+        "copyTimestamps": "Copiar marcas de tiempo"
       }
     },
 

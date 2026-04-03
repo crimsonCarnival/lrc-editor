@@ -1,4 +1,4 @@
-﻿import { useMemo } from 'react';
+﻿import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -10,7 +10,26 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
-import { Undo2, Redo2, ListChecks, TimerOff, Trash2, MousePointerClick, FileText, Repeat, Pencil, Save, Check, Eraser, SquareX, MoreHorizontal } from 'lucide-react';
+import { Undo2, Redo2, ListChecks, TimerOff, Trash2, MousePointerClick, FileText, Repeat, Pencil, Save, Check, Eraser, SquareX, MoreHorizontal, X } from 'lucide-react';
+
+function ActionsDropdown({ children, t }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <DropdownMenu open={open} onOpenChange={setOpen}>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          className="text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"
+          title={t('editor.actions', 'Actions')}
+        >
+          {open ? <X className="w-3.5 h-3.5" /> : <MoreHorizontal className="w-3.5 h-3.5" />}
+        </Button>
+      </DropdownMenuTrigger>
+      {children}
+    </DropdownMenu>
+  );
+}
 
 export default function EditorToolbar({
   editorMode,
@@ -36,6 +55,7 @@ export default function EditorToolbar({
   handleManualSave,
   isAutosaving,
   compact,
+  overlappingLines,
 }) {
   const { t } = useTranslation();
   const hasAnyTimestamp = lines.some((l) => l.timestamp != null);
@@ -156,19 +176,10 @@ export default function EditorToolbar({
             </Button>
             <div className="w-4 h-px bg-zinc-700/80" />
             {/* Actions dropdown */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  className="text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"
-                  title={t('editor.actions', 'Actions')}
-                >
-                  <MoreHorizontal className="w-3.5 h-3.5" />
-                </Button>
-              </DropdownMenuTrigger>
+            <ActionsDropdown t={t}>
               <DropdownMenuContent className="w-44 bg-zinc-900 border-zinc-700/80" side="right" align="start">
                 <DropdownMenuItem
+                  onSelect={(e) => e.preventDefault()}
                   onClick={undo}
                   disabled={!canUndo}
                   className="text-xs text-zinc-300 focus:bg-zinc-800 focus:text-zinc-100 cursor-pointer gap-2"
@@ -177,6 +188,7 @@ export default function EditorToolbar({
                   {t('editor.undo')} <span className="ml-auto text-[10px] text-zinc-500">Ctrl+Z</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem
+                  onSelect={(e) => e.preventDefault()}
                   onClick={redo}
                   disabled={!canRedo}
                   className="text-xs text-zinc-300 focus:bg-zinc-800 focus:text-zinc-100 cursor-pointer gap-2"
@@ -188,6 +200,7 @@ export default function EditorToolbar({
                   <>
                     <DropdownMenuSeparator className="bg-zinc-700/50" />
                     <DropdownMenuItem
+                      onSelect={(e) => e.preventDefault()}
                       onClick={handleClearAllWordTimestamps}
                       className="text-xs text-orange-400 focus:bg-orange-500/10 focus:text-orange-300 cursor-pointer gap-2"
                     >
@@ -196,6 +209,7 @@ export default function EditorToolbar({
                     </DropdownMenuItem>
                     {isActiveLineLocked && (
                       <DropdownMenuItem
+                        onSelect={(e) => e.preventDefault()}
                         onClick={handleClearActiveLineWordTimestamps}
                         className="text-xs text-yellow-500 focus:bg-yellow-500/10 focus:text-yellow-400 cursor-pointer gap-2"
                       >
@@ -209,6 +223,7 @@ export default function EditorToolbar({
                   <>
                     <DropdownMenuSeparator className="bg-zinc-700/50" />
                     <DropdownMenuItem
+                      onSelect={(e) => e.preventDefault()}
                       onClick={handleManualSave}
                       className={`text-xs cursor-pointer gap-2 ${
                         isAutosaving
@@ -236,7 +251,7 @@ export default function EditorToolbar({
                   {t('editor.removeAll')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
-            </DropdownMenu>
+            </ActionsDropdown>
           </>
         )}
 
@@ -327,6 +342,15 @@ export default function EditorToolbar({
             {t('editor.syncProgress', { synced: syncProgress.synced, total: syncProgress.total })}
           </Badge>
         )}
+        {/* Overlap warning */}
+        {syncMode && overlappingLines?.size > 0 && (
+          <Badge
+            variant="outline"
+            className="text-[10px] font-mono tabular-nums border-orange-500/40 bg-orange-500/10 text-orange-400 select-none animate-pulse"
+          >
+            {t('editor.overlappingTimestamps', { count: overlappingLines.size }) || `${overlappingLines.size} overlapping`}
+          </Badge>
+        )}
       </div>
       {syncMode && (
         <div className="flex items-center justify-end gap-1.5 w-full">
@@ -409,19 +433,10 @@ export default function EditorToolbar({
           )}
           <div className="w-px h-4 bg-zinc-700/80" />
           {/* Actions dropdown: undo/redo/save/delete */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                className="text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 flex-shrink-0"
-                title={t('editor.actions', 'Actions')}
-              >
-                <MoreHorizontal className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
-              </Button>
-            </DropdownMenuTrigger>
+          <ActionsDropdown t={t}>
             <DropdownMenuContent className="w-40 bg-zinc-900 border-zinc-700/80" align="end">
               <DropdownMenuItem
+                onSelect={(e) => e.preventDefault()}
                 onClick={undo}
                 disabled={!canUndo}
                 className="text-xs text-zinc-300 focus:bg-zinc-800 focus:text-zinc-100 cursor-pointer gap-2"
@@ -430,6 +445,7 @@ export default function EditorToolbar({
                 {t('editor.undo')} <span className="ml-auto text-[10px] text-zinc-500">Ctrl+Z</span>
               </DropdownMenuItem>
               <DropdownMenuItem
+                onSelect={(e) => e.preventDefault()}
                 onClick={redo}
                 disabled={!canRedo}
                 className="text-xs text-zinc-300 focus:bg-zinc-800 focus:text-zinc-100 cursor-pointer gap-2"
@@ -441,6 +457,7 @@ export default function EditorToolbar({
                 <>
                   <DropdownMenuSeparator className="bg-zinc-700/50" />
                   <DropdownMenuItem
+                    onSelect={(e) => e.preventDefault()}
                     onClick={handleManualSave}
                     className={`text-xs cursor-pointer gap-2 ${
                       isAutosaving
@@ -470,7 +487,7 @@ export default function EditorToolbar({
                 {t('editor.removeAll')}
               </DropdownMenuItem>
             </DropdownMenuContent>
-          </DropdownMenu>
+          </ActionsDropdown>
         </div>
       )}
     </div>

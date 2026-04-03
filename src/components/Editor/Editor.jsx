@@ -75,6 +75,9 @@ export default function Editor({
     handleBulkClearTimestamps,
     handleBulkDelete,
     handleBulkShift,
+    handleEvenlyDistribute,
+    handleInterpolate,
+    handleCopyTimestamps,
     handleAddExtraTimestamp,
     handleRemoveExtraTimestamp,
     requestConfirm,
@@ -84,6 +87,8 @@ export default function Editor({
     activeWordIndex,
     handleClearWordTimestamp,
     handleSetActiveWordIndex,
+    handleSetTimestamp,
+    overlappingLines,
   } = useEditor({
     lines,
     setLines,
@@ -124,6 +129,7 @@ export default function Editor({
         handleManualSave={handleManualSave}
         isAutosaving={isAutosaving}
         compact={compact}
+        overlappingLines={overlappingLines}
       />
 
       <div className="flex flex-col flex-1 min-h-0 min-w-0">
@@ -181,6 +187,9 @@ export default function Editor({
           handleBulkClearTimestamps={handleBulkClearTimestamps}
           handleBulkShift={handleBulkShift}
           handleBulkDelete={handleBulkDelete}
+          handleEvenlyDistribute={handleEvenlyDistribute}
+          handleInterpolate={handleInterpolate}
+          handleCopyTimestamps={handleCopyTimestamps}
           clearSelection={clearSelection}
           handleToggleLine={handleToggleLine}
           handleAddExtraTimestamp={handleAddExtraTimestamp}
@@ -189,6 +198,9 @@ export default function Editor({
           activeWordIndex={activeWordIndex}
           handleClearWordTimestamp={handleClearWordTimestamp}
           handleSetActiveWordIndex={handleSetActiveWordIndex}
+          handleSetTimestamp={handleSetTimestamp}
+          playbackPosition={playbackPosition}
+          overlappingLines={overlappingLines}
         />
       )}
       </div>
@@ -241,6 +253,9 @@ function VirtualizedLineList({
   handleBulkClearTimestamps,
   handleBulkShift,
   handleBulkDelete,
+  handleEvenlyDistribute,
+  handleInterpolate,
+  handleCopyTimestamps,
   clearSelection,
   handleToggleLine,
   handleAddExtraTimestamp,
@@ -249,6 +264,9 @@ function VirtualizedLineList({
   activeWordIndex,
   handleClearWordTimestamp,
   handleSetActiveWordIndex,
+  handleSetTimestamp,
+  playbackPosition,
+  overlappingLines,
 }) {
   const scrollAlignment = settings.editor?.scroll?.alignment || 'center';
   const scrollMode = settings.editor?.scroll?.mode || 'smooth';
@@ -309,6 +327,10 @@ function VirtualizedLineList({
             const line = lines[i];
             const isActive = i === displayedActiveIndex;
             const isSynced = line.timestamp != null;
+            // Upcoming depth: 1-3 for the next unsynced lines after active
+            const upcomingDepth = !isSynced && i > displayedActiveIndex && i <= displayedActiveIndex + 3
+              ? i - displayedActiveIndex
+              : 0;
 
             return (
               <div
@@ -367,6 +389,10 @@ function VirtualizedLineList({
                   activeWordIndex={i === activeLineIndex ? activeWordIndex : -1}
                   handleClearWordTimestamp={handleClearWordTimestamp}
                   handleSetActiveWordIndex={handleSetActiveWordIndex}
+                  handleSetTimestamp={handleSetTimestamp}
+                  playbackPosition={playbackPosition}
+                  isOverlapping={overlappingLines.has(i)}
+                  upcomingDepth={upcomingDepth}
                 />
               </div>
             );
@@ -380,6 +406,9 @@ function VirtualizedLineList({
         handleBulkClearTimestamps={handleBulkClearTimestamps}
         handleBulkShift={handleBulkShift}
         handleBulkDelete={handleBulkDelete}
+        handleEvenlyDistribute={handleEvenlyDistribute}
+        handleInterpolate={handleInterpolate}
+        handleCopyTimestamps={handleCopyTimestamps}
         clearSelection={clearSelection}
         handleApplyOffset={handleApplyOffset}
       />

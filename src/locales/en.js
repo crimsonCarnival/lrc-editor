@@ -87,7 +87,10 @@ export default {
         "deleteSelected": "Delete selected",
         "deselectAll": "Deselect all",
         "selectAll": "Select all",
-        "rangeHint": "Shift+Click to select range"
+        "rangeHint": "Shift+Click to select range",
+        "evenlyDistribute": "Evenly distribute",
+        "interpolate": "Interpolate timestamps",
+        "copyTimestamps": "Copy timestamps"
       }
     },
 

@@ -1,4 +1,4 @@
-﻿import React from 'react';
+﻿import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { formatTimestamp } from '../../../utils/lrc';
 import { formatTime } from '../../../utils/formatTime';
@@ -7,6 +7,103 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Kbd } from '../../shared/Kbd';
 import { Pencil, Play, ChevronLeft, ChevronRight, Plus, X, Trash2, Repeat } from 'lucide-react';
+
+/**
+ * Inline timestamp editor — double-click to edit, scroll to adjust, shows nudge indicator.
+ */
+function InlineTimestampEdit({ value, onChange, onCancel, precision }) {
+  const fmt = (s) => {
+    if (s == null || isNaN(s) || s < 0) return '00:00.00';
+    const mins = Math.floor(s / 60);
+    const secs = s % 60;
+    const mm = String(mins).padStart(2, '0');
+    const ss = secs.toFixed(precision === 'thousandths' ? 3 : 2).padStart(precision === 'thousandths' ? 6 : 5, '0');
+    return `${mm}:${ss}`;
+  };
+
+  const [text, setText] = useState(fmt(value));
+  const inputRef = useRef(null);
+
+  useEffect(() => {
+    inputRef.current?.select();
+  }, []);
+
+  const parseInput = (str) => {
+    // Accept mm:ss.xx or mm:ss.xxx
+    const m = str.match(/^(\d{1,3}):(\d{1,2})\.(\d{1,3})$/);
+    if (!m) return null;
+    return parseInt(m[1], 10) * 60 + parseInt(m[2], 10) + parseInt(m[3], 10) / Math.pow(10, m[3].length);
+  };
+
+  const commit = () => {
+    const parsed = parseInput(text);
+    if (parsed != null && parsed >= 0) {
+      onChange(parsed);
+    } else {
+      onCancel();
+    }
+  };
+
+  const handleWheel = (e) => {
+    e.preventDefault();
+    const delta = e.deltaY < 0 ? 0.01 : -0.01;
+    const parsed = parseInput(text);
+    if (parsed != null) {
+      const next = Math.max(0, parsed + delta);
+      setText(fmt(next));
+    }
+  };
+
+  return (
+    <input
+      ref={inputRef}
+      type="text"
+      value={text}
+      onChange={(e) => setText(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') { e.preventDefault(); commit(); }
+        if (e.key === 'Escape') { e.preventDefault(); onCancel(); }
+        e.stopPropagation();
+      }}
+      onWheel={handleWheel}
+      onClick={(e) => e.stopPropagation()}
+      className="w-[82px] text-[10px] font-mono tabular-nums bg-zinc-800 border border-primary/50 rounded px-1.5 py-0.5 text-primary outline-none focus:ring-1 focus:ring-primary/50"
+    />
+  );
+}
+
+/**
+ * Timestamp badge that supports double-click to edit and shows wheel-nudge indicator.
+ */
+function TimestampBadge({ value, isSynced, isFocused, isActive, precision, onClick, onDoubleClick, onWheel, nudgeIndicator }) {
+  return (
+    <div className="relative inline-flex items-center">
+      <button
+        type="button"
+        onClick={onClick}
+        onDoubleClick={onDoubleClick}
+        onWheel={onWheel}
+        className={`flex items-center rounded px-1.5 py-0.5 text-[10px] font-mono tabular-nums transition-all w-fit ${
+          isFocused
+            ? 'bg-primary/25 ring-1 ring-primary/50 text-primary font-semibold'
+            : isSynced
+              ? 'bg-zinc-800 border border-zinc-700/50 text-primary hover:border-primary/40 hover:bg-zinc-700/60'
+              : isActive
+                ? 'text-zinc-400 animate-pulse-glow hover:bg-zinc-800/50 border border-transparent'
+                : 'text-zinc-600 hover:bg-zinc-800/50 border border-transparent'
+        }`}
+      >
+        {isSynced ? formatTimestamp(value, precision) : '--:--.--'}
+      </button>
+      {nudgeIndicator && (
+        <span className="absolute -right-8 text-[9px] font-mono text-primary/80 animate-fade-in pointer-events-none whitespace-nowrap">
+          {nudgeIndicator}
+        </span>
+      )}
+    </div>
+  );
+}
 
 const EditorLineItem = React.memo(({
   line,
@@ -52,8 +149,56 @@ const EditorLineItem = React.memo(({
   activeWordIndex,
   handleClearWordTimestamp,
   handleSetActiveWordIndex,
+  handleSetTimestamp,
+  playbackPosition,
+  isOverlapping,
+  upcomingDepth,
 }) => {
   const { t } = useTranslation();
+  const [editingTimestamp, setEditingTimestamp] = useState(null); // null | 'start' | 'end'
+  const [nudgeIndicator, setNudgeIndicator] = useState(null);
+  const [justSynced, setJustSynced] = useState(false);
+  const nudgeTimerRef = useRef(null);
+  const justSyncedTimerRef = useRef(null);
+
+  const showNudge = useCallback((delta) => {
+    const sign = delta > 0 ? '+' : '';
+    setNudgeIndicator(`${sign}${delta.toFixed(2)}s`);
+    clearTimeout(nudgeTimerRef.current);
+    nudgeTimerRef.current = setTimeout(() => setNudgeIndicator(null), 600);
+  }, []);
+
+  const handleTimestampWheel = useCallback((e, index) => {
+    e.preventDefault();
+    const delta = e.deltaY < 0 ? 0.01 : -0.01;
+    shiftTime(index, delta);
+    showNudge(delta);
+  }, [shiftTime, showNudge]);
+
+  // Cleanup nudge timer
+  useEffect(() => () => clearTimeout(nudgeTimerRef.current), []);
+
+  // Just-synced flash: trigger when line transitions from unsynced to synced
+  const [prevIsSynced, setPrevIsSynced] = useState(isSynced);
+  if (isSynced !== prevIsSynced) {
+    setPrevIsSynced(isSynced);
+    if (isSynced && !prevIsSynced) {
+      setJustSynced(true);
+    }
+  }
+
+  useEffect(() => {
+    if (justSynced) {
+      clearTimeout(justSyncedTimerRef.current);
+      justSyncedTimerRef.current = setTimeout(() => setJustSynced(false), 600);
+    }
+    return () => clearTimeout(justSyncedTimerRef.current);
+  }, [justSynced]);
+
+  // Segment progress for active synced line
+  const segmentProgress = isActive && isSynced && line.nextTimestamp != null && playbackPosition != null
+    ? Math.min(1, Math.max(0, (playbackPosition - line.timestamp) / (line.nextTimestamp - line.timestamp)))
+    : null;
 
   return (
     <div
@@ -74,8 +219,10 @@ const EditorLineItem = React.memo(({
             : 'bg-primary/5 border border-primary/20 border-dashed'
           : dragOverIndex === i
             ? 'bg-accent-blue/10 border border-accent-blue/30'
-            : 'hover:bg-zinc-800/40 border border-transparent'
-        } ${dragIndex === i ? 'opacity-40' : ''}`}
+            : upcomingDepth > 0
+              ? `bg-primary/${upcomingDepth === 1 ? '5' : upcomingDepth === 2 ? '3' : '2'} border border-primary/${upcomingDepth === 1 ? '15' : '10'} border-dashed`
+              : 'hover:bg-zinc-800/40 border border-transparent'
+        } ${dragIndex === i ? 'opacity-40' : ''} ${justSynced ? 'ring-2 ring-primary/60 animate-just-synced' : ''}`}
     >
       {/* Lock/unlock indicator */}
       {isActive && (
@@ -104,6 +251,10 @@ const EditorLineItem = React.memo(({
           )}
         </div>
       )}
+      {/* Overlap warning indicator */}
+      {isOverlapping && (
+        <span className="w-1.5 h-1.5 rounded-full bg-orange-400 shrink-0 animate-pulse" title={t('editor.overlapWarning', 'Overlapping timestamp')} />
+      )}
       <span
         className={`text-xs font-mono tabular-nums shrink-0 transition-colors ${isSynced
           ? 'text-primary'
@@ -116,19 +267,26 @@ const EditorLineItem = React.memo(({
         {editorMode === 'words' ? (
           <div className="flex flex-col gap-1">
             {/* Line-level timestamp badge */}
-            <button
-              type="button"
-              onClick={() => setFocusedTimestamp(focusedTimestamp?.lineIndex === i && focusedTimestamp?.type === 'start' ? null : { lineIndex: i, type: 'start' })}
-              className={`flex items-center rounded px-1.5 py-0.5 text-[10px] font-mono tabular-nums transition-all w-fit ${
-                focusedTimestamp?.lineIndex === i && focusedTimestamp?.type === 'start'
-                  ? 'bg-primary/25 ring-1 ring-primary/50 text-primary font-semibold'
-                  : isSynced
-                    ? 'bg-zinc-800 border border-zinc-700/50 text-primary hover:border-primary/40 hover:bg-zinc-700/60'
-                    : 'text-zinc-600 hover:bg-zinc-800/50 border border-transparent'
-              }`}
-            >
-              {isSynced ? formatTimestamp(line.timestamp, settings.editor?.timestampPrecision || 'hundredths') : '--:--.--'}
-            </button>
+            {editingTimestamp === 'start' && isSynced ? (
+              <InlineTimestampEdit
+                value={line.timestamp}
+                precision={settings.editor?.timestampPrecision || 'hundredths'}
+                onChange={(val) => { handleSetTimestamp(i, 'start', val); setEditingTimestamp(null); }}
+                onCancel={() => setEditingTimestamp(null)}
+              />
+            ) : (
+              <TimestampBadge
+                value={line.timestamp}
+                isSynced={isSynced}
+                isFocused={focusedTimestamp?.lineIndex === i && focusedTimestamp?.type === 'start'}
+                isActive={isActive}
+                precision={settings.editor?.timestampPrecision || 'hundredths'}
+                onClick={() => setFocusedTimestamp(focusedTimestamp?.lineIndex === i && focusedTimestamp?.type === 'start' ? null : { lineIndex: i, type: 'start' })}
+                onDoubleClick={(e) => { e.stopPropagation(); if (isSynced) setEditingTimestamp('start'); }}
+                onWheel={(e) => { if (isSynced) handleTimestampWheel(e, i, 'start'); }}
+                nudgeIndicator={isSynced ? nudgeIndicator : null}
+              />
+            )}
             {/* Word chips */}
             {line.words?.length > 0 && (
               <div className="flex flex-wrap gap-0.5 max-w-[120px]">
@@ -157,7 +315,7 @@ const EditorLineItem = React.memo(({
                               : 'bg-zinc-800 border-primary/30 text-primary/70'
                         }`}
                       >
-                        {w.word}
+                        {w.word.replace(/^[()'"]+|[,;.!?()'"]+$/g, '')}
                       </button>
                       <button
                         type="button"
@@ -177,7 +335,7 @@ const EditorLineItem = React.memo(({
                           : 'bg-zinc-800/50 border-zinc-700/30 text-zinc-600'
                       }`}
                     >
-                      {w.word}
+                      {w.word.replace(/^[()'"]+|[,;.!?()'"]+$/g, '')}
                     </span>
                   )
                 ))}
@@ -187,60 +345,84 @@ const EditorLineItem = React.memo(({
         ) : editorMode === 'srt' ? (
           <div className="flex flex-col gap-1">
             {/* Start time badge */}
-            <button
-              type="button"
-              onClick={() => setFocusedTimestamp(focusedTimestamp?.lineIndex === i && focusedTimestamp?.type === 'start' ? null : { lineIndex: i, type: 'start' })}
-              className={`flex items-center rounded px-1.5 py-0.5 text-[10px] font-mono tabular-nums transition-all w-fit ${
-                focusedTimestamp?.lineIndex === i && focusedTimestamp?.type === 'start'
-                  ? 'bg-primary/25 ring-1 ring-primary/50 text-primary font-semibold'
-                  : isSynced
-                    ? 'bg-zinc-800 border border-zinc-700/50 text-primary hover:border-primary/40 hover:bg-zinc-700/60'
-                    : 'text-zinc-600 hover:bg-zinc-800/50 border border-transparent'
-              }`}
-            >
-              {isSynced ? formatTimestamp(line.timestamp, settings.editor?.timestampPrecision || 'hundredths') : '--:--.--'}
-            </button>
+            {editingTimestamp === 'start' && isSynced ? (
+              <InlineTimestampEdit
+                value={line.timestamp}
+                precision={settings.editor?.timestampPrecision || 'hundredths'}
+                onChange={(val) => { handleSetTimestamp(i, 'start', val); setEditingTimestamp(null); }}
+                onCancel={() => setEditingTimestamp(null)}
+              />
+            ) : (
+              <TimestampBadge
+                value={line.timestamp}
+                isSynced={isSynced}
+                isFocused={focusedTimestamp?.lineIndex === i && focusedTimestamp?.type === 'start'}
+                isActive={isActive}
+                precision={settings.editor?.timestampPrecision || 'hundredths'}
+                onClick={() => setFocusedTimestamp(focusedTimestamp?.lineIndex === i && focusedTimestamp?.type === 'start' ? null : { lineIndex: i, type: 'start' })}
+                onDoubleClick={(e) => { e.stopPropagation(); if (isSynced) setEditingTimestamp('start'); }}
+                onWheel={(e) => { if (isSynced) handleTimestampWheel(e, i, 'start'); }}
+                nudgeIndicator={isSynced ? nudgeIndicator : null}
+              />
+            )}
             {/* End time badge */}
-            <button
-              type="button"
-              onClick={() => setFocusedTimestamp(focusedTimestamp?.lineIndex === i && focusedTimestamp?.type === 'end' ? null : { lineIndex: i, type: 'end' })}
-              className={`flex items-center rounded px-1.5 py-0.5 text-[10px] font-mono tabular-nums transition-all w-fit ${
-                focusedTimestamp?.lineIndex === i && focusedTimestamp?.type === 'end'
-                  ? 'bg-primary/25 ring-1 ring-primary/50 font-semibold'
-                  : line.endTime != null
-                    ? 'bg-zinc-800 border border-zinc-700/50 hover:border-accent-blue/40 hover:bg-zinc-700/60'
-                    : 'text-zinc-600 hover:bg-zinc-800/50 border border-transparent'
-              }`}
-            >
-              {line.endTime != null
-                ? (() => {
-                    const isOverlap = !isLastLine && line.endTime > line.nextTimestamp;
-                    const colorClass = isOverlap ? 'text-red-400 font-bold underline decoration-wavy decoration-red-500/50' : 'text-accent-blue';
-                    return <span className={awaitingEndMark === i ? 'animate-pulse-glow text-primary' : colorClass} title={isOverlap ? 'Overlap Warning' : ''}>{formatTimestamp(line.endTime, settings.editor?.timestampPrecision || 'hundredths')}</span>;
-                  })()
-                : <span className={awaitingEndMark === i ? 'animate-pulse-glow text-zinc-400' : ''}>--:--.--</span>
-              }
-            </button>
+            {editingTimestamp === 'end' && line.endTime != null ? (
+              <InlineTimestampEdit
+                value={line.endTime}
+                precision={settings.editor?.timestampPrecision || 'hundredths'}
+                onChange={(val) => { handleSetTimestamp(i, 'end', val); setEditingTimestamp(null); }}
+                onCancel={() => setEditingTimestamp(null)}
+              />
+            ) : (
+              <button
+                type="button"
+                onClick={() => setFocusedTimestamp(focusedTimestamp?.lineIndex === i && focusedTimestamp?.type === 'end' ? null : { lineIndex: i, type: 'end' })}
+                onDoubleClick={(e) => { e.stopPropagation(); if (line.endTime != null) setEditingTimestamp('end'); }}
+                className={`flex items-center rounded px-1.5 py-0.5 text-[10px] font-mono tabular-nums transition-all w-fit ${
+                  focusedTimestamp?.lineIndex === i && focusedTimestamp?.type === 'end'
+                    ? 'bg-primary/25 ring-1 ring-primary/50 font-semibold'
+                    : line.endTime != null
+                      ? 'bg-zinc-800 border border-zinc-700/50 hover:border-accent-blue/40 hover:bg-zinc-700/60'
+                      : 'text-zinc-600 hover:bg-zinc-800/50 border border-transparent'
+                }`}
+              >
+                {line.endTime != null
+                  ? (() => {
+                      const isOverlap = !isLastLine && line.endTime > line.nextTimestamp;
+                      const colorClass = isOverlap ? 'text-red-400 font-bold underline decoration-wavy decoration-red-500/50' : 'text-accent-blue';
+                      return <span className={awaitingEndMark === i ? 'animate-pulse-glow text-primary' : colorClass} title={isOverlap ? 'Overlap Warning' : ''}>{formatTimestamp(line.endTime, settings.editor?.timestampPrecision || 'hundredths')}</span>;
+                    })()
+                  : <span className={awaitingEndMark === i ? 'animate-pulse-glow text-zinc-400' : ''}>--:--.--</span>
+                }
+              </button>
+            )}
           </div>
         ) : (
           <div className="flex flex-col gap-1">
             {/* Primary timestamp + add-repeat on one line */}
             <div className="flex items-center gap-1">
-              <button
-                type="button"
-                onClick={() => setFocusedTimestamp(focusedTimestamp?.lineIndex === i && focusedTimestamp?.type === 'start' ? null : { lineIndex: i, type: 'start' })}
-                className={`flex items-center rounded px-1.5 py-0.5 text-[10px] font-mono tabular-nums transition-all w-fit ${
-                  focusedTimestamp?.lineIndex === i && focusedTimestamp?.type === 'start'
-                    ? 'bg-primary/25 ring-1 ring-primary/50 text-primary font-semibold'
-                    : isSynced
-                      ? 'bg-zinc-800 border border-zinc-700/50 text-primary hover:border-primary/40 hover:bg-zinc-700/60'
-                      : 'text-zinc-600 hover:bg-zinc-800/50 border border-transparent'
-                }`}
-              >
-                {isSynced ? formatTimestamp(line.timestamp, settings.editor?.timestampPrecision || 'hundredths') : '--:--.--'}
-              </button>
+              {editingTimestamp === 'start' && isSynced ? (
+                <InlineTimestampEdit
+                  value={line.timestamp}
+                  precision={settings.editor?.timestampPrecision || 'hundredths'}
+                  onChange={(val) => { handleSetTimestamp(i, 'start', val); setEditingTimestamp(null); }}
+                  onCancel={() => setEditingTimestamp(null)}
+                />
+              ) : (
+                <TimestampBadge
+                  value={line.timestamp}
+                  isSynced={isSynced}
+                  isFocused={focusedTimestamp?.lineIndex === i && focusedTimestamp?.type === 'start'}
+                  isActive={isActive}
+                  precision={settings.editor?.timestampPrecision || 'hundredths'}
+                  onClick={() => setFocusedTimestamp(focusedTimestamp?.lineIndex === i && focusedTimestamp?.type === 'start' ? null : { lineIndex: i, type: 'start' })}
+                  onDoubleClick={(e) => { e.stopPropagation(); if (isSynced) setEditingTimestamp('start'); }}
+                  onWheel={(e) => { if (isSynced) handleTimestampWheel(e, i, 'start'); }}
+                  nudgeIndicator={isSynced ? nudgeIndicator : null}
+                />
+              )}
               {/* Add repeat — inline with primary badge, appears on row hover */}
-              {isSynced && editingLineIndex !== i && (
+              {isSynced && editingLineIndex !== i && !editingTimestamp && (
                 <button
                   type="button"
                   onClick={(e) => { e.stopPropagation(); handleAddExtraTimestamp(i); }}
@@ -349,7 +531,7 @@ const EditorLineItem = React.memo(({
                               : ''
                         }`}
                       >
-                        {w.word}{' '}
+                        {w.word.replace(/^[()'"]+|[,;.!?()'"]+$/g, '')}{' '}
                       </span>
                     ))
                   : (line.text || '♪')
@@ -405,7 +587,7 @@ const EditorLineItem = React.memo(({
           }`}
         >
           {editorMode === 'words' && line.timestamp != null && line.words?.[activeWordIndex] ? (
-            <span className="font-mono text-[10px] max-w-[48px] truncate">{line.words[activeWordIndex].word}</span>
+            <span className="font-mono text-[10px] max-w-[48px] truncate">{line.words[activeWordIndex].word.replace(/^[()'"]+|[,;.!?()'"]+$/g, '')}</span>
           ) : (
             <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
@@ -487,6 +669,15 @@ const EditorLineItem = React.memo(({
           </Button>
         )}
       </div>
+      {/* Progress stripe for active synced line */}
+      {segmentProgress != null && (
+        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-zinc-800/50">
+          <div
+            className="h-full bg-primary/50 transition-[width] duration-100 ease-linear rounded-full"
+            style={{ width: `${segmentProgress * 100}%` }}
+          />
+        </div>
+      )}
     </div>
   );
 });

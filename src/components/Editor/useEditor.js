@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import { parseLrcSrtFile } from '../../utils/lrc';
 import { matchKey } from '../../utils/keyboard';
@@ -11,6 +11,10 @@ import {
   clearAllTimestamps,
   clearLineTimestamp,
   applyMark,
+  detectDuplicateTimestamps,
+  evenlyDistribute,
+  interpolateTimestamps,
+  copyTimestamps,
 } from './editorService';
 
 export function useEditor({
@@ -222,6 +226,30 @@ export function useEditor({
   };
 
   // ——— Timestamp operations ———
+
+  // Set a timestamp to an exact value (for inline editing)
+  const handleSetTimestamp = useCallback(
+    (index, type, value) => {
+      const numericValue = Number(value);
+      if (isNaN(numericValue) || numericValue < 0) return;
+      setLines((prev) => {
+        const updated = [...prev];
+        if (!updated[index]) return prev;
+        if (type === 'end') {
+          updated[index] = { ...updated[index], endTime: numericValue };
+        } else if (type === 'word') {
+          // Not used yet, but ready for future
+        } else {
+          updated[index] = { ...updated[index], timestamp: numericValue };
+        }
+        return updated;
+      });
+      if (playerRef?.current?.seek) {
+        playerRef.current.seek(numericValue);
+      }
+    },
+    [setLines, playerRef],
+  );
 
   const shiftTime = useCallback(
     (index, delta) => {
@@ -618,6 +646,24 @@ export function useEditor({
     setLines((prev) => applyBulkShift(prev, selectedLines, delta));
   };
 
+  const handleEvenlyDistribute = useCallback(() => {
+    setLines((prev) => evenlyDistribute(prev, selectedLines));
+  }, [selectedLines, setLines]);
+
+  const handleInterpolate = useCallback(() => {
+    setLines((prev) => interpolateTimestamps(prev, selectedLines));
+  }, [selectedLines, setLines]);
+
+  const handleCopyTimestamps = useCallback(() => {
+    setLines((prev) => {
+      const { lines: updated, copied } = copyTimestamps(prev, selectedLines);
+      if (copied > 0) {
+        // Brief visual feedback via console; toast could be added later
+      }
+      return updated;
+    });
+  }, [selectedLines, setLines]);
+
   const handleAddExtraTimestamp = useCallback((lineIndex) => {
     const time = playerRef?.current?.getCurrentTime?.() ?? playbackPositionRef.current;
     setLines((prev) => {
@@ -728,6 +774,12 @@ export function useEditor({
     setActiveLineIndex,
   ]);
 
+  // Duplicate/overlapping timestamp detection
+  const overlappingLines = useMemo(
+    () => detectDuplicateTimestamps(lines, settings.editor?.overlapThreshold ?? 0.05),
+    [lines, settings.editor?.overlapThreshold],
+  );
+
   return {
     // state
     rawText,
@@ -778,11 +830,16 @@ export function useEditor({
     handleBulkClearTimestamps,
     handleBulkDelete,
     handleBulkShift,
+    handleEvenlyDistribute,
+    handleInterpolate,
+    handleCopyTimestamps,
     handleAddExtraTimestamp,
     handleRemoveExtraTimestamp,
     handleClearWordTimestamp,
     handleSetActiveWordIndex,
+    handleSetTimestamp,
     activeWordIndex,
+    overlappingLines,
     // extras
     requestConfirm,
     confirmModal,
