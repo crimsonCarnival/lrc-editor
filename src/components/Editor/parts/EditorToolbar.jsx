@@ -1,7 +1,7 @@
 ﻿import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { Undo2, Redo2, ListChecks, TimerOff, Trash2, MousePointerClick, FileText, Repeat, Pencil, Save, Check } from 'lucide-react';
+import { Undo2, Redo2, ListChecks, TimerOff, Trash2, MousePointerClick, FileText, Repeat, Pencil, Save, Check, Eraser } from 'lucide-react';
 
 export default function EditorToolbar({
   editorMode,
@@ -18,6 +18,7 @@ export default function EditorToolbar({
   setSelectedLines,
   selectedLines,
   handleClearTimestamps,
+  handleClearAllWordTimestamps,
   requestConfirm,
   setLines,
   setRawText,
@@ -82,7 +83,7 @@ export default function EditorToolbar({
         )}
       </div>
       {syncMode && (
-        <div className="flex items-center justify-end gap-1 sm:gap-2 w-full">
+        <div className="flex items-center justify-end gap-1.5 w-full">
           <Button
             variant="ghost"
             size="icon-sm"
@@ -99,7 +100,7 @@ export default function EditorToolbar({
           >
             <Repeat className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
           </Button>
-          <div className="w-px h-4 bg-zinc-800 hidden sm:block mx-1" />
+          <div className="w-px h-4 bg-zinc-700/80" />
           <Button
             id="undo-btn"
             variant="ghost"
@@ -122,7 +123,7 @@ export default function EditorToolbar({
           >
             <Redo2 className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
           </Button>
-          <div className="w-px h-4 bg-zinc-800 hidden sm:block mx-1" />
+          <div className="w-px h-4 bg-zinc-700/80" />
           {selectedLines?.size > 0 && (
             <span className="text-[10px] font-mono tabular-nums text-primary/80 select-none whitespace-nowrap">
               {selectedLines.size}/{lines.length}
@@ -161,6 +162,17 @@ export default function EditorToolbar({
           >
             <TimerOff className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
           </Button>
+          {editorMode === 'words' && (
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={handleClearAllWordTimestamps}
+              className="text-orange-400 hover:text-orange-300 hover:bg-orange-500/10 flex-shrink-0"
+              title={t('editor.clearWordTimestamps')}
+            >
+              <Eraser className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
+            </Button>
+          )}
           {handleManualSave && !settings.advanced?.autoSave?.enabled && (
             <Button
               variant="ghost"
@@ -178,7 +190,7 @@ export default function EditorToolbar({
                 : <Save className="w-3.5 sm:w-4 h-3.5 sm:h-4" />}
             </Button>
           )}
-          <div className="w-px h-4 bg-zinc-800 hidden sm:block mx-1" />
+          <div className="w-px h-4 bg-zinc-700/80" />
           <Button
             variant="ghost"
             size="icon-sm"

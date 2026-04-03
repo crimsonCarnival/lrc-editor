@@ -378,6 +378,14 @@ export function useEditor({
     });
   };
 
+  const handleClearAllWordTimestamps = () => {
+    requestConfirm(t('confirm.clearWordTimestamps') || 'Clear all word timestamps?', () => {
+      setLines((prev) => prev.map((l) =>
+        l.words ? { ...l, words: l.words.map((w) => ({ ...w, time: null })) } : l
+      ));
+    });
+  };
+
   const handleSaveLineText = (index, newText, newSecondary, newTranslation) => {
     setLines((prev) => {
       const updated = [...prev];
@@ -710,6 +718,7 @@ export function useEditor({
     handleMark,
     handleClearLine,
     handleClearTimestamps,
+    handleClearAllWordTimestamps,
     handleSaveLineText,
     handleDeleteLine,
     handleAddLine,

@@ -58,6 +58,7 @@ export default function Editor({
     handleMark,
     handleClearLine,
     handleClearTimestamps,
+    handleClearAllWordTimestamps,
     handleSaveLineText,
     handleDeleteLine,
     handleAddLine,
@@ -112,6 +113,7 @@ export default function Editor({
         setSelectedLines={setSelectedLines}
         selectedLines={selectedLines}
         handleClearTimestamps={handleClearTimestamps}
+        handleClearAllWordTimestamps={handleClearAllWordTimestamps}
         requestConfirm={requestConfirm}
         setLines={setLines}
         setRawText={setRawText}
