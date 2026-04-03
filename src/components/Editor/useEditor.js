@@ -220,6 +220,14 @@ export function useEditor({
       let targetTime = null;
       if (
         focusedTimestamp?.lineIndex === index &&
+        focusedTimestamp.type === 'word' &&
+        focusedTimestamp.wordIndex != null &&
+        currentLines[index].words?.[focusedTimestamp.wordIndex]?.time != null
+      ) {
+        const newWordTime = Math.max(0, currentLines[index].words[focusedTimestamp.wordIndex].time + numericDelta);
+        if (!isNaN(newWordTime)) targetTime = newWordTime;
+      } else if (
+        focusedTimestamp?.lineIndex === index &&
         focusedTimestamp.type === 'end' &&
         currentLines[index].endTime != null
       ) {
@@ -235,6 +243,19 @@ export function useEditor({
         if (!updated[index]) return prev;
 
         if (
+          focusedTimestamp?.lineIndex === index &&
+          focusedTimestamp.type === 'word' &&
+          focusedTimestamp.wordIndex != null &&
+          updated[index].words?.[focusedTimestamp.wordIndex]?.time != null
+        ) {
+          const wi = focusedTimestamp.wordIndex;
+          const newWordTime = Math.max(0, updated[index].words[wi].time + numericDelta);
+          if (!isNaN(newWordTime)) {
+            const newWords = [...updated[index].words];
+            newWords[wi] = { ...newWords[wi], time: newWordTime };
+            updated[index] = { ...updated[index], words: newWords };
+          }
+        } else if (
           focusedTimestamp?.lineIndex === index &&
           focusedTimestamp.type === 'end' &&
           updated[index].endTime != null
@@ -383,6 +404,16 @@ export function useEditor({
       setLines((prev) => prev.map((l) =>
         l.words ? { ...l, words: l.words.map((w) => ({ ...w, time: null })) } : l
       ));
+    });
+  };
+
+  const handleClearActiveLineWordTimestamps = () => {
+    const line = lines[activeLineIndex];
+    if (!line?.words) return;
+    setLines((prev) => {
+      const updated = [...prev];
+      updated[activeLineIndex] = { ...line, words: line.words.map((w) => ({ ...w, time: null })) };
+      return updated;
     });
   };
 
@@ -719,6 +750,7 @@ export function useEditor({
     handleClearLine,
     handleClearTimestamps,
     handleClearAllWordTimestamps,
+    handleClearActiveLineWordTimestamps,
     handleSaveLineText,
     handleDeleteLine,
     handleAddLine,

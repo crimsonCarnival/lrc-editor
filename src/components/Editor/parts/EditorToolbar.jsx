@@ -1,7 +1,7 @@
 ﻿import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { Undo2, Redo2, ListChecks, TimerOff, Trash2, MousePointerClick, FileText, Repeat, Pencil, Save, Check, Eraser } from 'lucide-react';
+import { Undo2, Redo2, ListChecks, TimerOff, Trash2, MousePointerClick, FileText, Repeat, Pencil, Save, Check, Eraser, SquareX } from 'lucide-react';
 
 export default function EditorToolbar({
   editorMode,
@@ -19,6 +19,7 @@ export default function EditorToolbar({
   selectedLines,
   handleClearTimestamps,
   handleClearAllWordTimestamps,
+  handleClearActiveLineWordTimestamps,
   requestConfirm,
   setLines,
   setRawText,
@@ -27,6 +28,7 @@ export default function EditorToolbar({
   isAutosaving,
 }) {
   const { t } = useTranslation();
+  const hasAnyTimestamp = lines.some((l) => l.timestamp != null);
 
   return (
     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-3 mb-3 sm:mb-4">
@@ -56,8 +58,10 @@ export default function EditorToolbar({
             onValueChange={(val) => {
               if (!val) return;
               setEditorMode(val);
-              updateSetting('export.copyFormat', val);
-              updateSetting('export.downloadFormat', val);
+              // Words mode exports as LRC with embedded word timestamps
+              const exportFmt = val === 'words' ? 'lrc' : val;
+              updateSetting('export.copyFormat', exportFmt);
+              updateSetting('export.downloadFormat', exportFmt);
             }}
             className="bg-zinc-800/80 rounded-lg border border-zinc-700/60 overflow-hidden h-auto p-0 gap-0"
           >
@@ -75,7 +79,9 @@ export default function EditorToolbar({
             </ToggleGroupItem>
             <ToggleGroupItem
               value="words"
-              className="px-2.5 py-1 text-[10px] sm:text-xs font-bold rounded-none border-0 data-[state=on]:bg-primary data-[state=on]:text-zinc-950 text-zinc-400 hover:text-zinc-200 hover:bg-transparent h-auto"
+              disabled={!hasAnyTimestamp}
+              title={!hasAnyTimestamp ? t('editor.wordsNeedsTimestamps') : undefined}
+              className="px-2.5 py-1 text-[10px] sm:text-xs font-bold rounded-none border-0 data-[state=on]:bg-primary data-[state=on]:text-zinc-950 text-zinc-400 hover:text-zinc-200 hover:bg-transparent h-auto disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {t('editor.modeWords')}
             </ToggleGroupItem>
@@ -171,6 +177,17 @@ export default function EditorToolbar({
               title={t('editor.clearWordTimestamps')}
             >
               <Eraser className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
+            </Button>
+          )}
+          {editorMode === 'words' && isActiveLineLocked && (
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={handleClearActiveLineWordTimestamps}
+              className="text-yellow-500 hover:text-yellow-400 hover:bg-yellow-500/10 flex-shrink-0"
+              title={t('editor.clearActiveLineWordTimestamps')}
+            >
+              <SquareX className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
             </Button>
           )}
           {handleManualSave && !settings.advanced?.autoSave?.enabled && (

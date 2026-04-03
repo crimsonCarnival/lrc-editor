@@ -1,6 +1,7 @@
 ﻿import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { formatTimestamp } from '../../../utils/lrc';
+import { formatTime } from '../../../utils/formatTime';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -144,12 +145,16 @@ const EditorLineItem = React.memo(({
                           }
                           // Set as next stamp target for the active line
                           if (activeWordIndex !== -1) handleSetActiveWordIndex(wi);
+                          // Focus this word chip for nudging
+                          setFocusedTimestamp({ lineIndex: i, type: 'word', wordIndex: wi });
                         }}
-                        title={`${w.word} — click to jump`}
+                        title={`${w.word} @ ${formatTime(w.time)} — click to focus`}
                         className={`text-[9px] px-1 py-0.5 rounded border leading-none transition-colors cursor-pointer hover:border-primary hover:bg-primary/20 hover:text-primary ${
-                          wi === activeWordIndex
-                            ? 'bg-primary/20 border-primary/60 text-primary animate-pulse-glow'
-                            : 'bg-zinc-800 border-primary/30 text-primary/70'
+                          focusedTimestamp?.lineIndex === i && focusedTimestamp?.type === 'word' && focusedTimestamp?.wordIndex === wi
+                            ? 'bg-primary/30 border-primary text-primary ring-1 ring-primary/50'
+                            : wi === activeWordIndex
+                              ? 'bg-primary/20 border-primary/60 text-primary animate-pulse-glow'
+                              : 'bg-zinc-800 border-primary/30 text-primary/70'
                         }`}
                       >
                         {w.word}
@@ -350,7 +355,7 @@ const EditorLineItem = React.memo(({
                   : (line.text || '♪')
                 }
               </p>
-              {editorMode !== 'words' && line.words?.length > 0 && (
+              {editorMode !== 'words' && line.words?.length > 0 && !line.words.some((w) => w.time != null) && (
                 <span
                   className="flex-shrink-0 text-[9px] font-mono text-accent-blue/60 px-1 py-0.5 bg-accent-blue/10 rounded border border-accent-blue/20 leading-none cursor-pointer hover:bg-accent-blue/20 hover:text-accent-blue transition-colors"
                   title={t('editor.wordBadgeHint', { count: line.words.filter(w => w.time != null).length })}
