@@ -33,6 +33,56 @@ async function decompressFromBase64(b64) {
   return new Response(stream.readable).text();
 }
 
+// ——— Compact v1 share format helpers ———
+// Encodes lines to minimal JSON: single-char keys, no nulls/UUIDs/metadata.
+function buildSharePayload(lines, editorMode, ytUrl) {
+  return {
+    v: 1,
+    m: editorMode,
+    ...(ytUrl ? { y: ytUrl } : {}),
+    l: lines.map((l) => {
+      const entry = { t: l.text };
+      if (l.timestamp != null) entry.s = l.timestamp;
+      if (editorMode === 'srt' && l.endTime != null) entry.e = l.endTime;
+      if (l.secondary) entry.x = l.secondary;
+      if (l.translation) entry.r = l.translation;
+      if (Array.isArray(l.words) && l.words.length) {
+        const wArr = l.words.map((w) => {
+          const we = { w: w.word };
+          if (w.time != null) we.t = w.time;
+          return we;
+        });
+        entry.w = wArr;
+      }
+      return entry;
+    }),
+  };
+}
+
+// Expands a v1 compact payload back into the full session shape.
+function expandSharePayload(p) {
+  const lines = (p.l || []).map((l) => ({
+    text: l.t || '',
+    timestamp: l.s ?? null,
+    endTime: l.e ?? null,
+    secondary: l.x || '',
+    translation: l.r || '',
+    id: crypto.randomUUID(),
+    words: Array.isArray(l.w)
+      ? l.w.map((w) => ({ word: w.w || '', time: w.t ?? null })).filter((w) => w.word)
+      : undefined,
+  }));
+  return {
+    lines,
+    editorMode: p.m || (lines.some((l) => l.endTime != null) ? 'srt' : 'lrc'),
+    ytUrl: p.y || '',
+    syncMode: true,
+    activeLineIndex: 0,
+    playbackPosition: 0,
+    playbackSpeed: 1,
+  };
+}
+
 export function useAppState() {
   const { t, i18n } = useTranslation();
   const { settings, updateSetting } = useSettings();
@@ -162,13 +212,13 @@ export function useAppState() {
       activeLineIndex,
       editorMode,
       ytUrl: sessionYtUrl || '',
-      playbackPosition,
-      playbackSpeed: playerRef.current?.getSpeed?.() ?? 1,
+      playbackPosition: hasMedia ? playbackPosition : 0,
+      playbackSpeed: hasMedia ? (playerRef.current?.getSpeed?.() ?? 1) : 1,
       saveTime: toLocalISOString(now, utcOffset),
       timezone: tz,
       utcOffset,
     };
-  }, [lines, syncMode, activeLineIndex, editorMode, settings.advanced.timezone, sessionYtUrl, playbackPosition]);
+  }, [lines, syncMode, activeLineIndex, editorMode, settings.advanced.timezone, sessionYtUrl, playbackPosition, hasMedia]);
 
   const handleManualSave = useCallback(() => {
     const key = isSharedSession ? SHARED_SESSION_KEY : SESSION_KEY;
@@ -196,9 +246,10 @@ export function useAppState() {
     window.history.replaceState(null, '', window.location.pathname + window.location.search);
     decompressFromBase64(encoded)
       .then((text) => {
-        const parsed = JSON.parse(text);
+        const raw = JSON.parse(text);
+        // Support both compact v1 format and legacy full format
+        const parsed = raw.v === 1 ? expandSharePayload(raw) : raw;
         if (!parsed.lines?.length) return;
-        // Auto-restore URL-shared sessions immediately — no confirmation needed
         const validLines = parsed.lines.filter(
           (l) => l && typeof l === 'object' && typeof l.text === 'string',
         ).map((l) => ({
@@ -243,7 +294,7 @@ export function useAppState() {
 
   // ——— Export session as shareable URL ———
   const exportToUrl = useCallback(async () => {
-    const payload = buildSessionPayload();
+    const payload = buildSharePayload(lines, editorMode, sessionYtUrl);
     try {
       const encoded = await compressToBase64(JSON.stringify(payload));
       const url = `${window.location.origin}${window.location.pathname}#s=${encoded}`;
@@ -252,7 +303,7 @@ export function useAppState() {
     } catch {
       toast.error(t('session.shareFailed') || 'Could not copy link. Try saving manually.');
     }
-  }, [buildSessionPayload, t]);
+  }, [lines, editorMode, sessionYtUrl, t]);
 
   // ——— Mode switching with end-time inference ———
   const setEditorMode = useCallback(

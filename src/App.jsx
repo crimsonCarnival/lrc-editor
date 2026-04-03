@@ -1,7 +1,6 @@
 import { lazy, Suspense } from 'react';
 import Player from './components/Player';
 import { SettingsProvider } from './contexts/SettingsContext';
-import { useSettings } from './contexts/useSettings';
 
 const Editor = lazy(() => import('./components/Editor'));
 const Preview = lazy(() => import('./components/Preview'));
@@ -64,8 +63,6 @@ function AppInner() {
     exportToUrl,
     isSharedSession,
   } = useAppState();
-
-  const { settings } = useSettings();
 
   useScrollLock(!!pendingSession);
   useNetworkStatus();
@@ -164,7 +161,7 @@ function AppInner() {
         {/* 3-Column layout */}
         <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-2 sm:gap-3 lg:gap-4 min-h-0 lg:overflow-hidden max-lg:overflow-visible">
           {/* Left: Player + Editor */}
-          <div className="lg:col-span-6 flex flex-col gap-2 sm:gap-3 lg:gap-4 min-h-0 max-lg:h-[85vh]">
+          <div className="lg:col-span-7 flex flex-col gap-2 sm:gap-3 lg:gap-4 min-h-0 max-lg:h-[85vh]">
             <Player
               ref={playerRef}
               mediaTitle={mediaTitle}
@@ -202,7 +199,7 @@ function AppInner() {
           </div>
 
           {/* Right: Preview */}
-          <div className="flex lg:col-span-6 min-h-0 flex-col max-lg:h-[85vh] max-lg:mt-4">
+          <div className="flex lg:col-span-5 min-h-0 flex-col max-lg:h-[85vh] max-lg:mt-4">
             <Preview
               lines={lines}
               setLines={setLines}
