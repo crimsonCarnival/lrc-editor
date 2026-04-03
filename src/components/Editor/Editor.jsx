@@ -25,6 +25,7 @@ export default function Editor({
   onImport,
   handleManualSave,
   isAutosaving,
+  compact,
 }) {
   "use no memo";
   const {
@@ -98,7 +99,7 @@ export default function Editor({
   });
 
   return (
-    <div className="glass rounded-xl sm:rounded-2xl p-3 sm:p-5 flex flex-col h-full animate-fade-in">
+    <div className={`glass rounded-xl sm:rounded-2xl p-3 sm:p-5 flex ${compact ? 'flex-row gap-2' : 'flex-col'} h-full animate-fade-in`}>
       <EditorToolbar
         editorMode={editorMode}
         setEditorMode={setEditorMode}
@@ -122,8 +123,10 @@ export default function Editor({
         setSyncMode={setSyncMode}
         handleManualSave={handleManualSave}
         isAutosaving={isAutosaving}
+        compact={compact}
       />
 
+      <div className="flex flex-col flex-1 min-h-0 min-w-0">
       {/* Edit Mode */}
       {!syncMode && (
         <EditorPasteArea
@@ -188,6 +191,7 @@ export default function Editor({
           handleSetActiveWordIndex={handleSetActiveWordIndex}
         />
       )}
+      </div>
 
       {confirmModal}
     </div>
@@ -290,6 +294,7 @@ function VirtualizedLineList({
     <div className="flex flex-col flex-1 gap-3 animate-fade-in min-h-0">
       <div
         ref={listRef}
+        onMouseLeave={handleLineHoverEnd}
         className="flex-1 overflow-y-auto pr-1 min-h-0 mask-edges"
       >
         <div
@@ -376,6 +381,7 @@ function VirtualizedLineList({
         handleBulkShift={handleBulkShift}
         handleBulkDelete={handleBulkDelete}
         clearSelection={clearSelection}
+        handleApplyOffset={handleApplyOffset}
       />
 
       <EditorSyncControls
