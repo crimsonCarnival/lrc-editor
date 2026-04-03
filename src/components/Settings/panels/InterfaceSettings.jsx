@@ -2,7 +2,7 @@
 import { Section, SettingRow, Toggle } from '../shared';
 import { useInterfaceSettings } from '../hooks/useInterfaceSettings';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Monitor, Moon, Sparkles, Globe, ScrollText, AlignCenter, AlignLeft, Type, Rows2, LayoutList, ChevronDown } from 'lucide-react';
+import { Monitor, Moon, Sparkles, Globe, ScrollText, AlignCenter, AlignLeft, Type, Rows2, LayoutList, ChevronDown, Columns } from 'lucide-react';
 
 export default function InterfaceSettings({ settings, updateSetting, searchTerm }) {
   const { t } = useTranslation();
@@ -15,6 +15,8 @@ export default function InterfaceSettings({ settings, updateSetting, searchTerm 
     handlePreviewAlignmentChange,
     handleFontSizeChange,
     handleSpacingChange,
+    handleLanguageLayoutChange,
+    handleTranslationLayoutChange,
   } = useInterfaceSettings(updateSetting);
 
   return (
@@ -156,6 +158,20 @@ export default function InterfaceSettings({ settings, updateSetting, searchTerm 
         />
       </SettingRow>
       )}
+      <SettingRow icon={Columns} label={t('settings.interface.translationLayout')} description={t('settings.interface.translationLayoutDesc')}>
+        <Select
+          value={settings.editor?.display?.translationLayout ?? 'side-by-side'}
+          onValueChange={(val) => handleTranslationLayoutChange({ target: { value: val } })}
+        >
+          <SelectTrigger className="bg-zinc-900 border-zinc-700 text-xs text-zinc-200 focus:border-primary/50 h-8 w-auto">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="bg-zinc-900 border-zinc-700">
+            <SelectItem value="stacked">{t('settings.interface.layoutStacked')}</SelectItem>
+            <SelectItem value="side-by-side">{t('settings.interface.layoutSideBySide')}</SelectItem>
+          </SelectContent>
+        </Select>
+      </SettingRow>
     </Section>
   );
 }

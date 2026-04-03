@@ -31,7 +31,10 @@ export const DEFAULT_SETTINGS = {
     display: {
       activeHighlight: 'glow',
       showNextLine: true,
-      dualLine: false
+      dualLine: false,
+      languageLayout: 'stacked',
+      translationLayout: 'side-by-side',
+      readingFormat: 'hiragana'
     },
     scroll: {
       mode: 'smooth',

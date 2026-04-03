@@ -26,6 +26,12 @@ export function useInterfaceSettings(updateSetting) {
 
   const handleSpacingChange = (e) => updateSetting('interface.spacing', e.target.value);
 
+  const handleLanguageLayoutChange = (e) =>
+    updateSetting('editor.display.languageLayout', e.target.value);
+
+  const handleTranslationLayoutChange = (e) =>
+    updateSetting('editor.display.translationLayout', e.target.value);
+
   return {
     handleLanguageChange,
     handleThemeChange,
@@ -35,5 +41,7 @@ export function useInterfaceSettings(updateSetting) {
     handlePreviewAlignmentChange,
     handleFontSizeChange,
     handleSpacingChange,
+    handleLanguageLayoutChange,
+    handleTranslationLayoutChange,
   };
 }
