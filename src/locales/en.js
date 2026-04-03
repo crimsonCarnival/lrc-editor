@@ -3,7 +3,13 @@ export default {
     "app": {
       "name": "LRC Syncer",
       "footer": "Lyrics Syncer — Runs entirely in your browser. No data leaves your device.",
-      "shareSession": "Share"
+      "shareSession": "Share",
+      "focusMode": {
+        "default": "Default",
+        "sync": "Sync",
+        "preview": "Preview",
+        "playback": "Playback"
+      }
     },
 
     "player": {
@@ -68,6 +74,7 @@ export default {
       "modeLRC": "LRC",
       "modeSRT": "SRT",
       "modeWords": "Words",
+      "syncProgress": "{{synced}}/{{total}} synced",
       "wordBadgeHint": "{{count}} word timestamps — switch to Words mode to sync",
       "markInstructionWords": "Press Space to stamp the next word",
       "startTime": "Start",
@@ -148,6 +155,7 @@ export default {
       "failed": "Failed to parse lyrics file",
       "noLines": "No lyrics found in file",
       "tooLarge": "File too large (max 5 MB)",
+      "unsupportedFormat": "Unsupported file type. Use .lrc, .srt, or .txt files.",
       "fromUrl": "Import from URL",
       "urlPlaceholder": "https://example.com/lyrics.lrc",
       "fetchError": "Failed to fetch. The server may not allow cross-origin requests.",
@@ -356,7 +364,13 @@ export default {
         "addSecondaryLabel": "Add Secondary Lyrics",
         "addSecondaryDesc": "Open secondary lyrics paste panel",
         "addTranslationLabel": "Add Translations",
-        "addTranslationDesc": "Open translation paste panel"
+        "addTranslationDesc": "Open translation paste panel",
+        "focusSyncLabel": "Sync Mode",
+        "focusSyncDesc": "Focus on editor for syncing",
+        "focusPreviewLabel": "Preview Mode",
+        "focusPreviewDesc": "Expand preview, minimize editor",
+        "focusPlaybackLabel": "Playback Mode",
+        "focusPlaybackDesc": "Player + preview, hide editor"
       },
 
       "options": {

@@ -3,7 +3,13 @@ export default {
     "app": {
       "name": "LRC Syncer",
       "footer": "Lyrics Syncer — Se ejecuta íntegramente en el navegador. Ningún dato sale de tu dispositivo.",
-      "shareSession": "Compartir"
+      "shareSession": "Compartir",
+      "focusMode": {
+        "default": "Normal",
+        "sync": "Sincronizar",
+        "preview": "Vista previa",
+        "playback": "Reproducción"
+      }
     },
 
     "player": {
@@ -68,6 +74,7 @@ export default {
       "modeLRC": "LRC",
       "modeSRT": "SRT",
       "modeWords": "Palabras",
+      "syncProgress": "{{synced}}/{{total}} sincronizadas",
       "wordBadgeHint": "{{count}} marcas de tiempo de palabras — cambia al modo Palabras para sincronizar",
       "markInstructionWords": "Presiona Espacio para marcar la siguiente palabra",
       "startTime": "Inicio",
@@ -148,6 +155,7 @@ export default {
       "failed": "Error al analizar el archivo de letras",
       "noLines": "No se encontraron letras en el archivo",
       "tooLarge": "Archivo demasiado grande (máx 5 MB)",
+      "unsupportedFormat": "Tipo de archivo no soportado. Usa archivos .lrc, .srt o .txt.",
       "fromUrl": "Importar desde URL",
       "urlPlaceholder": "https://ejemplo.com/letras.lrc",
       "fetchError": "Error al obtener el archivo. El servidor puede no permitir solicitudes externas.",
