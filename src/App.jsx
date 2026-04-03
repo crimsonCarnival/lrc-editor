@@ -78,7 +78,7 @@ function AppInner() {
       </div>
 
       {isDraggingFile && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm pointer-events-none transition-all">
+        <div className="fixed inset-0 z-overlay flex items-center justify-center bg-black/80 backdrop-blur-sm pointer-events-none transition-all">
           <div className="flex flex-col items-center gap-4 text-primary animate-bounce">
             <UploadCloud className="w-20 h-20" />
             <h2 className="text-3xl font-bold tracking-tight text-center px-4">{t('player.dropAudio') || 'Drop your audio or lyrics file here'}</h2>
@@ -87,7 +87,7 @@ function AppInner() {
       )}
 
 
-      <header className="relative z-50 flex flex-row items-center justify-between gap-2 w-full px-4 sm:px-6 lg:px-8 py-3 sm:py-5 animate-fade-in">
+      <header className="relative z-sticky flex flex-row items-center justify-between gap-2 w-full px-4 sm:px-6 lg:px-8 py-3 sm:py-5 animate-fade-in">
         <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-shrink">
           <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-primary to-accent-purple flex items-center justify-center shadow-lg shadow-primary/20 flex-shrink-0">
             <Music2 className="w-4 sm:w-5 h-4 sm:h-5 text-white" strokeWidth={2} />
@@ -157,7 +157,7 @@ function AppInner() {
         </div>
       </header>
 
-      <div className="relative z-10 max-w-7xl mx-auto w-full flex-1 min-h-0 px-2 sm:px-4 lg:px-6 pb-2 sm:pb-4 flex flex-col">
+      <div className="relative z-raised max-w-7xl mx-auto w-full flex-1 min-h-0 px-2 sm:px-4 lg:px-6 pb-2 sm:pb-4 flex flex-col">
         {/* 3-Column layout */}
         <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-2 sm:gap-3 lg:gap-4 min-h-0 lg:overflow-hidden max-lg:overflow-visible">
           {/* Left: Player + Editor */}
@@ -223,9 +223,9 @@ function AppInner() {
 
       {/* Session Restore Modal */}
       {pendingSession && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center">
+        <div className="fixed inset-0 z-popover flex items-center justify-center">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={handleDiscardSession} />
-          <div className="relative bg-zinc-900 border border-zinc-700/80 rounded-2xl p-6 max-w-sm w-full mx-4 shadow-2xl animate-fade-in">
+          <div className="relative bg-zinc-900 border border-zinc-700/80 rounded-2xl p-6 max-w-sm w-full mx-4 shadow-elevated animate-fade-in">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent-purple flex items-center justify-center shadow-lg shadow-primary/20 flex-shrink-0">
                 <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

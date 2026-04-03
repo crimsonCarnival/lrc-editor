@@ -17,7 +17,7 @@ export default function ConfirmModal({ isOpen, title, message, onConfirm, onCanc
 
   return (
     <AlertDialog open={isOpen} onOpenChange={(open) => !open && onCancel()}>
-      <AlertDialogContent className="bg-zinc-900 border border-zinc-700/80 rounded-2xl shadow-2xl">
+      <AlertDialogContent className="bg-zinc-900 border border-zinc-700/80 rounded-2xl shadow-elevated">
         <AlertDialogHeader>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-500 to-green-700 flex items-center justify-center shadow-lg shadow-green-500/20 flex-shrink-0">

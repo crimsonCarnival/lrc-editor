@@ -38,7 +38,7 @@ export default function ExportPanel({
   if (!showExportPanel) return null;
 
   return (
-    <div className="absolute right-0 top-full mt-2 rounded-lg sm:rounded-xl p-3 sm:p-4 space-y-2 sm:space-y-3 w-64 sm:w-72 z-50 animate-fade-in shadow-2xl bg-zinc-900 border border-zinc-700 font-sans text-left" ref={exportPanelRef}>
+    <div className="absolute right-0 top-full mt-2 rounded-lg sm:rounded-xl p-3 sm:p-4 space-y-2 sm:space-y-3 w-64 sm:w-72 z-sticky animate-fade-in shadow-elevated bg-zinc-900 border border-zinc-700 font-sans text-left" ref={exportPanelRef}>
       <label className="block">
         <span className="text-xs text-zinc-400 font-medium">{t('export.filename')}</span>
         <div className="flex items-center gap-1 mt-1">

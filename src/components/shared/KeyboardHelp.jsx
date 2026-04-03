@@ -91,7 +91,7 @@ export default function KeyboardHelp({ isOpen, onClose }) {
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
-        className="bg-zinc-900 border border-zinc-700 shadow-2xl p-0 max-w-sm w-full [&>button]:hidden"
+        className="bg-zinc-900 border border-zinc-700 shadow-elevated p-0 max-w-sm w-full [&>button]:hidden"
         style={{ transform: `translate(${position.x}px, ${position.y}px)` }}
         aria-describedby={undefined}
       >

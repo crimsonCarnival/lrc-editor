@@ -55,16 +55,16 @@ export default function SettingsModal({ isOpen, onClose }) {
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/60 z-[100] animate-fade-in"
+        className="fixed inset-0 bg-black/60 z-modal-backdrop animate-fade-in"
         onClick={onClose}
       />
       {/* Modal */}
-      <div className="fixed inset-0 z-[101] flex items-center justify-center p-4 pointer-events-none">
+      <div className="fixed inset-0 z-modal flex items-center justify-center p-4 pointer-events-none">
         <div
           className="w-full max-w-lg pointer-events-auto flex flex-col max-h-[85vh]"
           style={{ transform: `translate(${position.x}px, ${position.y}px)` }}
         >
-          <div className="bg-zinc-900 border border-zinc-700/80 rounded-2xl shadow-2xl w-full flex flex-col h-full animate-fade-in overflow-hidden">
+          <div className="bg-zinc-900 border border-zinc-700/80 rounded-2xl shadow-elevated w-full flex flex-col h-full animate-fade-in overflow-hidden">
             {/* Header (drag handle) */}
             <div
               className="flex items-center justify-between px-6 pt-5 pb-3 border-b border-zinc-800/60 flex-shrink-0 cursor-grab active:cursor-grabbing select-none"
