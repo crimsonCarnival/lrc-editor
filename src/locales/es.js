@@ -68,6 +68,16 @@ export default {
       "backToEdit": "Editar texto de letra",
       "clearWordTimestamps": "Borrar todas las marcas de palabras",
       "clearActiveLineWordTimestamps": "Borrar marcas de palabras de esta línea",
+      "generateFurigana": "Generar Furigana",
+      "furiganaLoading": "Cargando tokenizador…",
+      "furiganaProgress": "Procesando {{processed}}/{{total}}…",
+      "furiganaDone": "Furigana agregado a {{count}} líneas",
+      "furiganaNoLines": "No se encontraron líneas en japonés",
+      "furiganaError": "Error al generar furigana",
+      "readingFormat": {
+        "hiragana": "Hiragana",
+        "katakana": "Katakana"
+      },
       "wordsNeedsTimestamps": "Primero sincroniza las marcas de línea para activar el modo palabras",
       "addExtraTimestamp": "Agregar repetición en posición actual",
       "removeExtraTimestamp": "Eliminar repetición",
@@ -313,7 +323,13 @@ export default {
         "dualLine": "Modo de doble línea",
         "dualLineDesc": "Mostrar la línea actual y la siguiente en la vista previa",
         "showNextLine": "Mostrar siguiente línea",
-        "showNextLineDesc": "Mostrar la próxima línea debajo de la actual"
+        "showNextLineDesc": "Mostrar la próxima línea debajo de la actual",
+        "languageLayout": "Disposición de idiomas",
+        "languageLayoutDesc": "Cómo se muestran las pistas secundarias/traducción",
+        "translationLayout": "Disposición de traducción",
+        "translationLayoutDesc": "Mostrar traducciones lado a lado o apiladas debajo",
+        "layoutStacked": "Apilado",
+        "layoutSideBySide": "Lado a lado"
       },
 
       "advanced": {

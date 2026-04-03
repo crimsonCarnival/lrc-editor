@@ -68,6 +68,16 @@ export default {
       "backToEdit": "Edit lyrics text",
       "clearWordTimestamps": "Clear all word timestamps",
       "clearActiveLineWordTimestamps": "Clear word timestamps for this line",
+      "generateFurigana": "Generate Furigana",
+      "furiganaLoading": "Loading tokenizer…",
+      "furiganaProgress": "Processing {{processed}}/{{total}}…",
+      "furiganaDone": "Furigana added to {{count}} lines",
+      "furiganaNoLines": "No Japanese lines found",
+      "furiganaError": "Failed to generate furigana",
+      "readingFormat": {
+        "hiragana": "Hiragana",
+        "katakana": "Katakana"
+      },
       "wordsNeedsTimestamps": "Sync line timestamps first to enable word mode",
       "addExtraTimestamp": "Add repeat at current position",
       "removeExtraTimestamp": "Remove repeat",
@@ -313,7 +323,13 @@ export default {
         "dualLine": "Dual line mode",
         "dualLineDesc": "Show current and next line in the preview",
         "showNextLine": "Show next line",
-        "showNextLineDesc": "Display the upcoming line below the current one"
+        "showNextLineDesc": "Display the upcoming line below the current one",
+        "languageLayout": "Language layout",
+        "languageLayoutDesc": "How secondary/translation tracks are displayed",
+        "translationLayout": "Translation layout",
+        "translationLayoutDesc": "Show translations side by side or stacked below",
+        "layoutStacked": "Stacked",
+        "layoutSideBySide": "Side by side"
       },
 
       "advanced": {
