@@ -310,6 +310,8 @@ function AppInner() {
             initialYtUrl={restoredYtUrl}
             initialSeek={restoredPosition}
             initialSpeed={restoredSpeed}
+            lines={lines}
+            playbackPosition={playbackPosition}
           />
         </div>
       </div>

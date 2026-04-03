@@ -10,12 +10,12 @@ import VolumeControl from './VolumeControl';
 import SpeedControl from './SpeedControl';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Music2, Trash2, AlertTriangle, Play, Pause, Headphones, FolderOpen, Upload } from 'lucide-react';
+import { Music2, Trash2, AlertTriangle, Play, Pause, Headphones, FolderOpen, Upload, Repeat, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const ALL_SPEED_PRESETS = [0.25, 0.5, 0.75, 1, 1.25, 1.5];
 
 const Player = forwardRef(function Player(
-  { onTimeUpdate, onDurationChange, onMediaChange, playerRef: _legacyRef, mediaTitle, onTitleChange, initialYtUrl, onYtUrlChange, initialSeek, initialSpeed },
+  { onTimeUpdate, onDurationChange, onMediaChange, playerRef: _legacyRef, mediaTitle, onTitleChange, initialYtUrl, onYtUrlChange, initialSeek, initialSpeed, lines, playbackPosition },
   ref,
 ) {
   const { t } = useTranslation();
@@ -41,12 +41,37 @@ const Player = forwardRef(function Player(
   });
   const [requestConfirm, confirmModal] = useConfirm();
 
+  // A-B Loop state
+  const [loopA, setLoopA] = useState(null);
+  const [loopB, setLoopB] = useState(null);
+  const loopARef = useRef(null);
+  const loopBRef = useRef(null);
+
   const audioRef = useRef(null);
   const localBlobRef = useRef(null);
   const ytContainerRef = useRef(null);
 
+  const sourceRef = useRef(source);
+
+  // Sync refs in effects (React 19 rules forbid ref writes during render)
+  useEffect(() => { loopARef.current = loopA; }, [loopA]);
+  useEffect(() => { loopBRef.current = loopB; }, [loopB]);
+  useEffect(() => { sourceRef.current = source; }, [source]);
+
   const updateTime = useCallback(
     (time) => {
+      // A-B loop enforcement
+      const a = loopARef.current;
+      const b = loopBRef.current;
+      if (a != null && b != null && time >= b) {
+        if (sourceRef.current === 'local' && audioRef.current) {
+          audioRef.current.currentTime = a;
+        }
+        // YouTube loop is handled via yt.seek in the effect below
+        setCurrentTime(a);
+        onTimeUpdate?.(a);
+        return;
+      }
       setCurrentTime(time);
       onTimeUpdate?.(time);
     },
@@ -125,6 +150,17 @@ const Player = forwardRef(function Player(
     [source, MIN_SPEED, MAX_SPEED, local, yt],
   );
 
+  // ——— A-B Loop helpers ———
+  const setLoop = useCallback((a, b) => {
+    setLoopA(a);
+    setLoopB(b);
+  }, []);
+
+  const clearLoop = useCallback(() => {
+    setLoopA(null);
+    setLoopB(null);
+  }, []);
+
   // ——— Expose player API via ref ———
 
   useImperativeHandle(
@@ -144,8 +180,11 @@ const Player = forwardRef(function Player(
       seek,
       getAudioBlob: () => localBlobRef.current || null,
       loadLocalAudio: (file) => local.handleFileChange(file),
+      setLoop,
+      clearLoop,
+      getLoop: () => ({ a: loopA, b: loopB }),
     }),
-    [source, isPlaying, togglePlay, seek, local, yt, applySpeed, playbackSpeed],
+    [source, isPlaying, togglePlay, seek, local, yt, applySpeed, playbackSpeed, setLoop, clearLoop, loopA, loopB],
   );
 
   // ——— Apply restored seek/speed once after YouTube media is ready ———
@@ -156,6 +195,8 @@ const Player = forwardRef(function Player(
       if (initialSeek > 0) yt.seek(initialSeek);
       // Apply speed directly to YouTube player (external call only)
       if (initialSpeed && initialSpeed !== 1) yt.setSpeed(initialSpeed);
+      // Ensure the player doesn't autoplay after restoring position
+      yt.pause();
     }
   }, [yt.ytReady]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -238,7 +279,7 @@ const Player = forwardRef(function Player(
           {!yt.ytUrl.trim() && (<>
             <label
               htmlFor="audio-file-input"
-              className="flex flex-col items-center justify-center gap-2 px-4 py-5 cursor-pointer group transition-colors rounded-xl"
+              className="flex items-center gap-3 px-3 py-3 cursor-pointer group transition-colors rounded-xl hover:bg-zinc-800/40"
               onDragOver={(e) => e.preventDefault()}
               onDrop={(e) => {
                 e.preventDefault();
@@ -246,12 +287,12 @@ const Player = forwardRef(function Player(
                 if (file) local.handleFileChange({ target: { files: [file] } });
               }}
             >
-              <div className="w-10 h-10 rounded-xl bg-zinc-800 border border-zinc-700/60 flex items-center justify-center group-hover:border-primary/40 group-hover:bg-zinc-700/60 transition-all">
-                <FolderOpen className="w-5 h-5 text-zinc-500 group-hover:text-primary transition-colors" />
+              <div className="w-8 h-8 rounded-lg bg-zinc-800 border border-zinc-700/60 flex items-center justify-center group-hover:border-primary/40 group-hover:bg-zinc-700/60 transition-all flex-shrink-0">
+                <FolderOpen className="w-4 h-4 text-zinc-500 group-hover:text-primary transition-colors" />
               </div>
-              <div className="text-center">
+              <div>
                 <p className="text-sm font-medium text-zinc-300 group-hover:text-zinc-100 transition-colors">{t('player.dropAudio')}</p>
-                <p className="text-[11px] text-zinc-600 mt-0.5">{t('player.dropHint')}</p>
+                <p className="text-[11px] text-zinc-600">{t('player.dropHint')}</p>
               </div>
               <input
                 id="audio-file-input"
@@ -263,9 +304,9 @@ const Player = forwardRef(function Player(
             </label>
 
             {/* Divider */}
-            <div className="flex items-center gap-3 px-4 py-1">
+            <div className="flex items-center gap-3 px-3 py-0.5">
               <div className="flex-1 h-px bg-zinc-800" />
-              <span className="text-[11px] text-zinc-600 uppercase tracking-widest">{t('player.or')}</span>
+              <span className="text-[10px] text-zinc-600 uppercase tracking-widest">{t('player.or')}</span>
               <div className="flex-1 h-px bg-zinc-800" />
             </div>
           </>)}
@@ -325,6 +366,9 @@ const Player = forwardRef(function Player(
             audioRef={audioRef}
             localUrl={local.localUrl}
             onTimeUpdate={onTimeUpdate}
+            lines={lines}
+            playbackPosition={playbackPosition}
+            duration={duration}
           />
           <audio
             ref={audioRef}
@@ -349,6 +393,7 @@ const Player = forwardRef(function Player(
             <Button
               id="play-pause-btn"
               onClick={togglePlay}
+              aria-label={isPlaying ? t('shortcuts.playPause') || 'Pause' : t('shortcuts.playPause') || 'Play'}
               className="w-9 sm:w-10 h-9 sm:h-10 rounded-full bg-primary hover:bg-primary-dim text-zinc-950 hover:scale-105 active:scale-95 glow-primary flex-shrink-0 p-0"
             >
               {isPlaying ? (
@@ -362,25 +407,113 @@ const Player = forwardRef(function Player(
               {formatTime(currentTime)}
             </span>
 
-            <input
-              id="seek-slider"
-              type="range"
-              min={0}
-              max={duration || 0}
-              step={0.1}
-              value={currentTime}
-              onChange={(e) => seek(parseFloat(e.target.value))}
-              className="flex-1 min-w-0"
-              style={{
-                background: `linear-gradient(to right, var(--color-primary) ${duration ? (currentTime / duration) * 100 : 0}%, rgba(255, 255, 255, 0.15) ${duration ? (currentTime / duration) * 100 : 0}%)`,
-              }}
-            />
+            {/* Frame step back */}
+            <button
+              onClick={() => seek(Math.max(0, currentTime - 0.01))}
+              className="p-1 rounded text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/60 transition-colors flex-shrink-0 hidden sm:block"
+              title="-0.01s"
+            >
+              <ChevronLeft className="w-3 h-3" />
+            </button>
+
+            <div className="flex-1 min-w-0 relative">
+              {/* A-B loop region overlay */}
+              {loopA != null && loopB != null && duration > 0 && (
+                <div
+                  className="absolute top-0 bottom-0 bg-accent-purple/15 border-x border-accent-purple/40 rounded-sm pointer-events-none z-10"
+                  style={{
+                    left: `${(loopA / duration) * 100}%`,
+                    width: `${((loopB - loopA) / duration) * 100}%`,
+                  }}
+                />
+              )}
+              <input
+                id="seek-slider"
+                type="range"
+                min={0}
+                max={duration || 0}
+                step={0.1}
+                value={currentTime}
+                aria-label="Seek"
+                aria-valuenow={Math.round(currentTime)}
+                aria-valuemin={0}
+                aria-valuemax={Math.round(duration)}
+                onChange={(e) => {
+                  const raw = parseFloat(e.target.value);
+                  // Shift-drag: 10:1 precision (move 1/10th of normal)
+                  if (e.nativeEvent?.shiftKey) {
+                    const delta = (raw - currentTime) / 10;
+                    seek(Math.max(0, Math.min(duration, currentTime + delta)));
+                  } else {
+                    seek(raw);
+                  }
+                }}
+                className="w-full relative z-20"
+                style={{
+                  background: `linear-gradient(to right, var(--color-primary) ${duration ? (currentTime / duration) * 100 : 0}%, rgba(255, 255, 255, 0.15) ${duration ? (currentTime / duration) * 100 : 0}%)`,
+                }}
+              />
+            </div>
+
+            {/* Frame step forward */}
+            <button
+              onClick={() => seek(Math.min(duration, currentTime + 0.01))}
+              className="p-1 rounded text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/60 transition-colors flex-shrink-0 hidden sm:block"
+              title="+0.01s"
+            >
+              <ChevronRight className="w-3 h-3" />
+            </button>
 
             <span className="text-xs text-zinc-400 font-mono tabular-nums w-14 sm:w-[68px] text-left shrink-0">
               {formatTime(duration)}
             </span>
 
             <VolumeControl />
+
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => {
+                if (loopA != null && loopB != null) {
+                  clearLoop();
+                } else {
+                  // Loop the currently active line (use live time for accuracy)
+                  const now = source === 'local'
+                    ? (audioRef.current?.currentTime ?? currentTime)
+                    : (yt.getCurrentTime?.() ?? currentTime);
+                  if (lines?.length) {
+                    let activeIdx = -1;
+                    for (let i = 0; i < lines.length; i++) {
+                      if (lines[i].timestamp != null && lines[i].timestamp <= now) activeIdx = i;
+                    }
+                    if (activeIdx >= 0) {
+                      const activeLine = lines[activeIdx];
+                      const a = activeLine.timestamp;
+                      // Prefer SRT endTime, fall back to next synced line's start
+                      let b = activeLine.endTime ?? null;
+                      if (b == null) {
+                        b = duration;
+                        for (let i = activeIdx + 1; i < lines.length; i++) {
+                          if (lines[i].timestamp != null) { b = lines[i].timestamp; break; }
+                        }
+                      }
+                      setLoop(a, b);
+                    }
+                  }
+                }
+              }}
+              className={`rounded-full flex-shrink-0 ${
+                loopA != null && loopB != null
+                  ? 'bg-accent-purple/20 text-accent-purple hover:bg-accent-purple/30'
+                  : 'bg-zinc-800/80 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700'
+              }`}
+              title={loopA != null && loopB != null
+                ? `${t('player.loopActive') || 'Loop active'}: ${formatTime(loopA)} – ${formatTime(loopB)} (click to clear)`
+                : t('player.setLoop') || 'Set A-B loop'
+              }
+            >
+              <Repeat className="w-4 h-4" />
+            </Button>
 
             <SpeedControl
               playbackSpeed={playbackSpeed}
