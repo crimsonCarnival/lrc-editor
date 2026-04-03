@@ -107,40 +107,11 @@ const EditorLineItem = React.memo(({
             ? 'text-zinc-400 animate-pulse-glow'
             : 'text-zinc-600'
           }`}
-        style={{ minWidth: editorMode === 'srt' ? '160px' : '75px' }}
+        style={{ minWidth: '92px' }}
       >
         {editorMode === 'srt' ? (
-          <>
-            <span
-              onClick={() => setFocusedTimestamp(focusedTimestamp?.lineIndex === i && focusedTimestamp?.type === 'start' ? null : { lineIndex: i, type: 'start' })}
-              className={`cursor-pointer px-1 py-0.5 rounded transition-all ${focusedTimestamp?.lineIndex === i && focusedTimestamp?.type === 'start'
-                ? 'bg-primary/40 ring-1 ring-primary/60 text-primary font-semibold'
-                : 'hover:bg-zinc-700/40'
-                }`}
-            >
-              {isSynced ? formatTimestamp(line.timestamp, settings.editor?.timestampPrecision || 'hundredths') : '--:--.--'}
-            </span>
-            <span className="text-zinc-600 mx-2">→</span>
-            <span
-              onClick={() => setFocusedTimestamp(focusedTimestamp?.lineIndex === i && focusedTimestamp?.type === 'end' ? null : { lineIndex: i, type: 'end' })}
-              className={`cursor-pointer px-1 py-0.5 rounded transition-all ${focusedTimestamp?.lineIndex === i && focusedTimestamp?.type === 'end'
-                ? 'bg-primary/40 ring-1 ring-primary/60 font-semibold'
-                : 'hover:bg-zinc-700/40'
-                }`}
-            >
-              {line.endTime != null
-                ? (() => {
-                  const isOverlap = !isLastLine && line.endTime > line.nextTimestamp;
-                  const colorClass = isOverlap ? 'text-red-400 font-bold underline decoration-wavy decoration-red-500/50' : 'text-accent-blue';
-                  return <span className={`${awaitingEndMark === i ? 'animate-pulse-glow text-primary' : colorClass}`} title={isOverlap ? 'Overlap Warning' : ''}>{formatTimestamp(line.endTime, settings.editor?.timestampPrecision || 'hundredths')}</span>;
-                })()
-                : <span className={awaitingEndMark === i ? 'animate-pulse-glow text-zinc-400' : 'text-zinc-600'}>--:--.--</span>
-              }
-            </span>
-          </>
-        ) : (
           <div className="flex flex-col gap-1">
-            {/* Primary timestamp chip */}
+            {/* Start time badge */}
             <button
               type="button"
               onClick={() => setFocusedTimestamp(focusedTimestamp?.lineIndex === i && focusedTimestamp?.type === 'start' ? null : { lineIndex: i, type: 'start' })}
@@ -154,6 +125,57 @@ const EditorLineItem = React.memo(({
             >
               {isSynced ? formatTimestamp(line.timestamp, settings.editor?.timestampPrecision || 'hundredths') : '--:--.--'}
             </button>
+            {/* End time badge */}
+            <button
+              type="button"
+              onClick={() => setFocusedTimestamp(focusedTimestamp?.lineIndex === i && focusedTimestamp?.type === 'end' ? null : { lineIndex: i, type: 'end' })}
+              className={`flex items-center rounded px-1.5 py-0.5 text-[10px] font-mono tabular-nums transition-all w-fit ${
+                focusedTimestamp?.lineIndex === i && focusedTimestamp?.type === 'end'
+                  ? 'bg-primary/25 ring-1 ring-primary/50 font-semibold'
+                  : line.endTime != null
+                    ? 'bg-zinc-800 border border-zinc-700/50 hover:border-accent-blue/40 hover:bg-zinc-700/60'
+                    : 'text-zinc-600 hover:bg-zinc-800/50 border border-transparent'
+              }`}
+            >
+              {line.endTime != null
+                ? (() => {
+                    const isOverlap = !isLastLine && line.endTime > line.nextTimestamp;
+                    const colorClass = isOverlap ? 'text-red-400 font-bold underline decoration-wavy decoration-red-500/50' : 'text-accent-blue';
+                    return <span className={awaitingEndMark === i ? 'animate-pulse-glow text-primary' : colorClass} title={isOverlap ? 'Overlap Warning' : ''}>{formatTimestamp(line.endTime, settings.editor?.timestampPrecision || 'hundredths')}</span>;
+                  })()
+                : <span className={awaitingEndMark === i ? 'animate-pulse-glow text-zinc-400' : ''}>--:--.--</span>
+              }
+            </button>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-1">
+            {/* Primary timestamp + add-repeat on one line */}
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => setFocusedTimestamp(focusedTimestamp?.lineIndex === i && focusedTimestamp?.type === 'start' ? null : { lineIndex: i, type: 'start' })}
+                className={`flex items-center rounded px-1.5 py-0.5 text-[10px] font-mono tabular-nums transition-all w-fit ${
+                  focusedTimestamp?.lineIndex === i && focusedTimestamp?.type === 'start'
+                    ? 'bg-primary/25 ring-1 ring-primary/50 text-primary font-semibold'
+                    : isSynced
+                      ? 'bg-zinc-800 border border-zinc-700/50 text-primary hover:border-primary/40 hover:bg-zinc-700/60'
+                      : 'text-zinc-600 hover:bg-zinc-800/50 border border-transparent'
+                }`}
+              >
+                {isSynced ? formatTimestamp(line.timestamp, settings.editor?.timestampPrecision || 'hundredths') : '--:--.--'}
+              </button>
+              {/* Add repeat — inline with primary badge, appears on row hover */}
+              {isSynced && editingLineIndex !== i && (
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); handleAddExtraTimestamp(i); }}
+                  className="opacity-0 group-hover:opacity-100 rounded p-0.5 text-zinc-500 hover:text-primary hover:bg-zinc-800/60 border border-transparent hover:border-zinc-700/40 transition-all"
+                  title={t('editor.addExtraTimestamp')}
+                >
+                  <Plus className="w-2.5 h-2.5" />
+                </button>
+              )}
+            </div>
 
             {/* Extra timestamp chips */}
             {isSynced && line.extraTimestamps?.map((ts, tsIdx) => (
@@ -177,18 +199,6 @@ const EditorLineItem = React.memo(({
                 </button>
               </div>
             ))}
-
-            {/* Add repeat — icon-only, appears on row hover */}
-            {isSynced && editingLineIndex !== i && (
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); handleAddExtraTimestamp(i); }}
-                className="opacity-0 group-hover:opacity-100 w-fit rounded px-1.5 py-0.5 text-zinc-500 hover:text-primary hover:bg-zinc-800/60 border border-transparent hover:border-zinc-700/40 transition-all"
-                title={t('editor.addExtraTimestamp')}
-              >
-                <Plus className="w-2.5 h-2.5" />
-              </button>
-            )}
           </div>
         )}
       </span>
