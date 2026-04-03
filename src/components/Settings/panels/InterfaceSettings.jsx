@@ -147,6 +147,7 @@ export default function InterfaceSettings({ settings, updateSetting, searchTerm 
           onChange={(v) => updateSetting('editor.display.dualLine', v)}
         />
       </SettingRow>
+      {(settings.editor?.display?.dualLine) && (
       <SettingRow icon={ChevronDown} label={t('settings.interface.showNextLine')} description={t('settings.interface.showNextLineDesc')}>
         <Toggle
           id="toggle-show-next-line"
@@ -154,6 +155,7 @@ export default function InterfaceSettings({ settings, updateSetting, searchTerm 
           onChange={(v) => updateSetting('editor.display.showNextLine', v)}
         />
       </SettingRow>
+      )}
     </Section>
   );
 }

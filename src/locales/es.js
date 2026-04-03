@@ -31,7 +31,10 @@ export default {
       "volume": "Volumen",
       "mute": "Silenciar",
       "unmute": "Activar sonido",
-      "loading": "Cargando tu canción.."
+      "loading": "Cargando tu canción..",
+      "setLoop": "Repetir línea actual",
+      "loopActive": "Repetición activa",
+      "clearLoop": "Quitar repetición"
     },
 
     "editor": {
@@ -306,7 +309,11 @@ export default {
         "spacing": "Espaciado",
         "spacingDesc": "Espacio vertical entre líneas",
         "activeLineHighlight": "Estilo de línea activa",
-        "activeLineHighlightDesc": "Cómo se resalta la línea actual en la vista previa"
+        "activeLineHighlightDesc": "Cómo se resalta la línea actual en la vista previa",
+        "dualLine": "Modo de doble línea",
+        "dualLineDesc": "Mostrar la línea actual y la siguiente en la vista previa",
+        "showNextLine": "Mostrar siguiente línea",
+        "showNextLineDesc": "Mostrar la próxima línea debajo de la actual"
       },
 
       "advanced": {

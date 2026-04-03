@@ -31,7 +31,10 @@ export default {
       "volume": "Volume",
       "mute": "Mute",
       "unmute": "Unmute",
-      "loading": "Loading song..."
+      "loading": "Loading song...",
+      "setLoop": "Loop current line",
+      "loopActive": "Loop active",
+      "clearLoop": "Clear loop"
     },
 
     "editor": {
@@ -306,7 +309,11 @@ export default {
         "spacing": "Spacing",
         "spacingDesc": "Vertical space between lines",
         "activeLineHighlight": "Active line style",
-        "activeLineHighlightDesc": "How the current line is highlighted in preview"
+        "activeLineHighlightDesc": "How the current line is highlighted in preview",
+        "dualLine": "Dual line mode",
+        "dualLineDesc": "Show current and next line in the preview",
+        "showNextLine": "Show next line",
+        "showNextLineDesc": "Display the upcoming line below the current one"
       },
 
       "advanced": {
