@@ -275,7 +275,6 @@ export function useAppState() {
           || (validLines.some((l) => l.endTime != null) ? 'srt' : 'lrc');
         setEditorModeRaw(restoredMode);
         if (parsed.ytUrl) setRestoredYtUrl(parsed.ytUrl);
-        if (parsed.ytUrl) setSessionYtUrl(parsed.ytUrl);
         if (typeof parsed.playbackPosition === 'number') setRestoredPosition(parsed.playbackPosition);
         if (typeof parsed.playbackSpeed === 'number') setRestoredSpeed(parsed.playbackSpeed);
         setIsSharedSession(true);
@@ -375,7 +374,6 @@ export function useAppState() {
       setEditorModeRaw(restoredMode);
       // Restore YouTube URL and playback state
       if (pendingSession.ytUrl) setRestoredYtUrl(pendingSession.ytUrl);
-      if (pendingSession.ytUrl) setSessionYtUrl(pendingSession.ytUrl);
       if (typeof pendingSession.playbackPosition === 'number') setRestoredPosition(pendingSession.playbackPosition);
       if (typeof pendingSession.playbackSpeed === 'number') setRestoredSpeed(pendingSession.playbackSpeed);
     }
@@ -396,7 +394,6 @@ export function useAppState() {
         setPlaybackPosition(0);
         setDuration(0);
         setMediaTitle('');
-        setSessionYtUrl('');
       }
     },
     [],
