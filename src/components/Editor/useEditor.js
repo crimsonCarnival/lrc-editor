@@ -12,9 +12,6 @@ import {
   clearLineTimestamp,
   applyMark,
   detectDuplicateTimestamps,
-  evenlyDistribute,
-  interpolateTimestamps,
-  copyTimestamps,
 } from './editorService';
 
 export function useEditor({
@@ -646,24 +643,6 @@ export function useEditor({
     setLines((prev) => applyBulkShift(prev, selectedLines, delta));
   };
 
-  const handleEvenlyDistribute = useCallback(() => {
-    setLines((prev) => evenlyDistribute(prev, selectedLines));
-  }, [selectedLines, setLines]);
-
-  const handleInterpolate = useCallback(() => {
-    setLines((prev) => interpolateTimestamps(prev, selectedLines));
-  }, [selectedLines, setLines]);
-
-  const handleCopyTimestamps = useCallback(() => {
-    setLines((prev) => {
-      const { lines: updated, copied } = copyTimestamps(prev, selectedLines);
-      if (copied > 0) {
-        // Brief visual feedback via console; toast could be added later
-      }
-      return updated;
-    });
-  }, [selectedLines, setLines]);
-
   const handleAddExtraTimestamp = useCallback((lineIndex) => {
     const time = playerRef?.current?.getCurrentTime?.() ?? playbackPositionRef.current;
     setLines((prev) => {
@@ -830,9 +809,6 @@ export function useEditor({
     handleBulkClearTimestamps,
     handleBulkDelete,
     handleBulkShift,
-    handleEvenlyDistribute,
-    handleInterpolate,
-    handleCopyTimestamps,
     handleAddExtraTimestamp,
     handleRemoveExtraTimestamp,
     handleClearWordTimestamp,

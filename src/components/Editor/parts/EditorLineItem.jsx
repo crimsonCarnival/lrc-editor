@@ -531,7 +531,7 @@ const EditorLineItem = React.memo(({
                               : ''
                         }`}
                       >
-                        {w.word.replace(/^[()'"]+|[,;.!?()'"]+$/g, '')}{' '}
+                        {w.word}{' '}
                       </span>
                     ))
                   : (line.text || '♪')

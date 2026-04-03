@@ -75,9 +75,6 @@ export default function Editor({
     handleBulkClearTimestamps,
     handleBulkDelete,
     handleBulkShift,
-    handleEvenlyDistribute,
-    handleInterpolate,
-    handleCopyTimestamps,
     handleAddExtraTimestamp,
     handleRemoveExtraTimestamp,
     requestConfirm,
@@ -187,9 +184,6 @@ export default function Editor({
           handleBulkClearTimestamps={handleBulkClearTimestamps}
           handleBulkShift={handleBulkShift}
           handleBulkDelete={handleBulkDelete}
-          handleEvenlyDistribute={handleEvenlyDistribute}
-          handleInterpolate={handleInterpolate}
-          handleCopyTimestamps={handleCopyTimestamps}
           clearSelection={clearSelection}
           handleToggleLine={handleToggleLine}
           handleAddExtraTimestamp={handleAddExtraTimestamp}
@@ -253,9 +247,6 @@ function VirtualizedLineList({
   handleBulkClearTimestamps,
   handleBulkShift,
   handleBulkDelete,
-  handleEvenlyDistribute,
-  handleInterpolate,
-  handleCopyTimestamps,
   clearSelection,
   handleToggleLine,
   handleAddExtraTimestamp,
@@ -406,9 +397,6 @@ function VirtualizedLineList({
         handleBulkClearTimestamps={handleBulkClearTimestamps}
         handleBulkShift={handleBulkShift}
         handleBulkDelete={handleBulkDelete}
-        handleEvenlyDistribute={handleEvenlyDistribute}
-        handleInterpolate={handleInterpolate}
-        handleCopyTimestamps={handleCopyTimestamps}
         clearSelection={clearSelection}
         handleApplyOffset={handleApplyOffset}
       />
