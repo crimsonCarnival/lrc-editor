@@ -8,6 +8,7 @@ import { useAppState } from './hooks/useAppState';
 import { useSettings } from './contexts/useSettings';
 import { matchKey } from './utils/keyboard';
 import { Kbd } from './components/shared/Kbd';
+import ShareModal from './components/shared/ShareModal';
 import { Button } from './components/ui/button';
 import {
   DropdownMenu,
@@ -65,6 +66,8 @@ function AppInner() {
     isAutosaving,
     exportToUrl,
     isSharedSession,
+    shareModal,
+    setShareModal,
   } = useAppState();
 
   useScrollLock(!!pendingSession);
@@ -321,6 +324,8 @@ function AppInner() {
       <Suspense fallback={null}>
         {showSettings && <Settings isOpen={showSettings} onClose={() => setShowSettings(false)} onManualSave={handleManualSave} />}
       </Suspense>
+
+      <ShareModal data={shareModal} onClose={() => setShareModal(null)} />
 
       {/* Session Restore Modal */}
       {pendingSession && (
