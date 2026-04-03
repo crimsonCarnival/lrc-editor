@@ -10,7 +10,8 @@
     "lint": "eslint .",
     "preview": "npm run build && wrangler dev",
     "deploy": "npm run build && wrangler deploy",
-    "postdeploy": "git checkout main"
+    "postdeploy": "git checkout main",
+    "postinstall": "node -e \"const fs=require('fs'),s='node_modules/kuromoji/dict',d='public/dict';if(!fs.existsSync(d))fs.mkdirSync(d,{recursive:true});fs.readdirSync(s).forEach(f=>fs.copyFileSync(s+'/'+f,d+'/'+f))\" && npx esbuild node_modules/kuromoji/src/kuromoji.js --bundle --format=iife --global-name=kuromoji --outfile=public/kuromoji.iife.js --platform=browser \"--alias:path=./src/utils/path-shim.js\" --minify"
   },
   "dependencies": {
     "@fontsource-variable/geist": "^5.2.8",
@@ -20,6 +21,7 @@
     "clsx": "^2.1.1",
     "i18next": "^25.10.10",
     "i18next-browser-languagedetector": "^8.2.1",
+    "kuromoji": "^0.1.2",
     "lucide-react": "^1.7.0",
     "radix-ui": "^1.4.3",
     "react": "^19.2.4",
