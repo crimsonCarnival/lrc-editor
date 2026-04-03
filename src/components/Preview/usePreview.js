@@ -24,6 +24,7 @@ export function usePreview({ lines, setLines, playbackPosition, playerRef, durat
   const [includeWordTimestamps, setIncludeWordTimestamps] = useState(true);
   const [includeMetadata, setIncludeMetadata] = useState(true);
   const [showTranslationsInPreview, setShowTranslationsInPreview] = useState(true);
+  const [showFuriganaInPreview, setShowFuriganaInPreview] = useState(true);
   const [wasCopied, setWasCopied] = useState(false);
   const [metadata, setMetadata] = useState({ ti: '', ar: '', al: '', lg: '' });
 
@@ -170,6 +171,7 @@ export function usePreview({ lines, setLines, playbackPosition, playerRef, durat
   const hasTranslations = lines.some(l => l.translation);
   const hasSecondary = lines.some(l => l.secondary);
   const hasWords = lines.some(l => l.words?.length);
+  const hasFurigana = lines.some(l => l.furigana || l.words?.some(w => w.reading));
 
   // ——— Preview keyboard shortcuts ———
   useEffect(() => {
@@ -308,6 +310,8 @@ export function usePreview({ lines, setLines, playbackPosition, playerRef, durat
     setIncludeMetadata,
     showTranslationsInPreview,
     setShowTranslationsInPreview,
+    showFuriganaInPreview,
+    setShowFuriganaInPreview,
     wasCopied,
     metadata,
     setMetadata,
@@ -324,6 +328,7 @@ export function usePreview({ lines, setLines, playbackPosition, playerRef, durat
     hasTranslations,
     hasSecondary,
     hasWords,
+    hasFurigana,
     handleSavePaste,
     handleLineClick,
     handleExport,

@@ -35,6 +35,8 @@ export default function Preview(props) {
     setIncludeMetadata,
     showTranslationsInPreview,
     setShowTranslationsInPreview,
+    showFuriganaInPreview,
+    setShowFuriganaInPreview,
     wasCopied,
     metadata,
     setMetadata,
@@ -51,13 +53,14 @@ export default function Preview(props) {
     hasTranslations,
     hasSecondary,
     hasWords,
+    hasFurigana,
     handleSavePaste,
     handleLineClick,
     handleExport,
     handleCopy,
   } = usePreview(props);
 
-  const { lines, playbackPosition, exportToUrl, isSharedSession } = props;
+  const { lines, playbackPosition, exportToUrl, isSharedSession, editorMode } = props;
 
   return (
     <div className="glass relative rounded-xl sm:rounded-2xl p-3 sm:p-5 flex flex-col h-full animate-fade-in">
@@ -126,6 +129,17 @@ export default function Preview(props) {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-36 sm:w-48 bg-zinc-900 border-zinc-700/80" align="end">
+                {hasFurigana && (
+                  <DropdownMenuItem
+                    onClick={() => setShowFuriganaInPreview((v) => !v)}
+                    className="text-xs sm:text-sm text-zinc-300 focus:bg-zinc-800 focus:text-zinc-100 cursor-pointer flex items-center justify-between"
+                  >
+                    {t('preview.furigana', 'Furigana')}
+                    <span className={`text-[10px] ml-2 ${showFuriganaInPreview ? 'text-primary' : 'text-zinc-600'}`}>
+                      {showFuriganaInPreview ? '✓' : '✗'}
+                    </span>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem
                   onClick={() => { setPastingType('secondary'); setPasteText(lines.map(l => l.secondary || '').join('\n')); }}
                   className="text-xs sm:text-sm text-zinc-300 focus:bg-zinc-800 focus:text-zinc-100 cursor-pointer"
@@ -137,6 +151,12 @@ export default function Preview(props) {
                   className="text-xs sm:text-sm text-zinc-300 focus:bg-zinc-800 focus:text-zinc-100 cursor-pointer"
                 >
                   {t('preview.translation')}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => { setPastingType('furigana'); setPasteText(lines.map(l => l.furigana || '').join('\n')); }}
+                  className="text-xs sm:text-sm text-zinc-300 focus:bg-zinc-800 focus:text-zinc-100 cursor-pointer"
+                >
+                  {t('preview.furigana', 'Furigana')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -224,12 +244,23 @@ export default function Preview(props) {
               }
             }
 
+            // Pre-compute nextTimestamp for karaoke fill
+            const nextTimestamps = {};
+            for (let idx = 0; idx < lines.length; idx++) {
+              for (let j = idx + 1; j < lines.length; j++) {
+                if (lines[j].timestamp != null) {
+                  nextTimestamps[idx] = lines[j].timestamp;
+                  break;
+                }
+              }
+            }
+
             return (
               <div className={`overflow-x-hidden px-1 sm:px-0 scroll-smooth ${isDualLine ? 'h-full flex flex-col justify-center items-center gap-4 sm:gap-8' : wrapperSpacing[spacingOption] || 'space-y-1'}`}>
                 {displayLines.map(({ line, originalIndex: i }) => (
                   <PreviewLine
                     key={i}
-                    line={line}
+                    line={{ ...line, nextTimestamp: nextTimestamps[i] ?? null }}
                     originalIndex={i}
                     displayedActiveIndex={currentIndex}
                     lockedLineIndex={null}
@@ -241,6 +272,7 @@ export default function Preview(props) {
                     handleLineHover={() => {}}
                     handleLineHoverEnd={() => {}}
                     showTranslationsInPreview={showTranslationsInPreview}
+                    showFuriganaInPreview={showFuriganaInPreview}
                     sizeOption={sizeOption}
                     spacingOption={spacingOption}
                     activeSecondarySizes={activeSecondarySizes}
@@ -248,6 +280,9 @@ export default function Preview(props) {
                     activeFontSizes={activeFontSizes}
                     inactiveFontSizes={inactiveFontSizes}
                     activeMargin={activeMargin}
+                    distanceFromActive={currentIndex >= 0 ? Math.abs(i - currentIndex) : null}
+                    totalLines={lines.length}
+                    editorMode={editorMode}
                   />
                 ))}
               </div>
