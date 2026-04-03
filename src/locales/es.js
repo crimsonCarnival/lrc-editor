@@ -58,6 +58,8 @@ export default {
       "loopCurrentLine": "Repetir línea actual",
       "backToEdit": "Editar texto de letra",
       "clearWordTimestamps": "Borrar todas las marcas de palabras",
+      "clearActiveLineWordTimestamps": "Borrar marcas de palabras de esta línea",
+      "wordsNeedsTimestamps": "Primero sincroniza las marcas de línea para activar el modo palabras",
       "addExtraTimestamp": "Agregar repetición en posición actual",
       "removeExtraTimestamp": "Eliminar repetición",
       "primaryText": "Letra",

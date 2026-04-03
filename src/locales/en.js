@@ -58,6 +58,8 @@ export default {
       "loopCurrentLine": "Loop current line",
       "backToEdit": "Edit lyrics text",
       "clearWordTimestamps": "Clear all word timestamps",
+      "clearActiveLineWordTimestamps": "Clear word timestamps for this line",
+      "wordsNeedsTimestamps": "Sync line timestamps first to enable word mode",
       "addExtraTimestamp": "Add repeat at current position",
       "removeExtraTimestamp": "Remove repeat",
       "primaryText": "Lyrics",
