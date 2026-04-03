@@ -24,6 +24,7 @@ export function useEditor({
   playerRef,
   editorMode,
   setEditorMode,
+  onImport,
 }) {
   const { t } = useTranslation();
   const { settings, updateSetting } = useSettings();
@@ -44,6 +45,7 @@ export function useEditor({
   const [focusedTimestamp, setFocusedTimestamp] = useState(null);
   const [hoveredLineIndex, setHoveredLineIndex] = useState(null);
   const [isActiveLineLocked, setIsActiveLineLocked] = useState(false);
+  const [activeWordIndex, setActiveWordIndex] = useState(0);
 
   const [requestConfirm, confirmModal] = useConfirm();
 
@@ -57,13 +59,50 @@ export function useEditor({
   const activeLineIndexRef = useRef(activeLineIndex);
   const focusedTimestampRef = useRef(focusedTimestamp);
   const selectedLinesRef = useRef(selectedLines);
+  const activeWordIndexRef = useRef(0);
   useEffect(() => {
     linesRef.current = lines;
     playbackPositionRef.current = playbackPosition;
     activeLineIndexRef.current = activeLineIndex;
     focusedTimestampRef.current = focusedTimestamp;
     selectedLinesRef.current = selectedLines;
+    activeWordIndexRef.current = activeWordIndex;
   });
+
+  // Sync active word cursor with lines (covers undo/redo restoring a previous stamp state)
+  useEffect(() => {
+    if (editorMode !== 'words') {
+      setActiveWordIndex(0);
+      activeWordIndexRef.current = 0;
+      return;
+    }
+    const words = lines[activeLineIndex]?.words;
+    if (!words?.length) {
+      setActiveWordIndex(0);
+      activeWordIndexRef.current = 0;
+      return;
+    }
+    const idx = words.findIndex((w) => w.time == null);
+    const newIdx = idx === -1 ? words.length : idx;
+    setActiveWordIndex(newIdx);
+    activeWordIndexRef.current = newIdx;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeLineIndex, lines, editorMode]);
+
+  // When switching to words mode, ensure every line has a words array
+  useEffect(() => {
+    if (editorMode === 'words') {
+      setLines((prev) =>
+        prev.map((line) => {
+          if (line.words?.length) return line;
+          const tokens = (line.text || '').trim().split(/\s+/).filter(Boolean);
+          if (!tokens.length) return line;
+          return { ...line, words: tokens.map((word) => ({ word, time: null })) };
+        })
+      );
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editorMode]);
 
   const displayedActiveIndex = isActiveLineLocked
     ? activeLineIndex
@@ -124,6 +163,7 @@ export function useEditor({
           setActiveLineIndex(Math.max(0, parsed.findIndex((l) => l.timestamp == null)));
           setSyncMode(true);
           toast.success(t('import.success', { count: parsed.length }) || `Imported ${parsed.length} lines`);
+          onImport?.();
         } else {
           toast.error(t('import.noLines') || 'No lyrics found in file');
         }
@@ -162,6 +202,7 @@ export function useEditor({
       setActiveLineIndex(Math.max(0, parsed.findIndex((l) => l.timestamp == null)));
       setSyncMode(true);
       toast.success(t('import.success', { count: parsed.length }) || `Imported ${parsed.length} lines`);
+      onImport?.();
       return { success: true };
     } catch {
       return { error: t('import.fetchError') || 'Failed to fetch. The server may not allow cross-origin requests.' };
@@ -230,6 +271,7 @@ export function useEditor({
       activeLineIndex: idx,
       time,
       editorMode,
+      activeWordIndex: activeWordIndexRef.current,
       awaitingEndMark,
       focusedTimestamp: focusedTimestampRef.current,
       settings: settings.editor || {},
@@ -241,6 +283,15 @@ export function useEditor({
     }
     if (result.nextAwaitingEndMark !== undefined) {
       setAwaitingEndMarkFor(result.nextAwaitingEndMark);
+    }
+    if (result.nextActiveWordIndex !== undefined) {
+      setActiveWordIndex(result.nextActiveWordIndex);
+      activeWordIndexRef.current = result.nextActiveWordIndex;
+    }
+    // Clear focused timestamp after each mark — it's a one-shot action
+    if (focusedTimestampRef.current) {
+      setFocusedTimestamp(null);
+      focusedTimestampRef.current = null;
     }
   }, [
     playerRef,
@@ -287,6 +338,10 @@ export function useEditor({
       } else if (matchKey(e, settings.shortcuts?.deselect?.[0] || 'Escape') && focusedTimestampRef.current) {
         e.preventDefault();
         setFocusedTimestamp(null);
+      } else if (e.key === 'Tab') {
+        e.preventDefault();
+        const modes = ['lrc', 'srt', 'words'];
+        setEditorMode((prev) => modes[(modes.indexOf(prev) + 1) % modes.length]);
       }
     };
 
@@ -305,20 +360,21 @@ export function useEditor({
     settings.shortcuts?.nudgeLeftFine,
     settings.shortcuts?.nudgeRightFine,
     settings.shortcuts?.deselect,
+    setEditorMode,
   ]);
 
   // ——— Line operations ———
 
   const handleClearLine = useCallback(
     (index) => {
-      setLines((prev) => clearLineTimestamp(prev, index, editorMode === 'srt'));
+      setLines((prev) => clearLineTimestamp(prev, index, editorMode === 'srt', editorMode === 'words'));
     },
     [setLines, editorMode],
   );
 
   const handleClearTimestamps = () => {
     requestConfirm(t('confirm.clearTimestamps') || 'Clear all timestamps?', () => {
-      setLines((prev) => clearAllTimestamps(prev, editorMode === 'srt'));
+      setLines((prev) => clearAllTimestamps(prev, editorMode === 'srt', editorMode === 'words'));
       setActiveLineIndex(0);
     });
   };
@@ -531,6 +587,24 @@ export function useEditor({
     });
   }, [setLines]);
 
+  const handleClearWordTimestamp = useCallback((lineIndex, wordIndex) => {
+    setLines((prev) => {
+      const updated = [...prev];
+      const line = updated[lineIndex];
+      if (!line?.words) return prev;
+      const newWords = [...line.words];
+      newWords[wordIndex] = { ...newWords[wordIndex], time: null };
+      updated[lineIndex] = { ...line, words: newWords };
+      return updated;
+    });
+    // activeWordIndex is synced by the lines effect above
+  }, [setLines]);
+
+  const handleSetActiveWordIndex = useCallback((wordIndex) => {
+    setActiveWordIndex(wordIndex);
+    activeWordIndexRef.current = wordIndex;
+  }, []);
+
   // ——— Global keybinds ———
   useEffect(() => {
     const handler = (e) => {
@@ -647,6 +721,9 @@ export function useEditor({
     handleBulkShift,
     handleAddExtraTimestamp,
     handleRemoveExtraTimestamp,
+    handleClearWordTimestamp,
+    handleSetActiveWordIndex,
+    activeWordIndex,
     // extras
     requestConfirm,
     confirmModal,
