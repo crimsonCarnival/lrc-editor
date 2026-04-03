@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Section, SettingRow, ShortcutInput, ModifierInput } from '../shared';
 import { useShortcutsSettings } from '../hooks/useShortcutsSettings';
@@ -11,10 +11,45 @@ import {
   Eye, Music2, Languages, MoveHorizontal,
 } from 'lucide-react';
 
+const SHORTCUT_KEYS = [
+  'mark', 'nudgeLeft', 'nudgeRight', 'addLine', 'deleteLine',
+  'clearTimestamp', 'switchMode', 'deselect', 'showHelp',
+  'playPause', 'seekBackward', 'seekForward', 'mute', 'speedUp', 'speedDown',
+  'toggleTranslation', 'addSecondary', 'addTranslation',
+];
+
+const SHORTCUT_LABELS = {
+  mark: 'Mark', nudgeLeft: 'Nudge ←', nudgeRight: 'Nudge →',
+  addLine: 'Add Line', deleteLine: 'Delete', clearTimestamp: 'Clear TS',
+  switchMode: 'Switch Mode', deselect: 'Deselect', showHelp: 'Help',
+  playPause: 'Play/Pause', seekBackward: 'Seek ←', seekForward: 'Seek →',
+  mute: 'Mute', speedUp: 'Speed+', speedDown: 'Speed−',
+  toggleTranslation: 'Toggle Trans.', addSecondary: 'Secondary', addTranslation: 'Translation',
+};
+
 export default function ShortcutsSettings({ settings, updateSetting, searchTerm, validateShortcut }) {
   const { t } = useTranslation();
   const { handleShortcutChange } = useShortcutsSettings(updateSetting);
   const [subTab, setSubTab] = useState('editor');
+
+  const conflictMap = useMemo(() => {
+    const byValue = {};
+    SHORTCUT_KEYS.forEach((k) => {
+      const v = settings.shortcuts?.[k]?.[0];
+      if (!v) return;
+      if (!byValue[v]) byValue[v] = [];
+      byValue[v].push(k);
+    });
+    const result = {};
+    Object.values(byValue).forEach((keys) => {
+      if (keys.length > 1) {
+        keys.forEach((k) => {
+          result[k] = keys.filter((other) => other !== k).map((n) => SHORTCUT_LABELS[n] ?? n).join(', ');
+        });
+      }
+    });
+    return result;
+  }, [settings.shortcuts]);
 
   const SUB_TABS = [
     { id: 'editor',    icon: Keyboard,          label: t('settings.shortcuts.label') || 'Editor' },
@@ -60,6 +95,7 @@ export default function ShortcutsSettings({ settings, updateSetting, searchTerm,
               value={settings.shortcuts?.mark?.[0] || 'Space'}
               onChange={handleShortcutChange('mark')}
               onValidate={(v) => validateShortcut(v, 'mark')}
+              conflict={conflictMap['mark']}
             />
           </SettingRow>
           <SettingRow
@@ -74,6 +110,7 @@ export default function ShortcutsSettings({ settings, updateSetting, searchTerm,
               value={settings.shortcuts?.nudgeLeft?.[0] || 'Alt+ArrowLeft'}
               onChange={handleShortcutChange('nudgeLeft')}
               onValidate={(v) => validateShortcut(v, 'nudgeLeft')}
+              conflict={conflictMap['nudgeLeft']}
             />
           </SettingRow>
           <SettingRow
@@ -88,6 +125,7 @@ export default function ShortcutsSettings({ settings, updateSetting, searchTerm,
               value={settings.shortcuts?.nudgeRight?.[0] || 'Alt+ArrowRight'}
               onChange={handleShortcutChange('nudgeRight')}
               onValidate={(v) => validateShortcut(v, 'nudgeRight')}
+              conflict={conflictMap['nudgeRight']}
             />
           </SettingRow>
           <SettingRow
@@ -99,6 +137,7 @@ export default function ShortcutsSettings({ settings, updateSetting, searchTerm,
               value={settings.shortcuts?.addLine?.[0] || 'Ctrl+Enter'}
               onChange={handleShortcutChange('addLine')}
               onValidate={(v) => validateShortcut(v, 'addLine')}
+              conflict={conflictMap['addLine']}
             />
           </SettingRow>
           <SettingRow
@@ -110,6 +149,7 @@ export default function ShortcutsSettings({ settings, updateSetting, searchTerm,
               value={settings.shortcuts?.deleteLine?.[0] || 'Delete'}
               onChange={handleShortcutChange('deleteLine')}
               onValidate={(v) => validateShortcut(v, 'deleteLine')}
+              conflict={conflictMap['deleteLine']}
             />
           </SettingRow>
           <SettingRow
@@ -121,6 +161,7 @@ export default function ShortcutsSettings({ settings, updateSetting, searchTerm,
               value={settings.shortcuts?.clearTimestamp?.[0] || 'Backspace'}
               onChange={handleShortcutChange('clearTimestamp')}
               onValidate={(v) => validateShortcut(v, 'clearTimestamp')}
+              conflict={conflictMap['clearTimestamp']}
             />
           </SettingRow>
           <SettingRow
@@ -132,6 +173,7 @@ export default function ShortcutsSettings({ settings, updateSetting, searchTerm,
               value={settings.shortcuts?.switchMode?.[0] || 'Ctrl+M'}
               onChange={handleShortcutChange('switchMode')}
               onValidate={(v) => validateShortcut(v, 'switchMode')}
+              conflict={conflictMap['switchMode']}
             />
           </SettingRow>
           <SettingRow
@@ -143,6 +185,7 @@ export default function ShortcutsSettings({ settings, updateSetting, searchTerm,
               value={settings.shortcuts?.deselect?.[0] || 'Escape'}
               onChange={handleShortcutChange('deselect')}
               onValidate={(v) => validateShortcut(v, 'deselect')}
+              conflict={conflictMap['deselect']}
             />
           </SettingRow>
           <SettingRow
@@ -154,6 +197,7 @@ export default function ShortcutsSettings({ settings, updateSetting, searchTerm,
               value={settings.shortcuts?.showHelp?.[0] || '?'}
               onChange={handleShortcutChange('showHelp')}
               onValidate={(v) => validateShortcut(v, 'showHelp')}
+              conflict={conflictMap['showHelp']}
             />
           </SettingRow>
           <SettingRow
@@ -184,6 +228,7 @@ export default function ShortcutsSettings({ settings, updateSetting, searchTerm,
               value={settings.shortcuts?.playPause?.[0] || 'Enter'}
               onChange={handleShortcutChange('playPause')}
               onValidate={(v) => validateShortcut(v, 'playPause')}
+              conflict={conflictMap['playPause']}
             />
           </SettingRow>
           <SettingRow
@@ -195,6 +240,7 @@ export default function ShortcutsSettings({ settings, updateSetting, searchTerm,
               value={settings.shortcuts?.seekBackward?.[0] || 'ArrowLeft'}
               onChange={handleShortcutChange('seekBackward')}
               onValidate={(v) => validateShortcut(v, 'seekBackward')}
+              conflict={conflictMap['seekBackward']}
             />
           </SettingRow>
           <SettingRow
@@ -206,6 +252,7 @@ export default function ShortcutsSettings({ settings, updateSetting, searchTerm,
               value={settings.shortcuts?.seekForward?.[0] || 'ArrowRight'}
               onChange={handleShortcutChange('seekForward')}
               onValidate={(v) => validateShortcut(v, 'seekForward')}
+              conflict={conflictMap['seekForward']}
             />
           </SettingRow>
           <SettingRow
@@ -217,6 +264,7 @@ export default function ShortcutsSettings({ settings, updateSetting, searchTerm,
               value={settings.shortcuts?.mute?.[0] || 'm'}
               onChange={handleShortcutChange('mute')}
               onValidate={(v) => validateShortcut(v, 'mute')}
+              conflict={conflictMap['mute']}
             />
           </SettingRow>
           <SettingRow
@@ -228,6 +276,7 @@ export default function ShortcutsSettings({ settings, updateSetting, searchTerm,
               value={settings.shortcuts?.speedUp?.[0] || '+'}
               onChange={handleShortcutChange('speedUp')}
               onValidate={(v) => validateShortcut(v, 'speedUp')}
+              conflict={conflictMap['speedUp']}
             />
           </SettingRow>
           <SettingRow
@@ -239,6 +288,7 @@ export default function ShortcutsSettings({ settings, updateSetting, searchTerm,
               value={settings.shortcuts?.speedDown?.[0] || '-'}
               onChange={handleShortcutChange('speedDown')}
               onValidate={(v) => validateShortcut(v, 'speedDown')}
+              conflict={conflictMap['speedDown']}
             />
           </SettingRow>
         </Section>
@@ -255,6 +305,7 @@ export default function ShortcutsSettings({ settings, updateSetting, searchTerm,
               value={settings.shortcuts?.toggleTranslation?.[0] || 't'}
               onChange={handleShortcutChange('toggleTranslation')}
               onValidate={(v) => validateShortcut(v, 'toggleTranslation')}
+              conflict={conflictMap['toggleTranslation']}
             />
           </SettingRow>
           <SettingRow
@@ -266,6 +317,7 @@ export default function ShortcutsSettings({ settings, updateSetting, searchTerm,
               value={settings.shortcuts?.addSecondary?.[0] || 'Shift+H'}
               onChange={handleShortcutChange('addSecondary')}
               onValidate={(v) => validateShortcut(v, 'addSecondary')}
+              conflict={conflictMap['addSecondary']}
             />
           </SettingRow>
           <SettingRow
@@ -277,6 +329,7 @@ export default function ShortcutsSettings({ settings, updateSetting, searchTerm,
               value={settings.shortcuts?.addTranslation?.[0] || 'Shift+T'}
               onChange={handleShortcutChange('addTranslation')}
               onValidate={(v) => validateShortcut(v, 'addTranslation')}
+              conflict={conflictMap['addTranslation']}
             />
           </SettingRow>
         </Section>

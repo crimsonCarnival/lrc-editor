@@ -13,7 +13,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from './components/ui/dropdown-menu';
-import { Music2, UploadCloud, Globe, Settings as SettingsIcon } from 'lucide-react';
+import { Music2, UploadCloud, Globe, Settings as SettingsIcon, Share2 } from 'lucide-react';
 import { useScrollLock } from './hooks/useScrollLock';
 import { useNetworkStatus } from './hooks/useNetworkStatus';
 
@@ -59,6 +59,7 @@ function AppInner() {
     restoredSpeed,
     confirmModal,
     isAutosaving,
+    exportToUrl,
   } = useAppState();
 
   useScrollLock(!!pendingSession);
@@ -127,6 +128,19 @@ function AppInner() {
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
+
+          {/* Share button — shown when lyrics are loaded */}
+          {lines.length > 0 && (
+            <Button
+              variant="outline"
+              onClick={exportToUrl}
+              className="px-2 sm:px-3 h-8 sm:h-9 bg-zinc-800/80 border-zinc-700/60 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700 rounded-lg sm:rounded-xl flex-shrink-0"
+              title={t('app.shareSession') || 'Share session'}
+            >
+              <Share2 className="w-4 sm:w-[18px] h-4 sm:h-[18px]" strokeWidth={1.8} />
+              <span className="hidden sm:inline text-xs font-semibold">{t('app.shareSession') || 'Share'}</span>
+            </Button>
+          )}
 
           {/* Settings button */}
           <Button
@@ -226,6 +240,12 @@ function AppInner() {
               </div>
               <h3 className="text-lg font-bold text-zinc-100">{t('session.restoreTitle')}</h3>
             </div>
+            {pendingSession.isUrlSession && (
+              <div className="mb-3 flex items-center gap-2 px-3 py-2 bg-primary/10 border border-primary/30 rounded-xl">
+                <Share2 className="w-3.5 h-3.5 text-primary flex-shrink-0" strokeWidth={2} />
+                <span className="text-xs text-primary font-medium">{t('session.sharedSession') || 'Shared session from link'}</span>
+              </div>
+            )}
             <p className="text-sm text-zinc-400 mb-2 leading-relaxed">{t('session.restoreMessage')}</p>
             <p className="text-xs text-zinc-500 mb-5">
               {pendingSession.lines?.length || 0} {t('session.restoreLines')}

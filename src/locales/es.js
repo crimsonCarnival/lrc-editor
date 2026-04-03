@@ -2,7 +2,8 @@ export default {
   "translation": {
     "app": {
       "name": "LRC Syncer",
-      "footer": "Lyrics Syncer — Se ejecuta íntegramente en el navegador. Ningún dato sale de tu dispositivo."
+      "footer": "Lyrics Syncer — Se ejecuta íntegramente en el navegador. Ningún dato sale de tu dispositivo.",
+      "shareSession": "Compartir"
     },
 
     "player": {
@@ -114,7 +115,10 @@ export default {
       "restoreMessage": "Se encontraron datos de sincronización de una sesión anterior. Vuelve a cargar tu archivo de audio para continuar editando.",
       "restoreLines": "líneas sincronizadas guardadas",
       "restore": "Restaurar",
-      "discard": "Descartar"
+      "discard": "Descartar",
+      "sharedSession": "Sesión compartida desde enlace",
+      "sharecopied": "¡Enlace copiado al portapapeles!",
+      "shareFailed": "No se pudo copiar el enlace. Intenta guardar manualmente."
     },
 
     "confirm": {
@@ -133,7 +137,11 @@ export default {
       "success": "{{count}} líneas importadas",
       "failed": "Error al analizar el archivo de letras",
       "noLines": "No se encontraron letras en el archivo",
-      "tooLarge": "Archivo demasiado grande (máx 5 MB)"
+      "tooLarge": "Archivo demasiado grande (máx 5 MB)",
+      "fromUrl": "Importar desde URL",
+      "urlPlaceholder": "https://ejemplo.com/letras.lrc",
+      "fetchError": "Error al obtener el archivo. El servidor puede no permitir solicitudes externas.",
+      "invalidUrl": "URL inválida. Usa http:// o https://"
     },
 
     "network": {
@@ -207,6 +215,8 @@ export default {
         "maxSpeedDesc": "Velocidad de reproducción más alta",
         "showWaveform": "Forma de onda",
         "showWaveformDesc": "Mostrar la visualización de onda de audio",
+        "waveformSnap": "Ajuste a cuadrícula",
+        "waveformSnapDesc": "Ajustar la posición de reproducción al segundo más cercano al hacer clic en la forma de onda",
         "seekTime": "Tiempo de búsqueda",
         "seekTimeDesc": "Segundos para avanzar/retroceder con los atajos de búsqueda"
       },
@@ -242,7 +252,11 @@ export default {
         "filenameFixed": "Fijo (\"lyrics\")",
         "filenameMedia": "Del título del medio",
         "lineEndings": "Finales de línea",
-        "lineEndingsDesc": "Formato para nuevas líneas en archivos exportados"
+        "lineEndingsDesc": "Formato para nuevas líneas en archivos exportados",
+        "stripEmptyLines": "Eliminar líneas vacías",
+        "stripEmptyLinesDesc": "Excluir líneas sin texto de los archivos exportados",
+        "normalizeTimestamps": "Normalizar tiempos",
+        "normalizeTimestampsDesc": "Ordenar las líneas por marca de tiempo antes de exportar"
       },
 
       "interface": {

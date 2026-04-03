@@ -9,6 +9,28 @@ import { matchKey } from '../utils/keyboard';
 
 const MAX_IMPORT_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
 
+// ——— URL compression helpers for shareable session links ———
+async function compressToBase64(str) {
+  const stream = new CompressionStream('deflate');
+  const writer = stream.writable.getWriter();
+  writer.write(new TextEncoder().encode(str));
+  writer.close();
+  const buf = await new Response(stream.readable).arrayBuffer();
+  return btoa(String.fromCharCode(...new Uint8Array(buf)))
+    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+}
+
+async function decompressFromBase64(b64) {
+  const normalized = b64.replace(/-/g, '+').replace(/_/g, '/');
+  const padded = normalized + '=='.slice(0, (4 - normalized.length % 4) % 4);
+  const bytes = Uint8Array.from(atob(padded), (c) => c.charCodeAt(0));
+  const stream = new DecompressionStream('deflate');
+  const writer = stream.writable.getWriter();
+  writer.write(bytes);
+  writer.close();
+  return new Response(stream.readable).text();
+}
+
 export function useAppState() {
   const { t, i18n } = useTranslation();
   const { settings, updateSetting } = useSettings();
@@ -38,9 +60,14 @@ export function useAppState() {
   }, [settings.interface.theme]);
 
   // ——— Lines state with undo/redo ———
+  // editorMode must be declared before useHistory so getCompanion can close over it
+  const [editorMode, setEditorModeRaw] = useState('lrc');
+
   const [lines, setLines, undo, redo, canUndo, canRedo] = useHistory([], {
     limit: settings.advanced?.history?.limit || 50,
     groupingThresholdMs: settings.advanced?.history?.groupingThresholdMs || 500,
+    getCompanion: () => editorMode,
+    onRestoreCompanion: setEditorModeRaw,
   });
 
   const [syncMode, setSyncMode] = useState(false);
@@ -53,6 +80,10 @@ export function useAppState() {
   const [showSettings, setShowSettings] = useState(false);
   
   const [pendingSession, setPendingSession] = useState(() => {
+    // If a shared session hash is in the URL, skip localStorage — useEffect handles it async
+    if (typeof window !== 'undefined' && window.location.hash.startsWith('#s=')) {
+      return null;
+    }
     try {
       const saved = localStorage.getItem('lrc-syncer-session');
       if (saved) {
@@ -67,7 +98,6 @@ export function useAppState() {
     return null;
   });
   const [showLangMenu, setShowLangMenu] = useState(false);
-  const [editorMode, setEditorModeRaw] = useState('lrc');
   const [isAutosaving, setIsAutosaving] = useState(false);
   const [isDraggingFile, setIsDraggingFile] = useState(false);
   const [sessionYtUrl, setSessionYtUrl] = useState('');
@@ -138,6 +168,59 @@ export function useAppState() {
     localStorage.setItem('lrc-syncer-session', JSON.stringify(buildSessionPayload()));
   }, [buildSessionPayload]);
 
+  // ——— Shared session URL: decode hash on mount ———
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (!hash.startsWith('#s=')) return;
+    const encoded = hash.slice(3);
+    // Clear the hash immediately so it doesn't persist after restore
+    window.history.replaceState(null, '', window.location.pathname + window.location.search);
+    decompressFromBase64(encoded)
+      .then((text) => {
+        const parsed = JSON.parse(text);
+        if (!parsed.lines?.length) return;
+        // Auto-restore URL-shared sessions immediately — no confirmation needed
+        const validLines = parsed.lines.filter(
+          (l) => l && typeof l === 'object' && typeof l.text === 'string',
+        ).map((l) => ({
+          text: l.text,
+          timestamp: typeof l.timestamp === 'number' && isFinite(l.timestamp) ? l.timestamp : null,
+          endTime: typeof l.endTime === 'number' && isFinite(l.endTime) ? l.endTime : undefined,
+          secondary: typeof l.secondary === 'string' ? l.secondary : '',
+          translation: typeof l.translation === 'string' ? l.translation : '',
+          id: typeof l.id === 'string' ? l.id : crypto.randomUUID(),
+        }));
+        if (validLines.length === 0) return;
+        setLines(validLines);
+        if (parsed.syncMode) setSyncMode(parsed.syncMode);
+        const idx = parsed.activeLineIndex;
+        if (typeof idx === 'number' && idx >= 0 && idx < validLines.length) {
+          setActiveLineIndex(idx);
+        }
+        const restoredMode = parsed.editorMode
+          || (validLines.some((l) => l.endTime != null) ? 'srt' : 'lrc');
+        setEditorModeRaw(restoredMode);
+        if (parsed.ytUrl) setRestoredYtUrl(parsed.ytUrl);
+        if (typeof parsed.playbackPosition === 'number') setRestoredPosition(parsed.playbackPosition);
+        if (typeof parsed.playbackSpeed === 'number') setRestoredSpeed(parsed.playbackSpeed);
+      })
+      .catch((err) => console.error('Failed to decode shared session URL', err));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ——— Export session as shareable URL ———
+  const exportToUrl = useCallback(async () => {
+    const payload = buildSessionPayload();
+    try {
+      const encoded = await compressToBase64(JSON.stringify(payload));
+      const url = `${window.location.origin}${window.location.pathname}#s=${encoded}`;
+      await navigator.clipboard.writeText(url);
+      toast.success(t('session.sharecopied') || 'Link copied to clipboard!');
+    } catch {
+      toast.error(t('session.shareFailed') || 'Could not copy link. Try saving manually.');
+    }
+  }, [buildSessionPayload, t]);
+
   // ——— Mode switching with end-time inference ———
   const setEditorMode = useCallback(
     (mode) => {
@@ -169,8 +252,7 @@ export function useAppState() {
     actionCountRef.current = 0;
     localStorage.setItem('lrc-syncer-session', JSON.stringify(s.buildPayload()));
     setIsAutosaving(true);
-    setTimeout(() => setIsAutosaving(false), 1200);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    setTimeout(() => setIsAutosaving(false), 1200); 
   }, [lines]);
 
   const handleRestoreSession = () => {
@@ -469,6 +551,7 @@ export function useAppState() {
     restoredYtUrl,
     restoredPosition,
     restoredSpeed,
+    exportToUrl,
     confirmModal,
     isAutosaving,
   };

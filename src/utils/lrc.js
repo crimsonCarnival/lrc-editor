@@ -62,7 +62,10 @@ export function compileLRC(lines, includeTranslations = false, precision = 'hund
       if (line.timestamp != null) {
         const allTs = [line.timestamp, ...(line.extraTimestamps || [])].sort((a, b) => a - b);
         return allTs.map((ts) => {
-          let out = `${formatTimestamp(ts, precision)} ${line.text}`;
+          const wordText = line.words?.length
+            ? line.words.map((w) => `${formatWordTimestamp(w.time)}${w.word}`).join(' ')
+            : line.text;
+          let out = `${formatTimestamp(ts, precision)} ${wordText}`;
           if (includeTranslations && line.translation) {
             out += `\n${formatTimestamp(ts, precision)} ${line.translation}`;
           }
@@ -75,6 +78,32 @@ export function compileLRC(lines, includeTranslations = false, precision = 'hund
     
   let result = header + body;
   return lineEndings === 'crlf' ? result.replace(/\n/g, '\r\n') : result;
+}
+
+/**
+ * Parses inline word-level timestamp tokens from LRC line text.
+ * Format: <mm:ss.xx>word or <mm:ss.xxx>word
+ * @param {string} text
+ * @returns {Array<{word: string, time: number}>}
+ */
+export function parseWordTimestamps(text) {
+  const re = /<(\d{1,2}):(\d{2}\.\d{2,3})>([^<]*)/g;
+  const words = [];
+  let match;
+  while ((match = re.exec(text)) !== null) {
+    const time = parseInt(match[1], 10) * 60 + parseFloat(match[2]);
+    const word = match[3].trimEnd();
+    if (word) words.push({ word, time });
+  }
+  return words;
+}
+
+function formatWordTimestamp(seconds) {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  const mm = String(mins).padStart(2, '0');
+  const ss = secs.toFixed(2).padStart(5, '0');
+  return `<${mm}:${ss}>`;
 }
 
 /**
@@ -205,11 +234,16 @@ export function parseLrcSrtFile(content, filename) {
         remaining = remaining.slice(step[0].length);
       }
       if (collectedTs.length > 0) {
-        const text = remaining.trim();
+        const rawText = remaining.trim();
+        // Parse word-level timestamps embedded in the line text
+        const words = parseWordTimestamps(rawText);
+        // Strip <mm:ss.xx> tokens to get clean display text
+        const text = rawText.replace(/<\d{1,2}:\d{2}\.\d{2,3}>/g, '').trim();
         collectedTs.sort((a, b) => a - b);
         const [primary, ...extras] = collectedTs;
         const entry = { text, timestamp: primary, id: crypto.randomUUID() };
         if (extras.length > 0) entry.extraTimestamps = extras;
+        if (words.length > 0) entry.words = words;
         parsedLines.push(entry);
       } else if (remaining !== '' && !/^\[[^\]]*:[^\]]*\]/.test(remaining)) {
         parsedLines.push({ text: remaining.trim(), timestamp: null, id: crypto.randomUUID() });

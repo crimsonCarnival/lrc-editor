@@ -50,6 +50,7 @@ export default function Editor({
     fileInputRef,
     handleConfirmLyrics,
     handleFileUpload,
+    handleUrlImport,
     shiftTime,
     handleMark,
     handleClearLine,
@@ -116,6 +117,7 @@ export default function Editor({
           handleConfirmLyrics={handleConfirmLyrics}
           fileInputRef={fileInputRef}
           handleFileUpload={handleFileUpload}
+          handleUrlImport={handleUrlImport}
         />
       )}
 

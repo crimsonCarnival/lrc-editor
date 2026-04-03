@@ -84,7 +84,19 @@ export default function PreviewLine({
             : `${inactiveFontSizes[sizeOption]} ${settings.editor?.display?.activeHighlight === 'dim' ? 'text-zinc-800' : 'text-zinc-600'}`
           }`}
       >
-        {line.text || '♪'}
+        {isActive && line.words?.length > 0
+          ? line.words.map((w, wi) => (
+              <span
+                key={wi}
+                className={`transition-colors duration-100 ${
+                  w.time <= playbackPosition ? 'text-primary' : 'text-zinc-500'
+                }`}
+              >
+                {w.word}{' '}
+              </span>
+            ))
+          : line.text || '♪'
+        }
       </p>
 
       {/* Translation Track */}
