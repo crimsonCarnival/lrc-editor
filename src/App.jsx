@@ -1,10 +1,12 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect, useCallback } from 'react';
 import Player from './components/Player';
 import { SettingsProvider } from './contexts/SettingsContext';
 
 const Editor = lazy(() => import('./components/Editor'));
 const Preview = lazy(() => import('./components/Preview'));
 import { useAppState } from './hooks/useAppState';
+import { useSettings } from './contexts/useSettings';
+import { matchKey } from './utils/keyboard';
 import { Kbd } from './components/shared/Kbd';
 import { Button } from './components/ui/button';
 import {
@@ -13,7 +15,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from './components/ui/dropdown-menu';
-import { Music2, UploadCloud, Globe, Settings as SettingsIcon, Share2 } from 'lucide-react';
+import { ToggleGroup, ToggleGroupItem } from './components/ui/toggle-group';
+import { Music2, UploadCloud, Globe, Settings as SettingsIcon, Share2, Pencil, Eye, Play } from 'lucide-react';
 import { useScrollLock } from './hooks/useScrollLock';
 import { useNetworkStatus } from './hooks/useNetworkStatus';
 
@@ -67,6 +70,58 @@ function AppInner() {
   useScrollLock(!!pendingSession);
   useNetworkStatus();
 
+  const { settings, updateSetting } = useSettings();
+  const focusMode = settings.interface?.focusMode || 'default';
+
+  const setFocusMode = useCallback((mode) => {
+    updateSetting('interface.focusMode', mode);
+  }, [updateSetting]);
+
+  // Cycle: default → sync → preview → playback → default
+  const cycleFocusMode = useCallback(() => {
+    const modes = ['default', 'sync', 'preview', 'playback'];
+    const idx = modes.indexOf(focusMode);
+    setFocusMode(modes[(idx + 1) % modes.length]);
+  }, [focusMode, setFocusMode]);
+
+  // Focus mode keyboard shortcuts (Ctrl+1/2/3, Ctrl+0 = default)
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+      if (matchKey(e, settings.shortcuts?.focusSync?.[0] || 'Ctrl+1')) {
+        e.preventDefault();
+        setFocusMode(focusMode === 'sync' ? 'default' : 'sync');
+      } else if (matchKey(e, settings.shortcuts?.focusPreview?.[0] || 'Ctrl+2')) {
+        e.preventDefault();
+        setFocusMode(focusMode === 'preview' ? 'default' : 'preview');
+      } else if (matchKey(e, settings.shortcuts?.focusPlayback?.[0] || 'Ctrl+3')) {
+        e.preventDefault();
+        setFocusMode(focusMode === 'playback' ? 'default' : 'playback');
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [settings.shortcuts, focusMode, setFocusMode]);
+
+  // Grid column classes per focus mode
+  const editorColClass = {
+    default: 'lg:col-span-7',
+    sync: 'lg:col-span-8',
+    preview: 'lg:col-span-6',
+    playback: 'hidden',
+  }[focusMode];
+
+  const previewColClass = {
+    default: 'lg:col-span-5',
+    sync: 'lg:col-span-4',
+    preview: 'lg:col-span-6',
+    playback: 'lg:col-span-12',
+  }[focusMode];
+
+  const showEditor = focusMode !== 'playback';
+  const showPreview = true; // always visible
+
   return (
     <div className="min-h-screen lg:h-screen bg-zinc-950 relative overflow-x-hidden flex flex-col">
       {/* Background gradient blobs and noise texture */}
@@ -100,6 +155,39 @@ function AppInner() {
         </div>
 
         <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+          {/* Focus Mode Toggle */}
+          <ToggleGroup
+            type="single"
+            value={focusMode}
+            onValueChange={(val) => val && setFocusMode(val)}
+            className="hidden lg:flex bg-zinc-800/80 rounded-lg border border-zinc-700/60 overflow-hidden h-auto p-0 gap-0"
+          >
+            <ToggleGroupItem
+              value="sync"
+              className="px-2 py-1.5 text-[10px] font-bold rounded-none border-0 data-[state=on]:bg-primary data-[state=on]:text-zinc-950 text-zinc-400 hover:text-zinc-200 hover:bg-transparent h-auto gap-1"
+              title={`${t('app.focusMode.sync')} (Ctrl+1)`}
+            >
+              <Pencil className="w-3 h-3" />
+              <span className="hidden xl:inline">{t('app.focusMode.sync')}</span>
+            </ToggleGroupItem>
+            <ToggleGroupItem
+              value="preview"
+              className="px-2 py-1.5 text-[10px] font-bold rounded-none border-0 data-[state=on]:bg-primary data-[state=on]:text-zinc-950 text-zinc-400 hover:text-zinc-200 hover:bg-transparent h-auto gap-1"
+              title={`${t('app.focusMode.preview')} (Ctrl+2)`}
+            >
+              <Eye className="w-3 h-3" />
+              <span className="hidden xl:inline">{t('app.focusMode.preview')}</span>
+            </ToggleGroupItem>
+            <ToggleGroupItem
+              value="playback"
+              className="px-2 py-1.5 text-[10px] font-bold rounded-none border-0 data-[state=on]:bg-primary data-[state=on]:text-zinc-950 text-zinc-400 hover:text-zinc-200 hover:bg-transparent h-auto gap-1"
+              title={`${t('app.focusMode.playback')} (Ctrl+3)`}
+            >
+              <Play className="w-3 h-3" />
+              <span className="hidden xl:inline">{t('app.focusMode.playback')}</span>
+            </ToggleGroupItem>
+          </ToggleGroup>
+
           {/* Language Selector */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -157,61 +245,72 @@ function AppInner() {
         </div>
       </header>
 
-      <div className="relative z-raised max-w-7xl mx-auto w-full flex-1 min-h-0 px-2 sm:px-4 lg:px-6 pb-2 sm:pb-4 flex flex-col">
-        {/* 3-Column layout */}
-        <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-2 sm:gap-3 lg:gap-4 min-h-0 lg:overflow-hidden max-lg:overflow-visible">
-          {/* Left: Player + Editor */}
-          <div className="lg:col-span-7 flex flex-col gap-2 sm:gap-3 lg:gap-4 min-h-0 max-lg:h-[85vh]">
-            <Player
-              ref={playerRef}
-              mediaTitle={mediaTitle}
-              onTitleChange={setMediaTitle}
-              onTimeUpdate={handleTimeUpdate}
-              onDurationChange={handleDurationChange}
-              onMediaChange={handleMediaChange}
-              onYtUrlChange={handleYtUrlChange}
-              initialYtUrl={restoredYtUrl}
-              initialSeek={restoredPosition}
-              initialSpeed={restoredSpeed}
-            />
-            <div className="flex-1 min-h-0 flex flex-col">
-              <Editor
-                lines={lines}
-                setLines={setLines}
-                syncMode={syncMode}
-                setSyncMode={setSyncMode}
-                activeLineIndex={activeLineIndex}
-                setActiveLineIndex={setActiveLineIndex}
-                playbackPosition={playbackPosition}
-                playerRef={playerRef}
-                undo={undo}
-                redo={redo}
-                canUndo={canUndo}
-                canRedo={canRedo}
-                editorMode={editorMode}
-                setEditorMode={setEditorMode}
-                duration={duration}
-                onImport={triggerImportSave}
-                handleManualSave={handleManualSave}
-                isAutosaving={isAutosaving}
-              />
+      <div className="relative z-raised max-w-7xl mx-auto w-full flex-1 min-h-0 px-2 sm:px-4 lg:px-6 pb-36 lg:pb-4 flex flex-col">
+        {/* Main content grid */}
+        <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-2 sm:gap-3 lg:gap-4 min-h-0 lg:overflow-hidden max-lg:overflow-visible transition-all duration-300">
+          {/* Left: Editor */}
+          {showEditor && (
+            <div className={`${editorColClass} flex flex-col gap-2 sm:gap-3 lg:gap-4 min-h-0 max-lg:h-[85vh] transition-all duration-300`}>
+              <div className="flex-1 min-h-0 flex flex-col">
+                <Editor
+                  lines={lines}
+                  setLines={setLines}
+                  syncMode={syncMode}
+                  setSyncMode={setSyncMode}
+                  activeLineIndex={activeLineIndex}
+                  setActiveLineIndex={setActiveLineIndex}
+                  playbackPosition={playbackPosition}
+                  playerRef={playerRef}
+                  undo={undo}
+                  redo={redo}
+                  canUndo={canUndo}
+                  canRedo={canRedo}
+                  editorMode={editorMode}
+                  setEditorMode={setEditorMode}
+                  duration={duration}
+                  onImport={triggerImportSave}
+                  handleManualSave={handleManualSave}
+                  isAutosaving={isAutosaving}
+                  compact={focusMode === 'preview'}
+                />
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Right: Preview */}
-          <div className="flex lg:col-span-5 min-h-0 flex-col max-lg:h-[85vh] max-lg:mt-4">
-            <Preview
-              lines={lines}
-              setLines={setLines}
-              playbackPosition={playbackPosition}
-              mediaTitle={mediaTitle}
-              playerRef={playerRef}
-              duration={duration}
-              editorMode={editorMode}
-              exportToUrl={exportToUrl}
-              isSharedSession={isSharedSession}
-            />
-          </div>
+          {showPreview && (
+            <div className={`flex ${previewColClass} min-h-0 flex-col max-lg:h-[85vh] max-lg:mt-4 transition-all duration-300`}>
+              <Preview
+                lines={lines}
+                setLines={setLines}
+                playbackPosition={playbackPosition}
+                mediaTitle={mediaTitle}
+                playerRef={playerRef}
+                duration={duration}
+                editorMode={editorMode}
+                exportToUrl={exportToUrl}
+                isSharedSession={isSharedSession}
+              />
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Docked Player — persistent bottom bar */}
+      <div className="max-lg:fixed max-lg:bottom-0 max-lg:left-0 max-lg:right-0 z-raised w-full border-t border-zinc-700/50 bg-zinc-900/80 backdrop-blur-md shadow-[0_-4px_24px_rgba(0,0,0,0.3)]">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-2 sm:py-3">
+          <Player
+            ref={playerRef}
+            mediaTitle={mediaTitle}
+            onTitleChange={setMediaTitle}
+            onTimeUpdate={handleTimeUpdate}
+            onDurationChange={handleDurationChange}
+            onMediaChange={handleMediaChange}
+            onYtUrlChange={handleYtUrlChange}
+            initialYtUrl={restoredYtUrl}
+            initialSeek={restoredPosition}
+            initialSpeed={restoredSpeed}
+          />
         </div>
       </div>
       <Suspense fallback={null}>

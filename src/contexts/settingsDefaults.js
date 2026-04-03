@@ -53,7 +53,8 @@ export const DEFAULT_SETTINGS = {
     defaultLanguage: 'en',
     fontSize: 'normal',
     spacing: 'normal',
-    previewAlignment: 'left'
+    previewAlignment: 'left',
+    focusMode: 'default'
   },
   shortcuts: {
     mark: ['Space'],
@@ -80,6 +81,10 @@ export const DEFAULT_SETTINGS = {
     addSecondary: ['Shift+H'],
     addTranslation: ['Shift+T'],
     toggleTranslation: ['t'],
+    // Focus modes
+    focusSync: ['Ctrl+1'],
+    focusPreview: ['Ctrl+2'],
+    focusPlayback: ['Ctrl+3'],
   },
   advanced: {
     autoSave: { enabled: false, interval: 10 },
