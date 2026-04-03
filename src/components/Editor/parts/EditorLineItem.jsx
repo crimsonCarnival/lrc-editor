@@ -47,7 +47,10 @@ const EditorLineItem = React.memo(({
   handleAddExtraTimestamp,
   handleRemoveExtraTimestamp,
   handleMark,
-  isLastLine
+  isLastLine,
+  activeWordIndex,
+  handleClearWordTimestamp,
+  handleSetActiveWordIndex,
 }) => {
   const { t } = useTranslation();
 
@@ -109,7 +112,74 @@ const EditorLineItem = React.memo(({
           }`}
         style={{ minWidth: '92px' }}
       >
-        {editorMode === 'srt' ? (
+        {editorMode === 'words' ? (
+          <div className="flex flex-col gap-1">
+            {/* Line-level timestamp badge */}
+            <button
+              type="button"
+              onClick={() => setFocusedTimestamp(focusedTimestamp?.lineIndex === i && focusedTimestamp?.type === 'start' ? null : { lineIndex: i, type: 'start' })}
+              className={`flex items-center rounded px-1.5 py-0.5 text-[10px] font-mono tabular-nums transition-all w-fit ${
+                focusedTimestamp?.lineIndex === i && focusedTimestamp?.type === 'start'
+                  ? 'bg-primary/25 ring-1 ring-primary/50 text-primary font-semibold'
+                  : isSynced
+                    ? 'bg-zinc-800 border border-zinc-700/50 text-primary hover:border-primary/40 hover:bg-zinc-700/60'
+                    : 'text-zinc-600 hover:bg-zinc-800/50 border border-transparent'
+              }`}
+            >
+              {isSynced ? formatTimestamp(line.timestamp, settings.editor?.timestampPrecision || 'hundredths') : '--:--.--'}
+            </button>
+            {/* Word chips */}
+            {line.words?.length > 0 && (
+              <div className="flex flex-wrap gap-0.5 max-w-[120px]">
+                {line.words.map((w, wi) => (
+                  w.time != null ? (
+                    <div key={wi} className="group/word flex items-center gap-0.5">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (playerRef?.current?.seek) {
+                            playerRef.current.seek(w.time);
+                            if (settings.playback?.seekPlays && playerRef.current.play) playerRef.current.play();
+                          }
+                          // Set as next stamp target for the active line
+                          if (activeWordIndex !== -1) handleSetActiveWordIndex(wi);
+                        }}
+                        title={`${w.word} — click to jump`}
+                        className={`text-[9px] px-1 py-0.5 rounded border leading-none transition-colors cursor-pointer hover:border-primary hover:bg-primary/20 hover:text-primary ${
+                          wi === activeWordIndex
+                            ? 'bg-primary/20 border-primary/60 text-primary animate-pulse-glow'
+                            : 'bg-zinc-800 border-primary/30 text-primary/70'
+                        }`}
+                      >
+                        {w.word}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); handleClearWordTimestamp(i, wi); }}
+                        title={`Clear timestamp for "${w.word}"`}
+                        className="opacity-0 group-hover/word:opacity-100 text-zinc-600 hover:text-red-400 transition-all p-0.5 -ml-0.5"
+                      >
+                        <X className="w-2 h-2" />
+                      </button>
+                    </div>
+                  ) : (
+                    <span
+                      key={wi}
+                      className={`text-[9px] px-1 py-0.5 rounded border leading-none ${
+                        wi === activeWordIndex
+                          ? 'bg-primary/20 border-primary/60 text-primary animate-pulse-glow'
+                          : 'bg-zinc-800/50 border-zinc-700/30 text-zinc-600'
+                      }`}
+                    >
+                      {w.word}
+                    </span>
+                  )
+                ))}
+              </div>
+            )}
+          </div>
+        ) : editorMode === 'srt' ? (
           <div className="flex flex-col gap-1">
             {/* Start time badge */}
             <button
@@ -262,14 +332,31 @@ const EditorLineItem = React.memo(({
                     : 'text-zinc-500'
                   }`}
               >
-                {line.text || '♪'}
+                {editorMode === 'words' && line.words?.length > 0
+                  ? line.words.map((w, wi) => (
+                      <span
+                        key={wi}
+                        className={`transition-colors ${
+                          isActive && wi === activeWordIndex
+                            ? 'text-primary underline decoration-dotted underline-offset-2'
+                            : w.time != null
+                              ? 'text-primary/70'
+                              : ''
+                        }`}
+                      >
+                        {w.word}{' '}
+                      </span>
+                    ))
+                  : (line.text || '♪')
+                }
               </p>
-              {line.words?.length > 0 && (
+              {editorMode !== 'words' && line.words?.length > 0 && (
                 <span
-                  className="flex-shrink-0 text-[9px] font-mono text-accent-blue/60 px-1 py-0.5 bg-accent-blue/10 rounded border border-accent-blue/20 leading-none"
-                  title={`${line.words.length} word-level timestamps`}
+                  className="flex-shrink-0 text-[9px] font-mono text-accent-blue/60 px-1 py-0.5 bg-accent-blue/10 rounded border border-accent-blue/20 leading-none cursor-pointer hover:bg-accent-blue/20 hover:text-accent-blue transition-colors"
+                  title={t('editor.wordBadgeHint', { count: line.words.filter(w => w.time != null).length })}
+                  onClick={(e) => { e.stopPropagation(); }}
                 >
-                  W:{line.words.length}
+                  W
                 </span>
               )}
               <Button
@@ -301,13 +388,25 @@ const EditorLineItem = React.memo(({
       {isActive && editingLineIndex !== i && (
         <Button
           onClick={(e) => { e.stopPropagation(); handleMark(); }}
-          title={t('editor.mark')}
-          className="h-7 px-2 gap-1.5 bg-primary/20 hover:bg-primary/30 border border-primary/40 text-primary font-semibold rounded-lg flex-shrink-0 text-xs"
+          title={
+            editorMode === 'words' && line.timestamp != null
+              ? `Stamp "${line.words?.[activeWordIndex]?.word || 'word'}" (${activeWordIndex + 1}/${line.words?.length ?? 0})`
+              : t('editor.mark')
+          }
+          className={`h-7 px-2 gap-1.5 border font-semibold rounded-lg flex-shrink-0 text-xs ${
+            editorMode === 'words' && line.timestamp != null
+              ? 'bg-sky-500/15 hover:bg-sky-500/25 border-sky-500/40 text-sky-400'
+              : 'bg-primary/20 hover:bg-primary/30 border-primary/40 text-primary'
+          }`}
         >
-          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
+          {editorMode === 'words' && line.timestamp != null && line.words?.[activeWordIndex] ? (
+            <span className="font-mono text-[10px] max-w-[48px] truncate">{line.words[activeWordIndex].word}</span>
+          ) : (
+            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          )}
         </Button>
       )}
       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
