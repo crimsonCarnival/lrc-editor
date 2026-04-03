@@ -84,11 +84,15 @@ export function useEditor({
   const handleConfirmLyrics = () => {
     const looksLikeLrc = /^\[(\d{1,2}):(\d{2}\.\d{2,3})\]/m.test(rawText);
     const looksLikeSrt = /^\d+\r?\n\d{2}:\d{2}:\d{2},\d{3}\s*-->/m.test(rawText);
+    const looksLikeWordLrc = looksLikeLrc && /<\d{1,2}:\d{2}\.\d{2,3}>/.test(rawText);
     if (looksLikeLrc || looksLikeSrt) {
       const filename = looksLikeSrt ? 'lyrics.srt' : 'lyrics.lrc';
       const parsed = parseLrcSrtFile(rawText, filename);
       if (parsed.length > 0) {
         setLines(parsed);
+        if (looksLikeSrt) setEditorMode('srt');
+        else if (looksLikeWordLrc) setEditorMode('words');
+        else setEditorMode('lrc');
         setActiveLineIndex(Math.max(0, parsed.findIndex((l) => l.timestamp == null)));
         setSyncMode(true);
         return;
@@ -103,7 +107,6 @@ export function useEditor({
     setActiveLineIndex(Math.max(0, updated.findIndex((l) => l.timestamp == null)));
     setSyncMode(true);
   };
-
   const handleFileUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -113,6 +116,11 @@ export function useEditor({
         const parsed = parseLrcSrtFile(evt.target.result, file.name);
         if (parsed.length > 0) {
           setLines(parsed);
+          {
+            const isSrt = file.name.toLowerCase().endsWith('.srt');
+            const hasWords = !isSrt && parsed.some(l => l.words?.length > 0);
+            setEditorMode(isSrt ? 'srt' : hasWords ? 'words' : 'lrc');
+          }
           setActiveLineIndex(Math.max(0, parsed.findIndex((l) => l.timestamp == null)));
           setSyncMode(true);
           toast.success(t('import.success', { count: parsed.length }) || `Imported ${parsed.length} lines`);
@@ -146,6 +154,11 @@ export function useEditor({
         return { error: t('import.noLines') || 'No lyrics found in file' };
       }
       setLines(parsed);
+      {
+        const isSrt = filename.toLowerCase().endsWith('.srt');
+        const hasWords = !isSrt && parsed.some(l => l.words?.length > 0);
+        setEditorMode(isSrt ? 'srt' : hasWords ? 'words' : 'lrc');
+      }
       setActiveLineIndex(Math.max(0, parsed.findIndex((l) => l.timestamp == null)));
       setSyncMode(true);
       toast.success(t('import.success', { count: parsed.length }) || `Imported ${parsed.length} lines`);
