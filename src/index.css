@@ -218,6 +218,61 @@ body,
   animation: just-synced 0.6s ease-out forwards;
 }
 
+/* Ruby/furigana positioning */
+ruby {
+  ruby-align: center;
+}
+ruby rt {
+  font-size: 0.55em;
+  line-height: 1;
+  text-align: center;
+  ruby-align: center;
+  font-weight: normal;
+}
+
+/* Preview line entrance */
+@keyframes preview-line-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: var(--line-opacity, 1);
+    transform: translateY(0);
+  }
+}
+
+.animate-preview-line-in {
+  animation: preview-line-in 0.4s ease-out both;
+  animation-delay: var(--stagger, 0ms);
+}
+
+/* Timestamp badge pulse on active line */
+@keyframes timestamp-pulse {
+  0%, 100% {
+    transform: translateY(-50%) scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: translateY(-50%) scale(1.15);
+    opacity: 0.8;
+  }
+}
+
+.animate-timestamp-pulse {
+  animation: timestamp-pulse 1.5s ease-in-out 1;
+}
+
+/* Text wrapping utilities */
+.overflow-wrap-anywhere {
+  overflow-wrap: anywhere;
+}
+
+.hyphens-auto {
+  hyphens: auto;
+  -webkit-hyphens: auto;
+}
+
 /* Marquee */
 @keyframes marquee {
   0% {
