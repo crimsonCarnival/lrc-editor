@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react';
 import Player from './components/Player';
 import { SettingsProvider } from './contexts/SettingsContext';
+import { useSettings } from './contexts/useSettings';
 
 const Editor = lazy(() => import('./components/Editor'));
 const Preview = lazy(() => import('./components/Preview'));
@@ -13,7 +14,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from './components/ui/dropdown-menu';
-import { Music2, UploadCloud, Globe, Settings as SettingsIcon, Share2 } from 'lucide-react';
+import { Music2, UploadCloud, Globe, Settings as SettingsIcon, Share2, Save, Check } from 'lucide-react';
 import { useScrollLock } from './hooks/useScrollLock';
 import { useNetworkStatus } from './hooks/useNetworkStatus';
 
@@ -48,6 +49,7 @@ function AppInner() {
     isDraggingFile,
     playerRef,
     handleManualSave,
+    triggerImportSave,
     handleRestoreSession,
     handleDiscardSession,
     handleMediaChange,
@@ -62,6 +64,8 @@ function AppInner() {
     exportToUrl,
     isSharedSession,
   } = useAppState();
+
+  const { settings } = useSettings();
 
   useScrollLock(!!pendingSession);
   useNetworkStatus();
@@ -99,6 +103,25 @@ function AppInner() {
         </div>
 
         <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+          {/* Save button — visible when autosave is off */}
+          {!settings.advanced?.autoSave?.enabled && lines.length > 0 && (
+            <Button
+              variant="outline"
+              onClick={handleManualSave}
+              className={`px-2 sm:px-3 h-8 sm:h-9 bg-zinc-800/80 border-zinc-700/60 hover:bg-zinc-700 rounded-lg sm:rounded-xl flex-shrink-0 transition-colors ${
+                isAutosaving ? 'text-primary border-primary/40' : 'text-zinc-400 hover:text-zinc-200'
+              }`}
+              title={t('session.save') || 'Save session (Ctrl+S)'}
+            >
+              {isAutosaving
+                ? <Check className="w-4 h-4" />
+                : <Save className="w-4 h-4" />}
+              <span className="hidden sm:inline text-xs font-semibold">
+                {isAutosaving ? (t('session.saved') || 'Saved') : (t('session.save') || 'Save')}
+              </span>
+            </Button>
+          )}
+
           {/* Language Selector */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -190,6 +213,7 @@ function AppInner() {
                 editorMode={editorMode}
                 setEditorMode={setEditorMode}
                 duration={duration}
+                onImport={triggerImportSave}
               />
             </div>
           </div>
