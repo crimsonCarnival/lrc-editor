@@ -53,23 +53,30 @@ export function applyGlobalOffset(lines, delta) {
 }
 
 /**
- * Clears all timestamps (and optionally endTimes for SRT mode).
+ * Clears all timestamps (and optionally endTimes for SRT mode, or word times for words mode).
  */
-export function clearAllTimestamps(lines, isSrt) {
+export function clearAllTimestamps(lines, isSrt, isWords) {
   return lines.map((l) => ({
     ...l,
     timestamp: null,
     ...(isSrt && { endTime: null }),
+    ...(isWords && l.words && { words: l.words.map((w) => ({ ...w, time: null })) }),
   }));
 }
 
 /**
  * Clears the timestamp for a single line.
  */
-export function clearLineTimestamp(lines, index, isSrt) {
+export function clearLineTimestamp(lines, index, isSrt, isWords) {
   return lines.map((l, i) =>
     i === index
-      ? { ...l, timestamp: null, ...(isSrt && { endTime: null }), extraTimestamps: undefined }
+      ? {
+          ...l,
+          timestamp: null,
+          ...(isSrt && { endTime: null }),
+          extraTimestamps: undefined,
+          ...(isWords && l.words && { words: l.words.map((w) => ({ ...w, time: null })) }),
+        }
       : l,
   );
 }
@@ -101,15 +108,17 @@ function stampBlanks(lines, fromIndex, time, isSrt) {
  * @param {Array} params.lines - current lines array
  * @param {number} params.activeLineIndex
  * @param {number} params.time - current playback time
- * @param {string} params.editorMode - 'lrc' | 'srt'
+ * @param {string} params.editorMode - 'lrc' | 'srt' | 'words'
+ * @param {number} params.activeWordIndex - current word index being stamped (words mode)
  * @param {number|null} params.awaitingEndMark - line index awaiting end mark, or null
  * @param {object|null} params.focusedTimestamp - { lineIndex, type } or null
  * @param {object} params.settings - editor settings subtree
  *
- * @returns {{ nextLines: Array, nextActiveLineIndex: number|null, nextAwaitingEndMark: object|null }}
+ * @returns {{ nextLines: Array, nextActiveLineIndex: number|null, nextAwaitingEndMark: object|null, nextActiveWordIndex?: number }}
  *   nextActiveLineIndex is null if unchanged, nextAwaitingEndMark is null to clear or an object to set.
+ *   nextActiveWordIndex is only present in 'words' mode.
  */
-export function applyMark({ lines, activeLineIndex, time, editorMode, awaitingEndMark, focusedTimestamp, settings }) {
+export function applyMark({ lines, activeLineIndex, time, editorMode, activeWordIndex = 0, awaitingEndMark, focusedTimestamp, settings }) {
   if (activeLineIndex >= lines.length) {
     return { nextLines: lines, nextActiveLineIndex: null, nextAwaitingEndMark: undefined };
   }
@@ -131,6 +140,44 @@ export function applyMark({ lines, activeLineIndex, time, editorMode, awaitingEn
       };
     }
     return { nextLines: updated, nextActiveLineIndex: null, nextAwaitingEndMark: undefined };
+  }
+
+  const isWords = editorMode === 'words';
+
+  if (isWords) {
+    const updated = [...lines];
+    const line = updated[activeLineIndex];
+    const words = line.words || [];
+
+    // First press on this line: stamp the line-level timestamp
+    if (line.timestamp == null) {
+      updated[activeLineIndex] = { ...line, timestamp: time };
+      // If no words to stamp, immediately advance
+      if (!words.length) {
+        const nextIdx = autoAdvance ? computeNextIndex(lines, activeLineIndex, skipBlank) : null;
+        return { nextLines: updated, nextActiveLineIndex: nextIdx, nextAwaitingEndMark: null, nextActiveWordIndex: 0 };
+      }
+      return { nextLines: updated, nextActiveLineIndex: null, nextAwaitingEndMark: null, nextActiveWordIndex: 0 };
+    }
+
+    // Subsequent presses: stamp words one by one
+    const clampedIdx = Math.min(activeWordIndex, words.length - 1);
+    if (clampedIdx >= 0) {
+      const newWords = [...words];
+      newWords[clampedIdx] = { ...newWords[clampedIdx], time };
+      updated[activeLineIndex] = { ...line, words: newWords };
+      const nextWordIdx = clampedIdx + 1;
+      if (nextWordIdx >= words.length) {
+        // All words stamped — advance line
+        const nextIdx = autoAdvance ? computeNextIndex(lines, activeLineIndex, skipBlank) : null;
+        return { nextLines: updated, nextActiveLineIndex: nextIdx, nextAwaitingEndMark: null, nextActiveWordIndex: 0 };
+      }
+      return { nextLines: updated, nextActiveLineIndex: null, nextAwaitingEndMark: null, nextActiveWordIndex: nextWordIdx };
+    }
+
+    // Safety: advance if out of bounds
+    const nextIdx = autoAdvance ? computeNextIndex(lines, activeLineIndex, skipBlank) : null;
+    return { nextLines: updated, nextActiveLineIndex: nextIdx, nextAwaitingEndMark: null, nextActiveWordIndex: 0 };
   }
 
   if (isSrt) {
