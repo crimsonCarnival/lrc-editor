@@ -22,6 +22,7 @@ export default function Editor({
   canRedo,
   editorMode,
   setEditorMode,
+  onImport,
 }) {
   "use no memo";
   const {
@@ -75,6 +76,9 @@ export default function Editor({
     confirmModal,
     settings,
     updateSetting,
+    activeWordIndex,
+    handleClearWordTimestamp,
+    handleSetActiveWordIndex,
   } = useEditor({
     lines,
     setLines,
@@ -86,6 +90,7 @@ export default function Editor({
     playerRef,
     editorMode,
     setEditorMode,
+    onImport,
   });
 
   return (
@@ -94,6 +99,8 @@ export default function Editor({
         editorMode={editorMode}
         setEditorMode={setEditorMode}
         updateSetting={updateSetting}
+        settings={settings}
+        isActiveLineLocked={isActiveLineLocked}
         syncMode={syncMode}
         undo={undo}
         redo={redo}
@@ -168,6 +175,9 @@ export default function Editor({
           handleAddExtraTimestamp={handleAddExtraTimestamp}
           handleRemoveExtraTimestamp={handleRemoveExtraTimestamp}
           updateSetting={updateSetting}
+          activeWordIndex={activeWordIndex}
+          handleClearWordTimestamp={handleClearWordTimestamp}
+          handleSetActiveWordIndex={handleSetActiveWordIndex}
         />
       )}
 
@@ -224,6 +234,9 @@ function VirtualizedLineList({
   handleAddExtraTimestamp,
   handleRemoveExtraTimestamp,
   updateSetting,
+  activeWordIndex,
+  handleClearWordTimestamp,
+  handleSetActiveWordIndex,
 }) {
   const scrollAlignment = settings.editor?.scroll?.alignment || 'center';
   const scrollMode = settings.editor?.scroll?.mode || 'smooth';
@@ -338,6 +351,9 @@ function VirtualizedLineList({
                   handleRemoveExtraTimestamp={handleRemoveExtraTimestamp}
                   handleMark={handleMark}
                   isLastLine={i === lines.length - 1}
+                  activeWordIndex={i === activeLineIndex ? activeWordIndex : -1}
+                  handleClearWordTimestamp={handleClearWordTimestamp}
+                  handleSetActiveWordIndex={handleSetActiveWordIndex}
                 />
               </div>
             );
