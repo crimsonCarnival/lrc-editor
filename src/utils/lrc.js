@@ -63,7 +63,16 @@ export function compileLRC(lines, includeTranslations = false, precision = 'hund
         const allTs = [line.timestamp, ...(line.extraTimestamps || [])].sort((a, b) => a - b);
         return allTs.map((ts) => {
           const wordText = line.words?.length
-            ? line.words.map((w) => `${formatWordTimestamp(w.time)}${w.word}`).join(' ')
+            ? line.words.map((w, i, arr) => {
+                const token = `${formatWordTimestamp(w.time)}${w.word}`;
+                const next = arr[i + 1];
+                if (!next) return token;
+                // Skip space between CJK characters (Japanese, Chinese, etc.)
+                const lastChar = w.word.slice(-1);
+                const firstChar = next.word.slice(0, 1);
+                const cjk = (ch) => { const c = ch?.codePointAt(0) ?? 0; return (c >= 0x3000 && c <= 0x9FFF) || (c >= 0xF900 && c <= 0xFAFF) || (c >= 0xFF00 && c <= 0xFFEF) || (c >= 0x20000 && c <= 0x2FA1F); };
+                return cjk(lastChar) || cjk(firstChar) ? token : token + ' ';
+              }).join('')
             : line.text;
           let out = `${formatTimestamp(ts, precision)} ${wordText}`;
           if (includeTranslations && line.translation) {
@@ -94,6 +103,27 @@ export function parseWordTimestamps(text) {
     const time = parseInt(match[1], 10) * 60 + parseFloat(match[2]);
     const word = match[3].trimEnd();
     if (word) words.push({ word, time });
+  }
+  // Split CJK word groups into individual characters, distributing timestamps
+  const hasCJK = words.some(w => /[\u3000-\u9FFF\uF900-\uFAFF]/.test(w.word));
+  if (hasCJK && words.length > 0) {
+    const expanded = [];
+    words.forEach((w, wi) => {
+      const chars = [...w.word].filter(ch => ch.trim());
+      if (chars.length <= 1) {
+        expanded.push(w);
+        return;
+      }
+      const nextTime = words[wi + 1]?.time;
+      const duration = nextTime != null ? nextTime - w.time : null;
+      chars.forEach((ch, ci) => {
+        const t = duration != null
+          ? w.time + (duration * ci / chars.length)
+          : w.time + ci * 0.1;
+        expanded.push({ word: ch, time: parseFloat(t.toFixed(3)) });
+      });
+    });
+    return expanded;
   }
   return words;
 }
