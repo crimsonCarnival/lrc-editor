@@ -9,7 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Eye, Share2 } from 'lucide-react';
+import { Eye, Share2, X } from 'lucide-react';
 
 export default function Preview(props) {
   const {
@@ -27,6 +27,12 @@ export default function Preview(props) {
     setShowExportPanel,
     includeTranslations,
     setIncludeTranslations,
+    includeSecondary,
+    setIncludeSecondary,
+    includeWordTimestamps,
+    setIncludeWordTimestamps,
+    includeMetadata,
+    setIncludeMetadata,
     showTranslationsInPreview,
     setShowTranslationsInPreview,
     wasCopied,
@@ -43,6 +49,8 @@ export default function Preview(props) {
     currentIndex,
     hasSyncedLines,
     hasTranslations,
+    hasSecondary,
+    hasWords,
     handleSavePaste,
     handleLineClick,
     handleExport,
@@ -52,9 +60,9 @@ export default function Preview(props) {
   const { lines, playbackPosition, exportToUrl, isSharedSession } = props;
 
   return (
-    <div className="glass rounded-xl sm:rounded-2xl p-3 sm:p-5 flex flex-col h-full animate-fade-in overflow-hidden">
+    <div className="glass relative rounded-xl sm:rounded-2xl p-3 sm:p-5 flex flex-col h-full animate-fade-in">
       {/* Header */}
-      <div className="flex items-center justify-between mb-2 sm:mb-4 gap-2 sm:gap-4 relative">
+      <div className="flex items-center justify-between mb-2 sm:mb-4 gap-2 sm:gap-4 relative z-raised">
         <h2 className="text-xs sm:text-sm font-semibold tracking-widest text-zinc-400 flex items-center gap-2 overflow-hidden flex-1 pb-1">
           <span className="uppercase shrink-0 text-xs sm:text-sm flex items-center gap-1.5"><Eye className="w-3.5 h-3.5" />{t('preview.title')}</span>
         </h2>
@@ -87,28 +95,19 @@ export default function Preview(props) {
               <Button
                 variant="ghost"
                 size="icon-sm"
+                data-export-toggle
                 onClick={() => setShowExportPanel(!showExportPanel)}
                 className={`flex-shrink-0 ${showExportPanel ? 'bg-zinc-800 text-zinc-100 hover:bg-zinc-700' : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'}`}
                 title={t('export.title') || 'Export File'}
               >
-                <svg className="w-4 sm:w-5 h-4 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                </svg>
+                {showExportPanel ? (
+                  <X className="w-4 sm:w-5 h-4 sm:h-5" strokeWidth={2} />
+                ) : (
+                  <svg className="w-4 sm:w-5 h-4 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                )}
               </Button>
-              <ExportPanel
-                showExportPanel={showExportPanel}
-                setShowExportPanel={setShowExportPanel}
-                exportFilename={exportFilename}
-                setExportFilename={setExportFilename}
-                metadata={metadata}
-                setMetadata={setMetadata}
-                includeTranslations={includeTranslations}
-                setIncludeTranslations={setIncludeTranslations}
-                hasTranslations={hasTranslations}
-                wasCopied={wasCopied}
-                handleExport={handleExport}
-                handleCopy={handleCopy}
-              />
             </div>
 
             {/* Menu */}
@@ -146,7 +145,30 @@ export default function Preview(props) {
       </div>
 
       {/* Viewport */}
-      {pastingType ? (
+      {showExportPanel ? (
+        <ExportPanel
+          showExportPanel={showExportPanel}
+          setShowExportPanel={setShowExportPanel}
+          exportFilename={exportFilename}
+          setExportFilename={setExportFilename}
+          metadata={metadata}
+          setMetadata={setMetadata}
+          includeTranslations={includeTranslations}
+          setIncludeTranslations={setIncludeTranslations}
+          includeSecondary={includeSecondary}
+          setIncludeSecondary={setIncludeSecondary}
+          includeWordTimestamps={includeWordTimestamps}
+          setIncludeWordTimestamps={setIncludeWordTimestamps}
+          includeMetadata={includeMetadata}
+          setIncludeMetadata={setIncludeMetadata}
+          hasTranslations={hasTranslations}
+          hasSecondary={hasSecondary}
+          hasWords={hasWords}
+          wasCopied={wasCopied}
+          handleExport={handleExport}
+          handleCopy={handleCopy}
+        />
+      ) : pastingType ? (
         <PreviewPasteArea
           pastingType={pastingType}
           setPastingType={setPastingType}
@@ -157,7 +179,7 @@ export default function Preview(props) {
       ) : (
         <div
           ref={containerRef}
-          className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 scroll-smooth mask-edges"
+          className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 scroll-smooth mask-edges rounded-lg"
         >
           {!lines.length ? (
             <div className="flex items-center justify-center h-full">

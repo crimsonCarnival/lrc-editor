@@ -20,6 +20,9 @@ export function usePreview({ lines, setLines, playbackPosition, playerRef, durat
   );
   const [showExportPanel, setShowExportPanel] = useState(false);
   const [includeTranslations, setIncludeTranslations] = useState(false);
+  const [includeSecondary, setIncludeSecondary] = useState(true);
+  const [includeWordTimestamps, setIncludeWordTimestamps] = useState(true);
+  const [includeMetadata, setIncludeMetadata] = useState(true);
   const [showTranslationsInPreview, setShowTranslationsInPreview] = useState(true);
   const [wasCopied, setWasCopied] = useState(false);
   const [metadata, setMetadata] = useState({ ti: '', ar: '', al: '', lg: '' });
@@ -164,7 +167,9 @@ export function usePreview({ lines, setLines, playbackPosition, playerRef, durat
   }, [currentIndex, settings.editor?.scroll?.mode, settings.editor?.scroll?.alignment]);
 
   const hasSyncedLines = syncedIndices.length > 0;
-  const hasTranslations = lines.some(l => l.translation || l.secondary);
+  const hasTranslations = lines.some(l => l.translation);
+  const hasSecondary = lines.some(l => l.secondary);
+  const hasWords = lines.some(l => l.words?.length);
 
   // ——— Preview keyboard shortcuts ———
   useEffect(() => {
@@ -225,16 +230,29 @@ export function usePreview({ lines, setLines, playbackPosition, playerRef, durat
     return result;
   };
 
+  const applyIncludeFlags = (inputLines) => {
+    let result = inputLines;
+    if (!includeSecondary) {
+      result = result.map(l => ({ ...l, secondary: undefined }));
+    }
+    if (!includeWordTimestamps) {
+      result = result.map(l => ({ ...l, words: undefined }));
+    }
+    return result;
+  };
+
   const handleExport = () => {
     const name = exportFilename.trim() || 'lyrics';
-    const exportLines = prepareExportLines(lines);
+    const exportLines = applyIncludeFlags(prepareExportLines(lines));
     let content = '';
 
     if (settings.export?.downloadFormat === 'srt') {
       content = compileSRT(exportLines, duration, includeTranslations, settings.export?.lineEndings, settings.editor?.srt);
       downloadLRC(content, `${name}.srt`);
     } else {
-      const filteredMetadata = Object.fromEntries(Object.entries(metadata).filter(([, v]) => v.trim() !== ''));
+      const filteredMetadata = includeMetadata
+        ? Object.fromEntries(Object.entries(metadata).filter(([, v]) => v.trim() !== ''))
+        : {};
       content = compileLRC(exportLines, includeTranslations, settings.export?.timestampPrecision, filteredMetadata, settings.export?.lineEndings);
       downloadLRC(content, `${name}.lrc`);
     }
@@ -244,13 +262,15 @@ export function usePreview({ lines, setLines, playbackPosition, playerRef, durat
   };
 
   const handleCopy = async () => {
-    const exportLines = prepareExportLines(lines);
+    const exportLines = applyIncludeFlags(prepareExportLines(lines));
     let content = '';
 
     if (settings.export?.copyFormat === 'srt') {
       content = compileSRT(exportLines, duration, includeTranslations, settings.export?.lineEndings, settings.editor?.srt);
     } else {
-      const filteredMetadata = Object.fromEntries(Object.entries(metadata).filter(([, v]) => v.trim() !== ''));
+      const filteredMetadata = includeMetadata
+        ? Object.fromEntries(Object.entries(metadata).filter(([, v]) => v.trim() !== ''))
+        : {};
       content = compileLRC(exportLines, includeTranslations, settings.export?.timestampPrecision, filteredMetadata, settings.export?.lineEndings);
     }
     try {
@@ -280,6 +300,12 @@ export function usePreview({ lines, setLines, playbackPosition, playerRef, durat
     setShowExportPanel,
     includeTranslations,
     setIncludeTranslations,
+    includeSecondary,
+    setIncludeSecondary,
+    includeWordTimestamps,
+    setIncludeWordTimestamps,
+    includeMetadata,
+    setIncludeMetadata,
     showTranslationsInPreview,
     setShowTranslationsInPreview,
     wasCopied,
@@ -296,6 +322,8 @@ export function usePreview({ lines, setLines, playbackPosition, playerRef, durat
     currentIndex,
     hasSyncedLines,
     hasTranslations,
+    hasSecondary,
+    hasWords,
     handleSavePaste,
     handleLineClick,
     handleExport,

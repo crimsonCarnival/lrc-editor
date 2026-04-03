@@ -15,7 +15,15 @@ export default function ExportPanel({
   setMetadata,
   includeTranslations,
   setIncludeTranslations,
+  includeSecondary,
+  setIncludeSecondary,
+  includeWordTimestamps,
+  setIncludeWordTimestamps,
+  includeMetadata,
+  setIncludeMetadata,
   hasTranslations,
+  hasSecondary,
+  hasWords,
   wasCopied,
   handleExport,
   handleCopy
@@ -27,7 +35,11 @@ export default function ExportPanel({
   useEffect(() => {
     if (!showExportPanel) return;
     const handler = (e) => {
-      if (exportPanelRef.current && !exportPanelRef.current.contains(e.target)) {
+      if (
+        exportPanelRef.current &&
+        !exportPanelRef.current.contains(e.target) &&
+        !e.target.closest('[data-export-toggle]')
+      ) {
         setShowExportPanel(false);
       }
     };
@@ -37,66 +49,151 @@ export default function ExportPanel({
 
   if (!showExportPanel) return null;
 
+  const isLrc = settings.export?.downloadFormat === 'lrc';
+
   return (
-    <div className="absolute right-0 top-full mt-2 rounded-lg sm:rounded-xl p-3 sm:p-4 space-y-2 sm:space-y-3 w-64 sm:w-72 z-sticky animate-fade-in shadow-elevated bg-zinc-900 border border-zinc-700 font-sans text-left" ref={exportPanelRef}>
-      <label className="block">
-        <span className="text-xs text-zinc-400 font-medium">{t('export.filename')}</span>
-        <div className="flex items-center gap-1 mt-1">
-          <Input
-            type="text"
-            value={exportFilename}
-            onChange={(e) => setExportFilename(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleExport()}
-            placeholder="lyrics"
-            className="flex-1 bg-zinc-800 border-zinc-700 text-zinc-100 placeholder-zinc-500 focus-visible:ring-primary/25 focus-visible:border-primary/50 w-0"
-          />
-          <span className="text-sm text-zinc-500 min-w-8">.{settings.export?.downloadFormat}</span>
-        </div>
-      </label>
+    <div
+      ref={exportPanelRef}
+      className="flex-1 min-h-0 flex flex-col animate-fade-in font-sans text-left"
+    >
+      {/* Scrollable options */}
+      <div className="flex-1 min-h-0 overflow-y-auto space-y-3 p-3 sm:p-4 rounded-xl bg-zinc-900 border border-zinc-700">
+        {/* Filename */}
+        <label className="block">
+          <span className="text-xs text-zinc-400 font-medium">
+            {t('export.filename')}
+          </span>
+          <div className="flex items-center gap-1 mt-1">
+            <Input
+              type="text"
+              value={exportFilename}
+              onChange={(e) => setExportFilename(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleExport()}
+              placeholder="lyrics"
+              className="flex-1 bg-zinc-900 border-zinc-700 text-zinc-100 placeholder-zinc-500 focus-visible:ring-primary/25 focus-visible:border-primary/50 w-0"
+            />
+            <span className="text-sm text-zinc-500 min-w-8">
+              .{settings.export?.downloadFormat}
+            </span>
+          </div>
+        </label>
 
-      {settings.export?.downloadFormat === 'lrc' && (
-        <div className="space-y-2 pt-2 border-t border-zinc-700/50">
-          <span className="text-xs text-zinc-400 font-medium">{t('export.metadata', 'LRC Metadata')}</span>
-          {['ti', 'ar', 'al', 'lg'].map((key) => {
-            const labels = { ti: t('export.metaTitle', 'Title'), ar: t('export.metaArtist', 'Artist'), al: t('export.metaAlbum', 'Album'), lg: t('export.metaLanguage', 'Language') };
-            return (
-              <div key={key} className="flex items-center gap-2">
-                <span className="text-xs text-zinc-500 w-16">{labels[key]}</span>
-                <Input
-                  type="text"
-                  value={metadata[key]}
-                  onChange={(e) => setMetadata(prev => ({ ...prev, [key]: e.target.value }))}
-                  placeholder={labels[key]}
-                  className="flex-1 bg-zinc-800 border-zinc-700 text-xs text-zinc-100 placeholder-zinc-600 h-7 focus-visible:border-primary/50"
+        {/* LRC Metadata */}
+        {isLrc && (
+          <div className="space-y-2 pt-2 border-t border-zinc-700/50">
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-zinc-400 font-medium">
+                {t('export.metadata', 'LRC Metadata')}
+              </span>
+              <div className="flex items-center gap-1.5">
+                <Checkbox
+                  id="include-metadata"
+                  checked={includeMetadata}
+                  onCheckedChange={setIncludeMetadata}
+                  className="border-zinc-600 bg-zinc-900 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                 />
+                <Label htmlFor="include-metadata" className="text-[10px] text-zinc-500 cursor-pointer">
+                  {t('export.includeInExport', 'Include')}
+                </Label>
               </div>
-            );
-          })}
-        </div>
-      )}
+            </div>
 
-      {hasTranslations && (
-        <div className="flex items-center gap-2">
-          <Checkbox
-            id="include-translations"
-            checked={includeTranslations}
-            onCheckedChange={setIncludeTranslations}
-            className="border-zinc-600 bg-zinc-800 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
-          />
-          <Label htmlFor="include-translations" className="text-xs text-zinc-400 cursor-pointer">
-            {t('preview.includeTranslations')}
-          </Label>
-        </div>
-      )}
+            {includeMetadata && ['ti', 'ar', 'al', 'lg'].map((key) => {
+              const labels = {
+                ti: t('export.metaTitle', 'Title'),
+                ar: t('export.metaArtist', 'Artist'),
+                al: t('export.metaAlbum', 'Album'),
+                lg: t('export.metaLanguage', 'Language')
+              };
 
-      <div className="flex gap-2 w-full mt-2">
+              return (
+                <div key={key} className="flex items-center gap-2">
+                  <span className="text-xs text-zinc-500 w-16">
+                    {labels[key]}
+                  </span>
+                  <Input
+                    type="text"
+                    value={metadata[key]}
+                    onChange={(e) =>
+                      setMetadata((prev) => ({ ...prev, [key]: e.target.value }))
+                    }
+                    placeholder={labels[key]}
+                    className="flex-1 bg-zinc-900 border-zinc-700 text-xs text-zinc-100 placeholder-zinc-600 h-7 focus-visible:border-primary/50"
+                  />
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Include options */}
+        <div className="space-y-2 pt-2 border-t border-zinc-700/50">
+          <span className="text-xs text-zinc-400 font-medium">
+            {t('export.includeOptions', 'Include in export')}
+          </span>
+
+          {hasSecondary && (
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="include-secondary"
+                checked={includeSecondary}
+                onCheckedChange={setIncludeSecondary}
+                className="border-zinc-600 bg-zinc-900 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+              />
+              <Label htmlFor="include-secondary" className="text-xs text-zinc-400 cursor-pointer">
+                {t('export.includeSecondary', 'Secondary text (romaji, etc.)')}
+              </Label>
+            </div>
+          )}
+
+          {hasTranslations && (
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="include-translations"
+                checked={includeTranslations}
+                onCheckedChange={setIncludeTranslations}
+                className="border-zinc-600 bg-zinc-900 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+              />
+              <Label htmlFor="include-translations" className="text-xs text-zinc-400 cursor-pointer">
+                {t('preview.includeTranslations', 'Translations')}
+              </Label>
+            </div>
+          )}
+
+          {hasWords && (
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="include-words"
+                checked={includeWordTimestamps}
+                onCheckedChange={setIncludeWordTimestamps}
+                className="border-zinc-600 bg-zinc-900 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+              />
+              <Label htmlFor="include-words" className="text-xs text-zinc-400 cursor-pointer">
+                {t('export.includeWords', 'Word-by-word timestamps')}
+              </Label>
+            </div>
+          )}
+
+          {!hasSecondary && !hasTranslations && !hasWords && (
+            <p className="text-xs text-zinc-600 italic">
+              {t('export.noExtraContent', 'No secondary text, translations, or word timestamps to include.')}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Sticky buttons at bottom */}
+      <div className="flex gap-2 w-full pt-3 flex-shrink-0">
         <Button
           variant="outline"
           onClick={handleCopy}
-          className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border-zinc-700 font-semibold text-sm h-10"
+          className="flex-1 bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border-zinc-700 font-semibold text-sm h-10"
         >
-          {wasCopied ? `${t('common.copied')} ${settings.export?.copyFormat.toUpperCase()}!` : t('preview.copyToClipboard')}
+          {wasCopied
+            ? `${t('common.copied')} ${settings.export?.copyFormat.toUpperCase()}!`
+            : t('preview.copyToClipboard')}
         </Button>
+
         <Button
           onClick={handleExport}
           className="flex-1 bg-primary hover:bg-primary-dim text-zinc-950 font-semibold text-sm h-10"
