@@ -148,6 +148,19 @@ export function useEditor({
   const handleFileUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    const ext = file.name.split('.').pop()?.toLowerCase();
+    if (!['lrc', 'srt', 'txt'].includes(ext)) {
+      toast.error(t('import.unsupportedFormat') || 'Unsupported file type. Use .lrc, .srt, or .txt files.');
+      e.target.value = '';
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error(t('import.tooLarge') || 'File too large (max 5 MB)');
+      e.target.value = '';
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = (evt) => {
       try {

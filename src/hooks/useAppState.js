@@ -548,7 +548,7 @@ export function useAppState() {
 
       const extension = file.name.split('.').pop().toLowerCase();
 
-      if (['lrc', 'srt'].includes(extension)) {
+      if (['lrc', 'srt', 'txt'].includes(extension)) {
         if (file.size > MAX_IMPORT_FILE_SIZE) {
           toast.error(t('import.tooLarge') || 'File too large (max 5 MB)');
           return;
@@ -580,6 +580,8 @@ export function useAppState() {
           console.error('Failed to parse dropped lyrics file', err);
           toast.error(t('import.failed') || 'Failed to parse lyrics file');
         }
+      } else {
+        toast.error(t('import.unsupportedFormat') || 'Unsupported file type. Use .lrc, .srt, or .txt files.');
       }
     },
     [lines.length, setLines, settings.advanced.confirmDestructive, t, requestConfirm],

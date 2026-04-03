@@ -51,7 +51,7 @@ export default function EditorPasteArea({
         <div className="flex gap-2 sm:gap-3">
           <input
             type="file"
-            accept=".lrc,.srt"
+            accept=".lrc,.srt,.txt"
             className="hidden"
             ref={fileInputRef}
             onChange={handleFileUpload}
