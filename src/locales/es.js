@@ -63,6 +63,9 @@ export default {
       "translationText": "Traducción",
       "modeLRC": "LRC",
       "modeSRT": "SRT",
+      "modeWords": "Palabras",
+      "wordBadgeHint": "{{count}} marcas de tiempo de palabras — cambia al modo Palabras para sincronizar",
+      "markInstructionWords": "Presiona Espacio para marcar la siguiente palabra",
       "startTime": "Inicio",
       "endTime": "Fin",
       "syncModeOnly": "Solo en Editor",
@@ -118,7 +121,9 @@ export default {
       "discard": "Descartar",
       "sharedSession": "Sesión compartida desde enlace",
       "sharecopied": "¡Enlace copiado al portapapeles!",
-      "shareFailed": "No se pudo copiar el enlace. Intenta guardar manualmente."
+      "shareFailed": "No se pudo copiar el enlace. Intenta guardar manualmente.",
+      "save": "Guardar",
+      "saved": "Guardado"
     },
 
     "confirm": {
@@ -218,7 +223,9 @@ export default {
         "waveformSnap": "Ajuste a cuadrícula",
         "waveformSnapDesc": "Ajustar la posición de reproducción al segundo más cercano al hacer clic en la forma de onda",
         "seekTime": "Tiempo de búsqueda",
-        "seekTimeDesc": "Segundos para avanzar/retroceder con los atajos de búsqueda"
+        "seekTimeDesc": "Segundos para avanzar/retroceder con los atajos de búsqueda",
+        "seekPlays": "Buscar reanuda la reproducción",
+        "seekPlaysDesc": "Reanudar automáticamente la reproducción al saltar a una marca de tiempo"
       },
 
       "editor": {

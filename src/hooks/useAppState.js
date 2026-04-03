@@ -184,7 +184,6 @@ export function useAppState() {
   useEffect(() => {
     if (importTick === 0) return;
     manualSaveRef.current?.();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [importTick]);
   const triggerImportSave = useCallback(() => setImportTick((t) => t + 1), []);
 

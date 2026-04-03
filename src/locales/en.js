@@ -63,6 +63,9 @@ export default {
       "translationText": "Translation",
       "modeLRC": "LRC",
       "modeSRT": "SRT",
+      "modeWords": "Words",
+      "wordBadgeHint": "{{count}} word timestamps — switch to Words mode to sync",
+      "markInstructionWords": "Press Space to stamp the next word",
       "startTime": "Start",
       "endTime": "End",
       "syncModeOnly": "Editor only",
@@ -118,7 +121,9 @@ export default {
       "discard": "Discard",
       "sharedSession": "Shared session from link",
       "sharecopied": "Link copied to clipboard!",
-      "shareFailed": "Could not copy link. Try saving manually."
+      "shareFailed": "Could not copy link. Try saving manually.",
+      "save": "Save",
+      "saved": "Saved"
     },
 
     "confirm": {
@@ -218,7 +223,9 @@ export default {
         "waveformSnap": "Waveform snap",
         "waveformSnapDesc": "Snap playback position to closest second when clicking the waveform",
         "seekTime": "Seek time",
-        "seekTimeDesc": "Seconds to seek when using seek shortcuts"
+        "seekTimeDesc": "Seconds to seek when using seek shortcuts",
+        "seekPlays": "Seek resumes playback",
+        "seekPlaysDesc": "Automatically resume playback when jumping to a timestamp"
       },
 
       "editor": {
