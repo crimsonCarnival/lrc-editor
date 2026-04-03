@@ -60,6 +60,7 @@ function AppInner() {
     confirmModal,
     isAutosaving,
     exportToUrl,
+    isSharedSession,
   } = useAppState();
 
   useScrollLock(!!pendingSession);
@@ -128,19 +129,6 @@ function AppInner() {
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
-
-          {/* Share button — shown when lyrics are loaded */}
-          {lines.length > 0 && (
-            <Button
-              variant="outline"
-              onClick={exportToUrl}
-              className="px-2 sm:px-3 h-8 sm:h-9 bg-zinc-800/80 border-zinc-700/60 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700 rounded-lg sm:rounded-xl flex-shrink-0"
-              title={t('app.shareSession') || 'Share session'}
-            >
-              <Share2 className="w-4 sm:w-[18px] h-4 sm:h-[18px]" strokeWidth={1.8} />
-              <span className="hidden sm:inline text-xs font-semibold">{t('app.shareSession') || 'Share'}</span>
-            </Button>
-          )}
 
           {/* Settings button */}
           <Button
@@ -216,6 +204,8 @@ function AppInner() {
               playerRef={playerRef}
               duration={duration}
               editorMode={editorMode}
+              exportToUrl={exportToUrl}
+              isSharedSession={isSharedSession}
             />
           </div>
         </div>

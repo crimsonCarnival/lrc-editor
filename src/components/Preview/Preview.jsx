@@ -9,7 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Eye } from 'lucide-react';
+import { Eye, Share2 } from 'lucide-react';
 
 export default function Preview(props) {
   const {
@@ -49,7 +49,7 @@ export default function Preview(props) {
     handleCopy,
   } = usePreview(props);
 
-  const { lines, playbackPosition } = props;
+  const { lines, playbackPosition, exportToUrl, isSharedSession } = props;
 
   return (
     <div className="glass rounded-xl sm:rounded-2xl p-3 sm:p-5 flex flex-col h-full animate-fade-in overflow-hidden">
@@ -60,6 +60,16 @@ export default function Preview(props) {
         </h2>
         {hasSyncedLines && (
           <div className="relative flex items-center gap-1 text-zinc-300">
+            {/* Share button */}
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={exportToUrl}
+              className={`flex-shrink-0 ${isSharedSession ? 'text-primary bg-primary/10 hover:bg-primary/20' : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'}`}
+              title={isSharedSession ? 'Viewing shared session' : 'Share session'}
+            >
+              <Share2 className="w-4 sm:w-5 h-4 sm:h-5" strokeWidth={1.8} />
+            </Button>
             {lines.some(l => l.translation) && (
               <Button
                 variant="ghost"

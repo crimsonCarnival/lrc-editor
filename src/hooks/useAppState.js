@@ -8,6 +8,8 @@ import { inferEndTimes, parseLrcSrtFile } from '../utils/lrc';
 import { matchKey } from '../utils/keyboard';
 
 const MAX_IMPORT_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
+const SESSION_KEY = 'lrc-syncer-session';
+const SHARED_SESSION_KEY = 'lrc-syncer-shared-session';
 
 // ——— URL compression helpers for shareable session links ———
 async function compressToBase64(str) {
@@ -79,13 +81,17 @@ export function useAppState() {
   const [showKeyboardHelp, setShowKeyboardHelp] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   
+  const [isSharedSession, setIsSharedSession] = useState(false);
+
   const [pendingSession, setPendingSession] = useState(() => {
+    // Always discard any leftover shared session (e.g. from a crash before beforeunload fired)
+    localStorage.removeItem(SHARED_SESSION_KEY);
     // If a shared session hash is in the URL, skip localStorage — useEffect handles it async
     if (typeof window !== 'undefined' && window.location.hash.startsWith('#s=')) {
       return null;
     }
     try {
-      const saved = localStorage.getItem('lrc-syncer-session');
+      const saved = localStorage.getItem(SESSION_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed.lines && parsed.lines.length > 0) {
@@ -165,8 +171,9 @@ export function useAppState() {
   }, [lines, syncMode, activeLineIndex, editorMode, settings.advanced.timezone, sessionYtUrl, playbackPosition]);
 
   const handleManualSave = useCallback(() => {
-    localStorage.setItem('lrc-syncer-session', JSON.stringify(buildSessionPayload()));
-  }, [buildSessionPayload]);
+    const key = isSharedSession ? SHARED_SESSION_KEY : SESSION_KEY;
+    localStorage.setItem(key, JSON.stringify(buildSessionPayload()));
+  }, [buildSessionPayload, isSharedSession]);
 
   // ——— Shared session URL: decode hash on mount ———
   useEffect(() => {
@@ -203,10 +210,20 @@ export function useAppState() {
         if (parsed.ytUrl) setRestoredYtUrl(parsed.ytUrl);
         if (typeof parsed.playbackPosition === 'number') setRestoredPosition(parsed.playbackPosition);
         if (typeof parsed.playbackSpeed === 'number') setRestoredSpeed(parsed.playbackSpeed);
+        setIsSharedSession(true);
+        localStorage.setItem(SHARED_SESSION_KEY, JSON.stringify(parsed));
       })
       .catch((err) => console.error('Failed to decode shared session URL', err));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // ——— Clean up shared session when the page is closed ———
+  useEffect(() => {
+    if (!isSharedSession) return;
+    const cleanup = () => localStorage.removeItem(SHARED_SESSION_KEY);
+    window.addEventListener('beforeunload', cleanup);
+    return () => window.removeEventListener('beforeunload', cleanup);
+  }, [isSharedSession]);
 
   // ——— Export session as shareable URL ———
   const exportToUrl = useCallback(async () => {
@@ -242,6 +259,7 @@ export function useAppState() {
       enabled: settings.advanced.autoSave.enabled,
       interval: settings.advanced.autoSave.interval ?? 10,
       buildPayload: buildSessionPayload,
+      isSharedSession,
     };
   });
   useEffect(() => {
@@ -250,9 +268,10 @@ export function useAppState() {
     actionCountRef.current += 1;
     if (actionCountRef.current < s.interval) return;
     actionCountRef.current = 0;
-    localStorage.setItem('lrc-syncer-session', JSON.stringify(s.buildPayload()));
+    const key = s.isSharedSession ? SHARED_SESSION_KEY : SESSION_KEY;
+    localStorage.setItem(key, JSON.stringify(s.buildPayload()));
     setIsAutosaving(true);
-    setTimeout(() => setIsAutosaving(false), 1200); 
+    setTimeout(() => setIsAutosaving(false), 1200);
   }, [lines]);
 
   const handleRestoreSession = () => {
@@ -554,5 +573,6 @@ export function useAppState() {
     exportToUrl,
     confirmModal,
     isAutosaving,
+    isSharedSession,
   };
 }
