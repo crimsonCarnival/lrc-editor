@@ -13,6 +13,7 @@ export default function useLocalAudio({
   setCurrentTime,
   onTitleChange,
   onMediaChange,
+  initialSpeed,
 }) {
   const [localUrl, setLocalUrl] = useState(null);
 
@@ -47,8 +48,12 @@ export default function useLocalAudio({
       if (!isFinite(d) || d <= 0) return;
       updateDuration(d);
       audioRef.current.volume = settings.playback.muted ? 0 : settings.playback.volume;
+      const s = parseFloat(initialSpeed);
+      if (isFinite(s) && s > 0 && s !== 1) {
+        audioRef.current.playbackRate = s;
+      }
     }
-  }, [audioRef, updateDuration, settings.playback.muted, settings.playback.volume]);
+  }, [audioRef, updateDuration, settings.playback.muted, settings.playback.volume, initialSpeed]);
 
   const autoRewind = settings.playback.autoRewindOnPause;
   const handlePause = useCallback(() => {
