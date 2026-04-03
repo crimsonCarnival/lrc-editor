@@ -84,12 +84,12 @@ export default function PreviewLine({
             : `${inactiveFontSizes[sizeOption]} ${settings.editor?.display?.activeHighlight === 'dim' ? 'text-zinc-800' : 'text-zinc-600'}`
           }`}
       >
-        {isActive && line.words?.length > 0
+        {line.words?.some((w) => w.time != null)
           ? line.words.map((w, wi) => (
               <span
                 key={wi}
                 className={`transition-colors duration-100 ${
-                  w.time <= playbackPosition ? 'text-primary' : 'text-zinc-500'
+                  w.time != null && w.time <= playbackPosition ? 'text-primary' : 'text-zinc-500'
                 }`}
               >
                 {w.word}{' '}
