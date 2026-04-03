@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { Kbd } from '../../shared/Kbd';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, Repeat } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { KEY_SYMBOLS } from '../../Settings/keySymbols';
 
 export default function EditorSyncControls({
@@ -23,15 +23,6 @@ export default function EditorSyncControls({
   return (
     <>
       <div className="flex flex-row gap-2 pt-2 border-t border-zinc-800/50 items-center justify-end">
-        <Button
-          variant="ghost"
-          size="icon-xs"
-          onClick={() => updateSetting('playback.loopCurrentLine', !settings.playback?.loopCurrentLine)}
-          className={`w-7 h-7 ${settings.playback?.loopCurrentLine ? 'text-primary bg-primary/10' : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700/60'}`}
-          title={t('editor.loopCurrentLine')}
-        >
-          <Repeat className="w-3.5 h-3.5" />
-        </Button>
         {settings.editor?.showShiftAll && (<>
           <span className="text-xs text-zinc-500 whitespace-nowrap flex-shrink-0">{t('editor.shiftAll')}</span>
           <div className="flex items-center gap-1">
@@ -65,7 +56,9 @@ export default function EditorSyncControls({
           ? selectionHintText
           : editorMode === 'srt'
             ? (awaitingEndMark != null ? t('editor.markEndInstruction').replace(/Space|Espacio/gi, settings.shortcuts?.mark?.[0] || 'Space') : t('editor.markInstructionSRT').replace(/Space|Espacio/gi, settings.shortcuts?.mark?.[0] || 'Space'))
-            : t('editor.markInstruction').replace(/Space|Espacio/gi, settings.shortcuts?.mark?.[0] || 'Space')
+            : editorMode === 'words'
+              ? t('editor.markInstructionWords').replace(/Space|Espacio/gi, settings.shortcuts?.mark?.[0] || 'Space')
+              : t('editor.markInstruction').replace(/Space|Espacio/gi, settings.shortcuts?.mark?.[0] || 'Space')
         }
       </p>
     </>
