@@ -9,6 +9,7 @@ export const DEFAULT_SETTINGS = {
     loopCurrentLine: false,
     speedPresets: [0.5, 0.75, 1, 1.25, 1.5, 2],
     seekTime: 5,
+    seekPlays: false,
   },
   editor: {
     autoPauseOnMark: false,
