@@ -56,6 +56,7 @@ export default {
       "shiftAll": "Shift All",
       "shiftAllTitle": "Shift all timestamps by a value",
       "loopCurrentLine": "Loop current line",
+      "backToEdit": "Edit lyrics text",
       "addExtraTimestamp": "Add repeat at current position",
       "removeExtraTimestamp": "Remove repeat",
       "primaryText": "Lyrics",

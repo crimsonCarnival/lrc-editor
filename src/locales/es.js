@@ -56,6 +56,7 @@ export default {
       "shiftAll": "Desplazar todo",
       "shiftAllTitle": "Desplazar todas las marcas de tiempo",
       "loopCurrentLine": "Repetir línea actual",
+      "backToEdit": "Editar texto de letra",
       "addExtraTimestamp": "Agregar repetición en posición actual",
       "removeExtraTimestamp": "Eliminar repetición",
       "primaryText": "Letra",
