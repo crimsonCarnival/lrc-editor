@@ -1,12 +1,14 @@
 ﻿import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { Undo2, Redo2, ListChecks, TimerOff, Trash2, MousePointerClick, FileText } from 'lucide-react';
+import { Undo2, Redo2, ListChecks, TimerOff, Trash2, MousePointerClick, FileText, Repeat } from 'lucide-react';
 
 export default function EditorToolbar({
   editorMode,
   setEditorMode,
   updateSetting,
+  settings,
+  isActiveLineLocked,
   syncMode,
   undo,
   redo,
@@ -54,11 +56,34 @@ export default function EditorToolbar({
             >
               {t('editor.modeSRT')}
             </ToggleGroupItem>
+            <ToggleGroupItem
+              value="words"
+              className="px-2.5 py-1 text-[10px] sm:text-xs font-bold rounded-none border-0 data-[state=on]:bg-primary data-[state=on]:text-zinc-950 text-zinc-400 hover:text-zinc-200 hover:bg-transparent h-auto"
+            >
+              {t('editor.modeWords')}
+            </ToggleGroupItem>
           </ToggleGroup>
         )}
       </div>
       {syncMode && (
         <div className="flex items-center justify-end gap-1 sm:gap-2 w-full">
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => isActiveLineLocked && updateSetting('playback.loopCurrentLine', !settings?.playback?.loopCurrentLine)}
+            disabled={!isActiveLineLocked}
+            className={`flex-shrink-0 transition-colors ${
+              !isActiveLineLocked
+                ? 'text-zinc-600 opacity-40 cursor-not-allowed'
+                : settings?.playback?.loopCurrentLine
+                  ? 'text-primary bg-primary/10 hover:bg-primary/20'
+                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'
+            }`}
+            title={t('editor.loopCurrentLine')}
+          >
+            <Repeat className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
+          </Button>
+          <div className="w-px h-4 bg-zinc-800 hidden sm:block mx-1" />
           <Button
             id="undo-btn"
             variant="ghost"
