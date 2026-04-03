@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import NumberInput from '../../shared/NumberInput';
 import { Section, SettingRow, Toggle } from '../shared';
 import { usePlaybackSettings } from '../hooks/usePlaybackSettings';
-import { Headphones, RotateCcw, ChevronsDown, ChevronsUp, ActivitySquare, Timer, Magnet } from 'lucide-react';
+import { Headphones, RotateCcw, ChevronsDown, ChevronsUp, ActivitySquare, Timer, Magnet, Play } from 'lucide-react';
 
 export default function PlaybackSettings({ settings, updateSetting, searchTerm }) {
   const { t } = useTranslation();
@@ -68,6 +68,13 @@ export default function PlaybackSettings({ settings, updateSetting, searchTerm }
           value={settings.playback?.seekTime ?? 5}
           onChange={(e) => updateSetting('playback.seekTime', Math.max(1, parseInt(e.target.value, 10) || 5))}
           className="w-20"
+        />
+      </SettingRow>
+      <SettingRow icon={Play} label={t('settings.playback.seekPlays')} description={t('settings.playback.seekPlaysDesc')}>
+        <Toggle
+          id="toggle-seek-plays"
+          checked={settings.playback?.seekPlays ?? false}
+          onChange={(v) => updateSetting('playback.seekPlays', v)}
         />
       </SettingRow>
     </Section>
