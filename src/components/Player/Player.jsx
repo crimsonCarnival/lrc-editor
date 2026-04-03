@@ -35,7 +35,10 @@ const Player = forwardRef(function Player(
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [playbackSpeed, setPlaybackSpeed] = useState(1);
+  const [playbackSpeed, setPlaybackSpeed] = useState(() => {
+    const s = parseFloat(initialSpeed);
+    return (isFinite(s) && s > 0) ? s : 1;
+  });
   const [requestConfirm, confirmModal] = useConfirm();
 
   const audioRef = useRef(null);
@@ -70,6 +73,7 @@ const Player = forwardRef(function Player(
     setCurrentTime,
     onTitleChange,
     onMediaChange,
+    initialSpeed,
   });
 
   const yt = useYouTubePlayer({
