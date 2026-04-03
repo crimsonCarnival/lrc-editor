@@ -23,6 +23,8 @@ export default function Editor({
   editorMode,
   setEditorMode,
   onImport,
+  handleManualSave,
+  isAutosaving,
 }) {
   "use no memo";
   const {
@@ -114,6 +116,8 @@ export default function Editor({
         setLines={setLines}
         setRawText={setRawText}
         setSyncMode={setSyncMode}
+        handleManualSave={handleManualSave}
+        isAutosaving={isAutosaving}
       />
 
       {/* Edit Mode */}

@@ -86,7 +86,6 @@ export function useEditor({
     const newIdx = idx === -1 ? words.length : idx;
     setActiveWordIndex(newIdx);
     activeWordIndexRef.current = newIdx;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeLineIndex, lines, editorMode]);
 
   // When switching to words mode, ensure every line has a words array
@@ -385,6 +384,12 @@ export function useEditor({
       const line = { ...updated[index], text: newText };
       if (newSecondary !== undefined) line.secondary = newSecondary;
       if (newTranslation !== undefined) line.translation = newTranslation;
+      // Re-tokenize words while preserving existing timestamps by position
+      if (line.words) {
+        const tokens = (newText || '').trim().split(/\s+/).filter(Boolean);
+        const oldWords = line.words;
+        line.words = tokens.map((word, i) => ({ word, time: oldWords[i]?.time ?? null }));
+      }
       updated[index] = line;
       return updated;
     });

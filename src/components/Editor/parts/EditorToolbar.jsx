@@ -1,7 +1,7 @@
 ﻿import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { Undo2, Redo2, ListChecks, TimerOff, Trash2, MousePointerClick, FileText, Repeat } from 'lucide-react';
+import { Undo2, Redo2, ListChecks, TimerOff, Trash2, MousePointerClick, FileText, Repeat, Pencil, Save, Check } from 'lucide-react';
 
 export default function EditorToolbar({
   editorMode,
@@ -21,7 +21,9 @@ export default function EditorToolbar({
   requestConfirm,
   setLines,
   setRawText,
-  setSyncMode
+  setSyncMode,
+  handleManualSave,
+  isAutosaving,
 }) {
   const { t } = useTranslation();
 
@@ -32,6 +34,20 @@ export default function EditorToolbar({
           <FileText className="w-3.5 h-3.5" />
           {t('editor.title')}
         </h2>
+        {syncMode && lines.length > 0 && (
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => {
+              setRawText(lines.map(l => l.text).join('\n'));
+              setSyncMode(false);
+            }}
+            className="text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 flex-shrink-0"
+            title={t('editor.backToEdit')}
+          >
+            <Pencil className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
+          </Button>
+        )}
         {lines.length > 0 && (
           <ToggleGroup
             type="single"
@@ -145,6 +161,23 @@ export default function EditorToolbar({
           >
             <TimerOff className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
           </Button>
+          {handleManualSave && !settings.advanced?.autoSave?.enabled && (
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={handleManualSave}
+              className={`flex-shrink-0 transition-colors ${
+                isAutosaving
+                  ? 'text-primary hover:text-primary hover:bg-primary/10'
+                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'
+              }`}
+              title={isAutosaving ? (t('session.saved') || 'Saved') : (t('session.save') || 'Save')}
+            >
+              {isAutosaving
+                ? <Check className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
+                : <Save className="w-3.5 sm:w-4 h-3.5 sm:h-4" />}
+            </Button>
+          )}
           <div className="w-px h-4 bg-zinc-800 hidden sm:block mx-1" />
           <Button
             variant="ghost"
