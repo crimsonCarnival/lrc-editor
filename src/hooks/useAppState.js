@@ -173,7 +173,20 @@ export function useAppState() {
   const handleManualSave = useCallback(() => {
     const key = isSharedSession ? SHARED_SESSION_KEY : SESSION_KEY;
     localStorage.setItem(key, JSON.stringify(buildSessionPayload()));
+    setIsAutosaving(true);
+    setTimeout(() => setIsAutosaving(false), 1200);
   }, [buildSessionPayload, isSharedSession]);
+
+  // ——— Save-after-import: fires after state settles from an import ———
+  const [importTick, setImportTick] = useState(0);
+  const manualSaveRef = useRef(null);
+  useEffect(() => { manualSaveRef.current = handleManualSave; });
+  useEffect(() => {
+    if (importTick === 0) return;
+    manualSaveRef.current?.();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [importTick]);
+  const triggerImportSave = useCallback(() => setImportTick((t) => t + 1), []);
 
   // ——— Shared session URL: decode hash on mount ———
   useEffect(() => {
@@ -196,6 +209,10 @@ export function useAppState() {
           secondary: typeof l.secondary === 'string' ? l.secondary : '',
           translation: typeof l.translation === 'string' ? l.translation : '',
           id: typeof l.id === 'string' ? l.id : crypto.randomUUID(),
+          words: Array.isArray(l.words) ? l.words.map((w) => ({
+            word: typeof w.word === 'string' ? w.word : '',
+            time: typeof w.time === 'number' && isFinite(w.time) ? w.time : null,
+          })).filter((w) => w.word) : undefined,
         }));
         if (validLines.length === 0) return;
         setLines(validLines);
@@ -286,6 +303,10 @@ export function useAppState() {
         secondary: typeof l.secondary === 'string' ? l.secondary : '',
         translation: typeof l.translation === 'string' ? l.translation : '',
         id: typeof l.id === 'string' ? l.id : crypto.randomUUID(),
+        words: Array.isArray(l.words) ? l.words.map((w) => ({
+          word: typeof w.word === 'string' ? w.word : '',
+          time: typeof w.time === 'number' && isFinite(w.time) ? w.time : null,
+        })).filter((w) => w.word) : undefined,
       }));
       if (validLines.length === 0) {
         setPendingSession(null);
@@ -561,6 +582,7 @@ export function useAppState() {
     playerRef,
     langMenuRef,
     handleManualSave,
+    triggerImportSave,
     handleRestoreSession,
     handleDiscardSession,
     handleMediaChange,
