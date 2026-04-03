@@ -1,3 +1,4 @@
+import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSettings } from '../../contexts/useSettings';
 
@@ -85,16 +86,29 @@ export default function PreviewLine({
           }`}
       >
         {line.words?.some((w) => w.time != null)
-          ? line.words.map((w, wi) => (
-              <span
-                key={wi}
-                className={`transition-colors duration-100 ${
-                  w.time != null && w.time <= playbackPosition ? 'text-primary' : 'text-zinc-500'
-                }`}
-              >
-                {w.word}{' '}
-              </span>
-            ))
+          ? line.words.map((w, wi) => {
+              const nextT = line.words.slice(wi + 1).find((w2) => w2.time != null)?.time;
+              let fillPct = 0;
+              if (w.time != null && w.time <= playbackPosition) {
+                fillPct = nextT != null && nextT > playbackPosition
+                  ? Math.min(100, ((playbackPosition - w.time) / (nextT - w.time)) * 100)
+                  : 100;
+              }
+              return (
+                <React.Fragment key={wi}>
+                  <span className="relative inline-block">
+                    <span className="text-zinc-500">{w.word}</span>
+                    <span
+                      className="absolute left-0 top-0 h-full overflow-hidden text-primary whitespace-nowrap"
+                      style={{ width: `${fillPct}%` }}
+                    >
+                      {w.word}
+                    </span>
+                  </span>
+                  {' '}
+                </React.Fragment>
+              );
+            })
           : line.text || '♪'
         }
       </p>
