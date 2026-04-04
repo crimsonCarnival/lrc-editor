@@ -35,11 +35,12 @@ async function decompressFromBase64(b64) {
 
 // ——— Compact v1 share format helpers ———
 // Encodes lines to minimal JSON: single-char keys, no nulls/UUIDs/metadata.
-function buildSharePayload(lines, editorMode, ytUrl) {
+function buildSharePayload(lines, editorMode, ytUrl, readOnly = true) {
   return {
     v: 1,
     m: editorMode,
     ...(ytUrl ? { y: ytUrl } : {}),
+    ...(!readOnly ? { ro: 0 } : {}),
     l: lines.map((l) => {
       const entry = { t: l.text };
       if (l.timestamp != null) entry.s = l.timestamp;
@@ -80,6 +81,7 @@ function expandSharePayload(p) {
     activeLineIndex: 0,
     playbackPosition: 0,
     playbackSpeed: 1,
+    readOnly: p.ro !== 0,
   };
 }
 
@@ -132,6 +134,8 @@ export function useAppState() {
   const [showSettings, setShowSettings] = useState(false);
   
   const [isSharedSession, setIsSharedSession] = useState(false);
+  const [sharedReadOnly, setSharedReadOnly] = useState(true);
+  const [shareModal, setShareModal] = useState(null); // null | { url, ytUrl, linesCount, hasSynced, readOnly }
 
   const [pendingSession, setPendingSession] = useState(() => {
     // Always discard any leftover shared session (e.g. from a crash before beforeunload fired)
@@ -162,10 +166,16 @@ export function useAppState() {
   const [restoredSpeed, setRestoredSpeed] = useState(1);
   const maxDragDepth = useRef(0);
   const lastLoopSeekRef = useRef(0);
+  // Refs for stale-closure-safe reads inside save callbacks and guarded setLines
+  const isSharedSessionRef = useRef(false);
+  const sharedReadOnlyRef = useRef(true);
 
   const playerRef = useRef(null);
   const langMenuRef = useRef(null);
   const [requestConfirm, confirmModal] = useConfirm();
+
+  useEffect(() => { isSharedSessionRef.current = isSharedSession; }, [isSharedSession]);
+  useEffect(() => { sharedReadOnlyRef.current = sharedReadOnly; }, [sharedReadOnly]);
 
   // ——— Manual save ———
   // Build an ISO-8601 string in the local timezone, e.g. "2026-03-30T20:46:37.191-05:00"
@@ -221,11 +231,11 @@ export function useAppState() {
   }, [lines, syncMode, activeLineIndex, editorMode, settings.advanced.timezone, sessionYtUrl, playbackPosition, hasMedia]);
 
   const handleManualSave = useCallback(() => {
-    const key = isSharedSession ? SHARED_SESSION_KEY : SESSION_KEY;
+    const key = isSharedSessionRef.current ? SHARED_SESSION_KEY : SESSION_KEY;
     localStorage.setItem(key, JSON.stringify(buildSessionPayload()));
     setIsAutosaving(true);
     setTimeout(() => setIsAutosaving(false), 1200);
-  }, [buildSessionPayload, isSharedSession]);
+  }, [buildSessionPayload]);
 
   // ——— Save-after-import: fires after state settles from an import ———
   const [importTick, setImportTick] = useState(0);
@@ -236,6 +246,20 @@ export function useAppState() {
     manualSaveRef.current?.();
   }, [importTick]);
   const triggerImportSave = useCallback(() => setImportTick((t) => t + 1), []);
+
+  // ——— Fork from shared session on first user edit ———
+  const forkFromShared = useCallback(() => {
+    isSharedSessionRef.current = false;
+    setIsSharedSession(false);
+    localStorage.removeItem(SHARED_SESSION_KEY);
+  }, []);
+
+  // Guarded setLines: blocks edits when read-only, forks to personal on first edit
+  const setLinesGuarded = useCallback((updater) => {
+    if (isSharedSessionRef.current && sharedReadOnlyRef.current) return;
+    if (isSharedSessionRef.current && !sharedReadOnlyRef.current) forkFromShared();
+    setLines(updater);
+  }, [setLines, forkFromShared]);
 
   // ——— Shared session URL: decode hash on mount ———
   useEffect(() => {
@@ -277,7 +301,11 @@ export function useAppState() {
         if (parsed.ytUrl) setRestoredYtUrl(parsed.ytUrl);
         if (typeof parsed.playbackPosition === 'number') setRestoredPosition(parsed.playbackPosition);
         if (typeof parsed.playbackSpeed === 'number') setRestoredSpeed(parsed.playbackSpeed);
+        const decodedReadOnly = parsed.readOnly !== false;
+        setSharedReadOnly(decodedReadOnly);
+        sharedReadOnlyRef.current = decodedReadOnly;
         setIsSharedSession(true);
+        updateSetting('interface.focusMode', 'playback');
         localStorage.setItem(SHARED_SESSION_KEY, JSON.stringify(parsed));
       })
       .catch((err) => console.error('Failed to decode shared session URL', err));
@@ -293,17 +321,24 @@ export function useAppState() {
   }, [isSharedSession]);
 
   // ——— Export session as shareable URL ———
-  const exportToUrl = useCallback(async () => {
-    const payload = buildSharePayload(lines, editorMode, sessionYtUrl);
+  const exportToUrl = useCallback(async (readOnly = true) => {
+    const payload = buildSharePayload(lines, editorMode, sessionYtUrl, readOnly);
     try {
       const encoded = await compressToBase64(JSON.stringify(payload));
       const url = `${window.location.origin}${window.location.pathname}#s=${encoded}`;
-      await navigator.clipboard.writeText(url);
-      toast.success(t('session.sharecopied') || 'Link copied to clipboard!');
+      // Write the shared session to its own localStorage key (separate from the personal session)
+      localStorage.setItem(SHARED_SESSION_KEY, JSON.stringify(buildSessionPayload()));
+      setShareModal({
+        url,
+        ytUrl: sessionYtUrl,
+        linesCount: lines.length,
+        hasSynced: lines.some((l) => l.timestamp != null),
+        readOnly,
+      });
     } catch {
-      toast.error(t('session.shareFailed') || 'Could not copy link. Try saving manually.');
+      toast.error(t('session.shareFailed') || 'Could not generate share link.');
     }
-  }, [lines, editorMode, sessionYtUrl, t]);
+  }, [lines, editorMode, sessionYtUrl, buildSessionPayload, t]);
 
   // ——— Mode switching with end-time inference ———
   const setEditorMode = useCallback(
@@ -607,7 +642,7 @@ export function useAppState() {
     i18n,
     settings,
     lines,
-    setLines,
+    setLines: setLinesGuarded,
     undo,
     redo,
     canUndo,
@@ -648,5 +683,9 @@ export function useAppState() {
     confirmModal,
     isAutosaving,
     isSharedSession,
+    sharedReadOnly,
+    setSharedReadOnly,
+    shareModal,
+    setShareModal,
   };
 }

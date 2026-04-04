@@ -8,7 +8,6 @@ import { useAppState } from './hooks/useAppState';
 import { useSettings } from './contexts/useSettings';
 import { matchKey } from './utils/keyboard';
 import { Kbd } from './components/shared/Kbd';
-import ShareModal from './components/shared/ShareModal';
 import { Button } from './components/ui/button';
 import {
   DropdownMenu,
@@ -17,7 +16,7 @@ import {
   DropdownMenuTrigger,
 } from './components/ui/dropdown-menu';
 import { ToggleGroup, ToggleGroupItem } from './components/ui/toggle-group';
-import { Music2, UploadCloud, Globe, Settings as SettingsIcon, Share2, Pencil, Eye, Play } from 'lucide-react';
+import { Music2, UploadCloud, Globe, Settings as SettingsIcon, Share2, Pencil, Eye, Play, Lock, LockOpen } from 'lucide-react';
 import { useScrollLock } from './hooks/useScrollLock';
 import { useNetworkStatus } from './hooks/useNetworkStatus';
 
@@ -66,6 +65,8 @@ function AppInner() {
     isAutosaving,
     exportToUrl,
     isSharedSession,
+    sharedReadOnly,
+    setSharedReadOnly,
     shareModal,
     setShareModal,
   } = useAppState();
@@ -163,7 +164,7 @@ function AppInner() {
             type="single"
             value={focusMode}
             onValueChange={(val) => val && setFocusMode(val)}
-            className="hidden lg:flex bg-zinc-800/80 rounded-lg border border-zinc-700/60 overflow-hidden h-auto p-0 gap-0"
+            className="flex bg-zinc-800/80 rounded-lg border border-zinc-700/60 overflow-hidden h-auto p-0 gap-0"
           >
             <ToggleGroupItem
               value="sync"
@@ -253,7 +254,25 @@ function AppInner() {
         <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-2 sm:gap-3 lg:gap-4 min-h-0 lg:overflow-hidden max-lg:overflow-visible transition-all duration-300">
           {/* Left: Editor */}
           {showEditor && (
-            <div className={`${editorColClass} flex flex-col gap-2 sm:gap-3 lg:gap-4 min-h-0 max-lg:h-[85vh] transition-all duration-300`}>
+            <div className={`${editorColClass} relative flex flex-col gap-2 sm:gap-3 lg:gap-4 min-h-0 max-lg:h-[85vh] transition-all duration-300`}>
+              {isSharedSession && sharedReadOnly && (
+                <div className="absolute inset-0 z-10 rounded-xl sm:rounded-2xl backdrop-blur-[3px] bg-zinc-950/60 flex flex-col items-center justify-center gap-3">
+                  <div className="flex items-center gap-2 px-4 py-2.5 bg-zinc-900/95 border border-zinc-700/80 rounded-xl shadow-lg">
+                    <Lock className="w-4 h-4 text-amber-400" />
+                    <span className="text-sm font-semibold text-zinc-100">{t('session.readOnly')}</span>
+                  </div>
+                  <p className="text-xs text-zinc-400 text-center px-8 max-w-xs">{t('session.readOnlyDesc')}</p>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setSharedReadOnly(false)}
+                    className="mt-1 bg-zinc-800 border-zinc-600 text-zinc-100 hover:bg-zinc-700 gap-1.5 text-xs font-semibold"
+                  >
+                    <LockOpen className="w-3.5 h-3.5" />
+                    {t('session.editCopy')}
+                  </Button>
+                </div>
+              )}
               <div className="flex-1 min-h-0 flex flex-col">
                 <Editor
                   lines={lines}
@@ -293,6 +312,10 @@ function AppInner() {
                 editorMode={editorMode}
                 exportToUrl={exportToUrl}
                 isSharedSession={isSharedSession}
+                sharedReadOnly={sharedReadOnly}
+                setSharedReadOnly={setSharedReadOnly}
+                shareModal={shareModal}
+                setShareModal={setShareModal}
               />
             </div>
           )}
@@ -325,7 +348,6 @@ function AppInner() {
         {showSettings && <Settings isOpen={showSettings} onClose={() => setShowSettings(false)} onManualSave={handleManualSave} />}
       </Suspense>
 
-      <ShareModal data={shareModal} onClose={() => setShareModal(null)} />
 
       {/* Session Restore Modal */}
       {pendingSession && (
