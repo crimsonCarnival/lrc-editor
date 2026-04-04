@@ -1,13 +1,19 @@
 ﻿import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { serializeToRubyMarkup, isKanji } from '../../../utils/furigana';
+import { serializeToRubyMarkup, isKanji, toHiragana, toKatakana } from '../../../utils/furigana';
 import { formatTimestamp } from '../../../utils/lrc';
 import { formatTime } from '../../../utils/formatTime';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Kbd } from '../../shared/Kbd';
-import { Pencil, Play, ChevronLeft, ChevronRight, Plus, X, Trash2, Repeat } from 'lucide-react';
+import { Pencil, Play, ChevronLeft, ChevronRight, Plus, X, Trash2, Repeat, MoreHorizontal } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 /**
  * Uncontrolled input that binds wanakana romaji→hiragana conversion while mounted.
@@ -192,6 +198,7 @@ const EditorLineItem = React.memo(({
   const { t } = useTranslation();
   const [editingTimestamp, setEditingTimestamp] = useState(null); // null | 'start' | 'end'
   const [editingReadingWordIndex, setEditingReadingWordIndex] = useState(null);
+  const [inlineEditCharIdx, setInlineEditCharIdx] = useState(null); // char index in line.text for plain-text kanji reading
   const [nudgeIndicator, setNudgeIndicator] = useState(null);
   const [justSynced, setJustSynced] = useState(false);
   const nudgeTimerRef = useRef(null);
@@ -334,7 +341,7 @@ const EditorLineItem = React.memo(({
       )}
       {/* Overlap warning indicator */}
       {isOverlapping && (
-        <span className="w-1.5 h-1.5 rounded-full bg-orange-400 shrink-0 animate-pulse" title={t('editor.overlapWarning', 'Overlapping timestamp')} />
+        <span className="w-1.5 h-1.5 rounded-full bg-orange-400 shrink-0 animate-pulse" title={t('editor.overlapWarning')} />
       )}
       <span
         className={`text-xs font-mono tabular-nums shrink-0 transition-colors ${isSynced
@@ -368,41 +375,42 @@ const EditorLineItem = React.memo(({
                 nudgeIndicator={isSynced ? nudgeIndicator : null}
               />
             )}
-            {/* Word chips */}
-            {line.words?.length > 0 && (
-              <div className="flex flex-wrap gap-x-0.5 gap-y-1 max-w-[120px]">
-                {line.words.map((w, wi) => {
+            {/* Word chips — always rendered to keep consistent row height */}
+            <div className="flex flex-wrap gap-x-1 gap-y-1 max-w-[200px] min-h-[22px] items-end content-start">
+                {line.words?.map((w, wi) => {
                   const displayWord = w.word.replace(/^[()'"]+|[,;.!?()'"]+$/g, '');
                   const isEditingReading = editingReadingWordIndex === wi;
                   const isFocusedWord = focusedTimestamp?.lineIndex === i && focusedTimestamp?.type === 'word' && focusedTimestamp?.wordIndex === wi;
                   const isActiveWord = wi === activeWordIndex;
-                  const canHaveReading = isKanji(w.word?.[0] || '');
+                  const canHaveReading = isKanji(w.word || '');
+                  const readingFmt = settings?.editor?.display?.readingFormat || 'hiragana';
+                  const fmtReading = (r) => r ? (readingFmt === 'katakana' ? toKatakana(r) : toHiragana(r)) : r;
                   return (
                     <div key={wi} className="flex flex-col items-center gap-0">
-                      {/* Furigana reading row */}
-                      {isEditingReading ? (
+                      {/* Furigana reading row — only for kanji */}
+                      {canHaveReading && (isEditingReading ? (
                         <ReadingInput
-                          defaultValue={w.reading || ''}
+                          defaultValue={fmtReading(w.reading) || ''}
                           onCommit={(val) => { handleSetWordReading?.(i, wi, val); setEditingReadingWordIndex(null); }}
                           onCancel={() => setEditingReadingWordIndex(null)}
-                          readingFormat={settings?.editor?.display?.readingFormat || 'hiragana'}
-                          className="text-[7px] font-mono text-center bg-zinc-700 border border-primary/50 rounded-sm px-0.5 py-0 text-primary outline-none focus:ring-1 focus:ring-primary/40 leading-tight"
-                          style={{ width: `${Math.max(24, (w.reading?.length || 1) * 6, displayWord.length * 8)}px` }}
+                          readingFormat={readingFmt}
+                          className="text-[10px] font-mono text-center bg-zinc-700 border border-primary/50 rounded-sm px-0.5 py-0 text-primary outline-none focus:ring-1 focus:ring-primary/40 leading-tight"
+                          style={{ width: `${Math.max(32, (w.reading?.length || 1) * 10, displayWord.length * 11)}px` }}
                         />
                       ) : (
                         <span
                           onClick={(e) => { e.stopPropagation(); setEditingReadingWordIndex(wi); }}
-                          title={w.reading ? `Reading: ${w.reading} — click to edit` : 'Click to add reading'}
-                          className={`text-[7px] font-mono leading-tight cursor-pointer select-none border-b transition-colors ${
+                          title={w.reading ? t('editor.wordReadingEdit', { reading: fmtReading(w.reading) }) : t('editor.wordReadingAdd')}
+                          className={`text-[10px] font-mono leading-tight cursor-pointer select-none border-b transition-colors ${
                             w.reading
                               ? 'text-zinc-400 border-zinc-600/60 hover:text-primary hover:border-primary/50'
                               : 'text-transparent border-transparent hover:text-zinc-600 hover:border-zinc-700'
                           }`}
-                          style={{ width: `${Math.max(16, (w.reading?.length || 1) * 6, displayWord.length * 8)}px`, textAlign: 'center', display: 'block' }}
+                          style={{ width: `${Math.max(24, (w.reading?.length || 1) * 10, displayWord.length * 11)}px`, textAlign: 'center', display: 'block' }}
                         >
-                          {w.reading || '　'}
+                          {fmtReading(w.reading) || '　'}
                         </span>
-                      )}
+                      ) )}
                       {/* Word chip */}
                       {w.time != null ? (
                         <div className="group/word flex items-center gap-0.5">
@@ -418,8 +426,8 @@ const EditorLineItem = React.memo(({
                               setFocusedTimestamp({ lineIndex: i, type: 'word', wordIndex: wi });
                             }}
                             onDoubleClick={(e) => { e.stopPropagation(); if (canHaveReading) setEditingReadingWordIndex(wi); }}
-                            title={canHaveReading ? `${w.word} @ ${formatTime(w.time)} — dbl-click to edit reading` : `${w.word} @ ${formatTime(w.time)} — click to focus`}
-                            className={`text-[9px] px-1 py-0.5 rounded border leading-none transition-colors cursor-pointer hover:border-primary hover:bg-primary/20 hover:text-primary ${
+                            title={canHaveReading ? t('editor.wordChipTitleReading', { word: w.word, time: formatTime(w.time) }) : t('editor.wordChipTitle', { word: w.word, time: formatTime(w.time) })}
+                            className={`text-[11px] px-1.5 py-0.5 rounded border leading-none transition-colors cursor-pointer hover:border-primary hover:bg-primary/20 hover:text-primary ${
                               isFocusedWord
                                 ? 'bg-primary/30 border-primary text-primary ring-1 ring-primary/50'
                                 : isActiveWord
@@ -432,16 +440,16 @@ const EditorLineItem = React.memo(({
                           <button
                             type="button"
                             onClick={(e) => { e.stopPropagation(); handleClearWordTimestamp(i, wi); }}
-                            title={`Clear timestamp for "${w.word}"`}
+                            title={t('editor.clearWordTimestamp', { word: w.word })}
                             className="opacity-0 group-hover/word:opacity-100 text-zinc-600 hover:text-red-400 transition-all p-0.5 -ml-0.5"
                           >
-                            <X className="w-2 h-2" />
+                            <X className="w-2.5 h-2.5" />
                           </button>
                         </div>
                       ) : (
                         <span
                           onDoubleClick={(e) => { e.stopPropagation(); if (canHaveReading) setEditingReadingWordIndex(wi); }}
-                          className={`text-[9px] px-1 py-0.5 rounded border leading-none ${
+                          className={`text-[11px] px-1.5 py-0.5 rounded border leading-none ${
                             isActiveWord
                               ? 'bg-primary/20 border-primary/60 text-primary animate-pulse-glow'
                               : 'bg-zinc-800/50 border-zinc-700/30 text-zinc-600'
@@ -453,8 +461,7 @@ const EditorLineItem = React.memo(({
                     </div>
                   );
                 })}
-              </div>
-            )}
+            </div>
           </div>
         ) : editorMode === 'srt' ? (
           <div className="flex flex-col gap-1">
@@ -504,7 +511,7 @@ const EditorLineItem = React.memo(({
                   ? (() => {
                       const isOverlap = !isLastLine && line.endTime > line.nextTimestamp;
                       const colorClass = isOverlap ? 'text-red-400 font-bold underline decoration-wavy decoration-red-500/50' : 'text-accent-blue';
-                      return <span className={awaitingEndMark === i ? 'animate-pulse-glow text-primary' : colorClass} title={isOverlap ? 'Overlap Warning' : ''}>{formatTimestamp(line.endTime, settings.editor?.timestampPrecision || 'hundredths')}</span>;
+                      return <span className={awaitingEndMark === i ? 'animate-pulse-glow text-primary' : colorClass} title={isOverlap ? t('editor.overlapWarning') : ''}>{formatTimestamp(line.endTime, settings.editor?.timestampPrecision || 'hundredths')}</span>;
                     })()
                   : <span className={awaitingEndMark === i ? 'animate-pulse-glow text-zinc-400' : ''}>--:--.--</span>
                 }
@@ -626,13 +633,15 @@ const EditorLineItem = React.memo(({
           <div className="flex flex-col gap-0.5 group/text min-w-0 w-full">
             <div className="flex items-center gap-2">
               <p
-                className={`text-xs transition-colors ${editorMode !== 'words' && line.words?.some(w => w.reading) ? 'overflow-hidden' : 'truncate'} ${isActive
+                className={`text-xs transition-colors ${editorMode !== 'words' && (line.words?.some(w => w.reading) || editingReadingWordIndex != null || inlineEditCharIdx != null) ? 'overflow-hidden' : 'truncate'} ${isActive
                   ? 'text-zinc-100 font-medium'
                   : isSynced
-                    ? 'text-zinc-300'
+                    ? line.words?.some(w => w.time != null) ? 'text-zinc-300' : 'text-zinc-100'
                     : 'text-zinc-500'
                   }`}
-                style={editorMode !== 'words' && line.words?.some(w => w.reading) ? { lineHeight: '2.2' } : undefined}
+                style={editorMode !== 'words' && (line.words?.some(w => w.reading) || editingReadingWordIndex != null || inlineEditCharIdx != null)
+                  ? { lineHeight: '2.2' }
+                  : undefined}
               >
                 {editorMode === 'words' && line.words?.length > 0
                   ? line.words.map((w, wi) => (
@@ -643,50 +652,102 @@ const EditorLineItem = React.memo(({
                             ? 'text-primary underline decoration-dotted underline-offset-2'
                             : w.time != null
                               ? 'text-primary/70'
-                              : ''
+                              : isActive || isSynced ? 'text-zinc-100' : ''
                         }`}
                       >
                         {w.word}{' '}
                       </span>
                     ))
-                  : line.words?.some(w => w.reading)
+                  : line.words?.length > 0
                     ? line.words.map((w, wi) => {
-                        const canHaveReading = isKanji(w.word?.[0] || '');
+                        const canHaveReading = isKanji(w.word || '');
                         const isEditingThisReading = editingReadingWordIndex === wi;
-                        return (
-                          <span key={wi} className="inline-flex flex-col items-center leading-none align-bottom">
-                            {isEditingThisReading ? (
-                              <ReadingInput
-                                defaultValue={w.reading || ''}
-                                onCommit={(val) => { handleSetWordReading?.(i, wi, val); setEditingReadingWordIndex(null); }}
-                                onCancel={() => setEditingReadingWordIndex(null)}
-                                readingFormat={settings?.editor?.display?.readingFormat || 'hiragana'}
-                                className="text-[7px] font-mono text-center bg-zinc-700 border border-primary/50 rounded-sm px-0.5 py-0 text-primary outline-none focus:ring-1 focus:ring-primary/40 leading-tight"
-                                style={{ width: `${Math.max(24, [...(w.reading || '')].length * 6, [...w.word].length * 8)}px` }}
-                              />
-                            ) : (
-                              <span
+                        const rubyFmt = settings?.editor?.display?.readingFormat || 'hiragana';
+                        const fmtR = (r) => r ? (rubyFmt === 'katakana' ? toKatakana(r) : toHiragana(r)) : r;
+                        const trailingSpace = /[a-zA-Z0-9]/.test(w.word) ? ' ' : null;
+                        if (isEditingThisReading) {
+                          return (
+                            <React.Fragment key={wi}>
+                              <ruby>
+                                {w.word}
+                                <rt>
+                                  <ReadingInput
+                                    defaultValue={fmtR(w.reading) || ''}
+                                    onCommit={(val) => { handleSetWordReading?.(i, wi, val); setEditingReadingWordIndex(null); }}
+                                    onCancel={() => setEditingReadingWordIndex(null)}
+                                    readingFormat={rubyFmt}
+                                    className="text-[10px] font-mono text-center bg-zinc-700 border border-primary/50 rounded-sm px-0.5 py-0 text-primary outline-none focus:ring-1 focus:ring-primary/40 leading-tight"
+                                    style={{ width: `${Math.max(30, [...(w.reading || '')].length * 8, [...w.word].length * 9)}px` }}
+                                  />
+                                </rt>
+                              </ruby>
+                              {trailingSpace}
+                            </React.Fragment>
+                          );
+                        }
+                        if (w.reading) {
+                          return (
+                            <React.Fragment key={wi}>
+                              <ruby
                                 onClick={(e) => { e.stopPropagation(); if (canHaveReading) setEditingReadingWordIndex(wi); }}
-                                className={`text-[7px] font-mono leading-tight select-none border-b transition-colors ${
-                                  w.reading
-                                    ? 'text-zinc-400 border-zinc-600/60 hover:text-primary hover:border-primary/50 cursor-pointer'
-                                    : canHaveReading
-                                      ? 'text-transparent border-transparent hover:text-zinc-500 hover:border-zinc-700 cursor-pointer'
-                                      : 'text-transparent border-transparent pointer-events-none'
-                                }`}
-                                style={{ minWidth: `${Math.max(14, [...w.word].length * 8)}px`, textAlign: 'center', display: 'block' }}
+                                className={canHaveReading ? 'cursor-pointer' : ''}
                               >
-                                {w.reading || '　'}
-                              </span>
-                            )}
-                            <span>{w.word}</span>
-                          </span>
+                                {w.word}
+                                <rt className="text-[10px] font-mono text-zinc-400 hover:text-primary transition-colors select-none">{fmtR(w.reading)}</rt>
+                              </ruby>
+                              {trailingSpace}
+                            </React.Fragment>
+                          );
+                        }
+                        return (
+                          <React.Fragment key={wi}>
+                            <span
+                              onClick={(e) => { if (!canHaveReading) return; e.stopPropagation(); setEditingReadingWordIndex(wi); }}
+                              className={canHaveReading ? 'cursor-pointer hover:text-primary/70 transition-colors' : ''}
+                            >{w.word}</span>
+                            {trailingSpace}
+                          </React.Fragment>
                         );
                       })
-                    : (line.text || '♪')
+                    : [...(line.text || '♪')].map((ch, ci) => {
+                        if (!isKanji(ch)) return <span key={ci}>{ch}</span>;
+                        const rubyFmt = settings?.editor?.display?.readingFormat || 'hiragana';
+                        if (inlineEditCharIdx === ci) {
+                          return (
+                            <ruby key={ci}>
+                              {ch}
+                              <rt>
+                                <ReadingInput
+                                  defaultValue=""
+                                  onCommit={(val) => {
+                                    if (val) {
+                                      const chars = [...(line.text || '')];
+                                      const before = chars.slice(0, ci).join('');
+                                      const after = chars.slice(ci + 1).join('');
+                                      handleSaveLineText?.(i, `${before}${ch}[${val}]${after}`, line.secondary, line.translation);
+                                    }
+                                    setInlineEditCharIdx(null);
+                                  }}
+                                  onCancel={() => setInlineEditCharIdx(null)}
+                                  readingFormat={rubyFmt}
+                                  className="text-[10px] font-mono text-center bg-zinc-700 border border-primary/50 rounded-sm px-0.5 py-0 text-primary outline-none focus:ring-1 focus:ring-primary/40 leading-tight"
+                                  style={{ width: '30px' }}
+                                />
+                              </rt>
+                            </ruby>
+                          );
+                        }
+                        return (
+                          <span
+                            key={ci}
+                            onClick={(e) => { e.stopPropagation(); setInlineEditCharIdx(ci); }}
+                            className="cursor-pointer hover:text-primary/70 transition-colors"
+                          >{ch}</span>
+                        );
+                      })
                 }
               </p>
-              {editorMode !== 'words' && line.words?.length > 0 && !line.words.some((w) => w.time != null) && (
+              {editorMode !== 'words' && line.words?.some((w) => w.time != null) && (
                 <span
                   className="flex-shrink-0 text-[9px] font-mono text-accent-blue/60 px-1 py-0.5 bg-accent-blue/10 rounded border border-accent-blue/20 leading-none cursor-pointer hover:bg-accent-blue/20 hover:text-accent-blue transition-colors"
                   title={t('editor.wordBadgeHint', { count: line.words.filter(w => w.time != null).length })}
@@ -811,29 +872,46 @@ const EditorLineItem = React.memo(({
                 >
                   <Plus className="w-3 h-3" />
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="icon-xs"
-                  onClick={(e) => { e.stopPropagation(); handleClearLine(i); }}
-                  className="text-zinc-500 hover:text-orange-400 hover:bg-orange-500/10"
-                  title={t('editor.clearTimestamp')}
-                >
-                  <X className="w-3 h-3" />
-                </Button>
               </>
             )}
           </>
         )}
         {selectedLines.size === 0 && (
-          <Button
-            variant="ghost"
-            size="icon-xs"
-            onClick={(e) => { e.stopPropagation(); handleDeleteLine(i); }}
-            className="text-zinc-500 hover:text-red-400 hover:bg-red-500/10"
-            title={t('editor.removeLine')}
-          >
-            <Trash2 className="w-3 h-3" />
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                onClick={(e) => e.stopPropagation()}
+                className="text-zinc-500 hover:text-zinc-300 hover:bg-zinc-700/60"
+                title="More actions"
+              >
+                <MoreHorizontal className="w-3 h-3" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              className="bg-zinc-900 border-zinc-700/80 min-w-[160px]"
+              align="end"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {line.timestamp != null && (
+                <DropdownMenuItem
+                  onClick={() => handleClearLine(i)}
+                  className="text-xs text-zinc-300 focus:bg-zinc-800/80 focus:text-orange-400 cursor-pointer gap-2"
+                >
+                  <X className="w-3.5 h-3.5" />
+                  {t('editor.clearTimestamp')}
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuItem
+                onClick={() => handleDeleteLine(i)}
+                className="text-xs text-zinc-300 focus:bg-zinc-800/80 focus:text-red-400 cursor-pointer gap-2"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                {t('editor.removeLine')}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
       </div>
       {/* Progress stripe for active synced line */}

@@ -21,7 +21,7 @@ function ActionsDropdown({ children, t }) {
           variant="ghost"
           size="icon-sm"
           className="text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"
-          title={t('editor.actions', 'Actions')}
+          title={t('editor.actions')}
         >
           {open ? <X className="w-3.5 h-3.5" /> : <MoreHorizontal className="w-3.5 h-3.5" />}
         </Button>

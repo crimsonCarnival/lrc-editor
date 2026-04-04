@@ -100,22 +100,48 @@ export function useEditor({
           const hasCJK = /[\u3000-\u9FFF\uF900-\uFAFF]/.test(text);
 
           if (hasCJK) {
-            // CJK: always split into individual characters
-            const chars = [...text].filter(ch => ch.trim());
-            if (!chars.length) return line;
-            // If existing words, distribute their timestamps to the new char positions
+            // Mixed CJK+Latin: split CJK chars individually, keep Latin runs as words
+            const cjkTokens = [];
+            const codePoints = [...text];
+            let ci = 0;
+            while (ci < codePoints.length) {
+              const ch = codePoints[ci];
+              if (!ch.trim()) { ci++; continue; }
+              if (/[\u3000-\u9FFF\uF900-\uFAFF]/.test(ch)) {
+                cjkTokens.push(ch);
+                ci++;
+              } else {
+                let j = ci;
+                while (j < codePoints.length && !/[\u3000-\u9FFF\uF900-\uFAFF]/.test(codePoints[j]) && codePoints[j].trim()) j++;
+                cjkTokens.push(codePoints.slice(ci, j).join(''));
+                ci = j;
+              }
+            }
+            if (!cjkTokens.length) return line;
+            // If existing words reconstruct to the same text, keep them — preserves readings & timestamps
             if (line.words?.length) {
-              const newWords = chars.map((ch) => ({ word: ch, time: null }));
+              const existingText = line.words.map(w => w.word).join('');
+              const strippedText = cjkTokens.join('');
+              if (existingText === strippedText) return line;
+              // Text changed — re-tokenize, preserving timestamps and readings by char position
+              const newWords = cjkTokens.map((tok) => ({ word: tok, time: null }));
               let charIdx = 0;
               line.words.forEach((oldWord) => {
-                if (oldWord.time != null && charIdx < newWords.length) {
-                  newWords[charIdx].time = oldWord.time;
+                let pos = 0;
+                let tokIdx = 0;
+                while (tokIdx < newWords.length && pos + [...newWords[tokIdx].word].length <= charIdx) {
+                  pos += [...newWords[tokIdx].word].length;
+                  tokIdx++;
+                }
+                if (tokIdx < newWords.length) {
+                  if (oldWord.time != null) newWords[tokIdx].time = oldWord.time;
+                  if (oldWord.reading) newWords[tokIdx].reading = oldWord.reading;
                 }
                 charIdx += [...oldWord.word].length;
               });
               return { ...line, words: newWords };
             }
-            return { ...line, words: chars.map((word) => ({ word, time: null })) };
+            return { ...line, words: cjkTokens.map((word) => ({ word, time: null })) };
           }
 
           // Latin: keep existing words if present
@@ -520,13 +546,26 @@ export function useEditor({
             newWords.push({ word: seg.text, time: anchor?.time ?? null, reading: seg.reading });
             charPos += segChars.length;
           } else if (isCJKText) {
-            for (const ch of segChars) {
-              if (!ch.trim()) { charPos++; continue; }
-              const old = oldWordAtPos.get(charPos);
-              const w = { word: ch, time: old?.time ?? null };
-              if (old?.reading) w.reading = old.reading;
-              newWords.push(w);
-              charPos++;
+            // Mixed CJK+Latin: split CJK chars individually, keep Latin runs as whole words
+            let ci = 0;
+            while (ci < segChars.length) {
+              const ch = segChars[ci];
+              if (!ch.trim()) { charPos++; ci++; continue; }
+              if (/[\u3000-\u9FFF\uF900-\uFAFF]/.test(ch)) {
+                const old = oldWordAtPos.get(charPos);
+                const w = { word: ch, time: old?.time ?? null };
+                if (old?.reading) w.reading = old.reading;
+                newWords.push(w);
+                charPos++; ci++;
+              } else {
+                let j = ci;
+                while (j < segChars.length && !/[\u3000-\u9FFF\uF900-\uFAFF]/.test(segChars[j]) && segChars[j].trim()) j++;
+                const latinToken = segChars.slice(ci, j).join('');
+                const old = oldWordAtPos.get(charPos);
+                newWords.push({ word: latinToken, time: old?.time ?? null });
+                charPos += [...latinToken].length;
+                ci = j;
+              }
             }
           } else {
             const tokens = seg.text.trim().split(/\s+/).filter(Boolean);
