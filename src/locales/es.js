@@ -150,7 +150,10 @@ export default {
       "sharecopied": "¡Enlace copiado al portapapeles!",
       "shareFailed": "No se pudo copiar el enlace. Intenta guardar manualmente.",
       "save": "Guardar",
-      "saved": "Guardado"
+      "saved": "Guardado",
+      "readOnly": "Solo lectura",
+      "readOnlyDesc": "Esta es una sesión de solo lectura. No se guardarán cambios.",
+      "editCopy": "Editar tu copia"
     },
 
     "confirm": {
@@ -176,6 +179,21 @@ export default {
       "urlPlaceholder": "https://ejemplo.com/letras.lrc",
       "fetchError": "Error al obtener el archivo. El servidor puede no permitir solicitudes externas.",
       "invalidUrl": "URL inválida. Usa http:// o https://"
+    },
+
+    "share": {
+      "title": "Compartir sesión",
+      "youtubeIncluded": "YouTube incluido",
+      "noYoutube": "Sin YouTube cargado",
+      "syncedLines": "líneas sincronizadas",
+      "lines": "líneas (sin sincronizar)",
+      "description": "Cualquiera con este enlace puede abrir la app, ver las letras sincronizadas en tiempo real y escuchar el video de YouTube.",
+      "noYoutubeWarning": "Carga un video de YouTube antes de compartir para que los espectadores puedan escuchar.",
+      "recipientEditing": "El receptor puede editar",
+      "readOnly": "No — solo lectura",
+      "allowEditing": "Sí — permitir edición",
+      "copy": "Copiar enlace",
+      "copied": "¡Copiado!"
     },
 
     "network": {

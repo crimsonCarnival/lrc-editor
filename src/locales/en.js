@@ -150,7 +150,10 @@ export default {
       "sharecopied": "Link copied to clipboard!",
       "shareFailed": "Could not copy link. Try saving manually.",
       "save": "Save",
-      "saved": "Saved"
+      "saved": "Saved",
+      "readOnly": "Read only",
+      "readOnlyDesc": "This is a view-only session. No edits will be saved.",
+      "editCopy": "Edit your copy"
     },
 
     "confirm": {
@@ -176,6 +179,21 @@ export default {
       "urlPlaceholder": "https://example.com/lyrics.lrc",
       "fetchError": "Failed to fetch. The server may not allow cross-origin requests.",
       "invalidUrl": "Invalid URL. Use http:// or https://"
+    },
+
+    "share": {
+      "title": "Share Session",
+      "youtubeIncluded": "YouTube included",
+      "noYoutube": "No YouTube loaded",
+      "syncedLines": "synced lines",
+      "lines": "lines (unsynced)",
+      "description": "Anyone with this link can open the app, watch the lyrics sync in real time, and listen to the YouTube video.",
+      "noYoutubeWarning": "Load a YouTube video before sharing so viewers can listen along.",
+      "recipientEditing": "Recipient can edit",
+      "readOnly": "No — read-only",
+      "allowEditing": "Yes — allow editing",
+      "copy": "Copy link",
+      "copied": "Copied!"
     },
 
     "network": {
