@@ -182,14 +182,15 @@ function needsSpaceAfter(currentWord, nextWord) {
 
 // ——— Render main text track with karaoke fill ———
 // Fill effect is ONLY applied when word-level timestamps exist.
-function renderMainTrack({ line, isActive, isPast, hasWordTimestamps, playbackPosition, activeFontSizes, inactiveFontSizes, sizeOption, spacingOption, settings }) {
+function renderMainTrack({ line, isActive, isPast, hasWordTimestamps, playbackPosition, activeFontSizes, inactiveFontSizes, sizeOption, spacingOption, settings, showFuriganaInPreview = true }) {
   const highlightMode = settings.editor?.display?.activeHighlight;
-  const activeClass = `${activeFontSizes[sizeOption]} font-bold ${highlightMode === 'glow' ? 'text-primary glow-line' : highlightMode === 'color' ? 'text-primary' : highlightMode === 'dim' ? 'text-zinc-100' : 'text-primary'} ${spacingOption === 'compact' ? 'my-0' : 'my-0.5 sm:my-1'}`;
-  const pastClass = `${inactiveFontSizes[sizeOption]} ${highlightMode === 'dim' ? 'text-zinc-700' : 'text-zinc-500'}`;
+  // Active = white (fill effect provides green); past/completed = green; future = dim
+  const activeClass = `${activeFontSizes[sizeOption]} font-bold text-zinc-100 ${highlightMode === 'glow' ? 'glow-line' : ''} ${spacingOption === 'compact' ? 'my-0' : 'my-0.5 sm:my-1'}`;
+  const pastClass = `${inactiveFontSizes[sizeOption]} ${highlightMode === 'dim' ? 'text-zinc-700' : 'text-primary'}`;
   const futureClass = `${inactiveFontSizes[sizeOption]} ${highlightMode === 'dim' ? 'text-zinc-800' : 'text-zinc-600'}`;
 
-  // Furigana readings come from word.reading (populated by kuromoji generator)
-  const hasReadings = line.words?.some((w) => w.reading);
+  // Furigana readings come from word.reading; gated by showFuriganaInPreview
+  const hasReadings = showFuriganaInPreview && line.words?.some((w) => w.reading);
   const mainText = line.text || '♪';
   const hasCJK = /[\u3000-\u9FFF\uF900-\uFAFF]/.test(mainText);
   const readingFmt = settings.editor?.display?.readingFormat || 'hiragana';
@@ -214,14 +215,14 @@ function renderMainTrack({ line, isActive, isPast, hasWordTimestamps, playbackPo
               const filled = fillPct >= 50;
               return (
                 <React.Fragment key={wi}>
-                  {renderWordUnit(w, filled, fmtReading)}
+                  {renderWordUnit(w, filled, fmtReading, showFuriganaInPreview)}
                   {addSpace ? ' ' : null}
                 </React.Fragment>
               );
             }
 
             // Latin text: use overlay technique for smooth sub-character fill
-            const wordContent = w.reading && isKanjiWord(w.word)
+            const wordContent = w.reading && isKanjiWord(w.word) && showFuriganaInPreview
               ? <ruby>{w.word}<rp>(</rp><rt style={{ paddingBottom: '2px' }}>{fmtReading(w.reading)}</rt><rp>)</rp></ruby>
               : w.word;
             return (
@@ -242,7 +243,7 @@ function renderMainTrack({ line, isActive, isPast, hasWordTimestamps, playbackPo
             );
           })
         // No word timestamps: just render text with furigana if available, no fill
-        : hasReadings ? renderLineWithReadings(line, fmtReading) : mainText
+        : hasReadings ? renderLineWithReadings(line, fmtReading, showFuriganaInPreview) : mainText
       }
     </p>
   );
@@ -255,10 +256,10 @@ function isKanjiWord(word) {
 }
 
 // ——— Render a single word with optional ruby (only on kanji) and fill color ———
-function renderWordUnit(w, filled, fmtReading) {
+function renderWordUnit(w, filled, fmtReading, showFurigana = true) {
   const textCls = `transition-colors duration-75 ${filled ? 'text-primary' : 'text-zinc-500'}`;
   const rtCls = `transition-colors duration-75 ${filled ? '!text-primary' : '!text-zinc-600'}`;
-  if (w.reading && isKanjiWord(w.word)) {
+  if (w.reading && isKanjiWord(w.word) && showFurigana) {
     return (
       <ruby className={textCls}>
         {w.word}<rp>(</rp><rt className={rtCls} style={{ paddingBottom: '2px' }}>{fmtReading(w.reading)}</rt><rp>)</rp>
@@ -269,11 +270,11 @@ function renderWordUnit(w, filled, fmtReading) {
 }
 
 // ——— Render line text with ruby annotations from word.reading (only on kanji) ———
-function renderLineWithReadings(line, fmtReading) {
+function renderLineWithReadings(line, fmtReading, showFurigana = true) {
   const words = line.words || [];
   if (words.length === 0) return line.text || '♪';
   return words.map((w, i) =>
-    w.reading && isKanjiWord(w.word)
+    w.reading && isKanjiWord(w.word) && showFurigana
       ? <ruby key={i}>{w.word}<rp>(</rp><rt style={{ paddingBottom: '2px' }}>{fmtReading(w.reading)}</rt><rp>)</rp></ruby>
       : <React.Fragment key={i}>{w.word}</React.Fragment>
   );

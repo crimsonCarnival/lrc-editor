@@ -13,7 +13,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { SharePanel } from '../shared/ShareModal';
-import { Eye, Share2, X, Lock, LockOpen } from 'lucide-react';
+import { Eye, Share2, X, Lock, LockOpen, BookOpen } from 'lucide-react';
 
 export default function Preview(props) {
   const {
@@ -105,6 +105,17 @@ export default function Preview(props) {
         </h2>
         {hasSyncedLines && (
           <div className="relative flex items-center gap-1 text-zinc-300">
+            {hasFurigana && (
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={() => setShowFuriganaInPreview((v) => !v)}
+                className={`flex-shrink-0 transition-colors ${showFuriganaInPreview ? 'text-primary bg-primary/10 hover:bg-primary/20' : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'}`}
+                title={t('preview.furigana', 'Furigana')}
+              >
+                <BookOpen className="w-4 sm:w-5 h-4 sm:h-5" strokeWidth={1.8} />
+              </Button>
+            )}
             {/* Share button */}
             <Button
               ref={shareTriggerRef}
@@ -188,17 +199,6 @@ export default function Preview(props) {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-36 sm:w-48 bg-zinc-900 border-zinc-700/80" align="end">
-                {hasFurigana && (
-                  <DropdownMenuItem
-                    onClick={() => setShowFuriganaInPreview((v) => !v)}
-                    className="text-xs sm:text-sm text-zinc-300 focus:bg-zinc-800 focus:text-zinc-100 cursor-pointer flex items-center justify-between"
-                  >
-                    {t('preview.furigana', 'Furigana')}
-                    <span className={`text-[10px] ml-2 ${showFuriganaInPreview ? 'text-primary' : 'text-zinc-600'}`}>
-                      {showFuriganaInPreview ? '✓' : '✗'}
-                    </span>
-                  </DropdownMenuItem>
-                )}
                 <DropdownMenuItem
                   onClick={() => { setPastingType('secondary'); setPasteText(lines.map(l => l.secondary || '').join('\n')); }}
                   className="text-xs sm:text-sm text-zinc-300 focus:bg-zinc-800 focus:text-zinc-100 cursor-pointer"
@@ -210,12 +210,6 @@ export default function Preview(props) {
                   className="text-xs sm:text-sm text-zinc-300 focus:bg-zinc-800 focus:text-zinc-100 cursor-pointer"
                 >
                   {t('preview.translation')}
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => { setPastingType('furigana'); setPasteText(lines.map(l => l.furigana || '').join('\n')); }}
-                  className="text-xs sm:text-sm text-zinc-300 focus:bg-zinc-800 focus:text-zinc-100 cursor-pointer"
-                >
-                  {t('preview.furigana', 'Furigana')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
