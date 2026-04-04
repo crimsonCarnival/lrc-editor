@@ -13,14 +13,15 @@ import { Pencil, Play, ChevronLeft, ChevronRight, Plus, X, Trash2, Repeat } from
  * Uncontrolled input that binds wanakana romaji→hiragana conversion while mounted.
  * Only activates if the global `window.wanakana` is available (CDN load).
  */
-function ReadingInput({ defaultValue, onCommit, onCancel, className, style, placeholder }) {
+function ReadingInput({ defaultValue, onCommit, onCancel, className, style, placeholder, readingFormat }) {
   const ref = useRef(null);
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    window.wanakana?.bind(el, { IMEMode: 'toHiragana' });
+    const toKana = readingFormat === 'katakana' ? 'toKatakana' : 'toHiragana';
+    window.wanakana?.bind(el, { IMEMode: toKana });
     return () => { window.wanakana?.unbind(el); };
-  }, []);
+  }, [readingFormat]);
   return (
     <input
       ref={ref}
@@ -339,6 +340,7 @@ const EditorLineItem = React.memo(({
                           defaultValue={w.reading || ''}
                           onCommit={(val) => { handleSetWordReading?.(i, wi, val); setEditingReadingWordIndex(null); }}
                           onCancel={() => setEditingReadingWordIndex(null)}
+                          readingFormat={settings?.editor?.display?.readingFormat || 'hiragana'}
                           className="text-[7px] font-mono text-center bg-zinc-700 border border-primary/50 rounded-sm px-0.5 py-0 text-primary outline-none focus:ring-1 focus:ring-primary/40 leading-tight"
                           style={{ width: `${Math.max(24, (w.reading?.length || 1) * 6, displayWord.length * 8)}px` }}
                         />
@@ -613,6 +615,7 @@ const EditorLineItem = React.memo(({
                                 defaultValue={w.reading || ''}
                                 onCommit={(val) => { handleSetWordReading?.(i, wi, val); setEditingReadingWordIndex(null); }}
                                 onCancel={() => setEditingReadingWordIndex(null)}
+                                readingFormat={settings?.editor?.display?.readingFormat || 'hiragana'}
                                 className="text-[7px] font-mono text-center bg-zinc-700 border border-primary/50 rounded-sm px-0.5 py-0 text-primary outline-none focus:ring-1 focus:ring-primary/40 leading-tight"
                                 style={{ width: `${Math.max(24, [...(w.reading || '')].length * 6, [...w.word].length * 8)}px` }}
                               />

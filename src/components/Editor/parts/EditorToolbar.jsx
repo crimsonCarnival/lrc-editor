@@ -209,13 +209,12 @@ export default function EditorToolbar({
                         updateSetting('editor.display.readingFormat', next);
                         onConvertReadings?.(next);
                       }}
-                      className="text-xs text-zinc-400 focus:bg-zinc-800 focus:text-zinc-200 cursor-pointer gap-2 pl-6"
+                      className="text-xs text-zinc-400 focus:bg-zinc-800 focus:text-zinc-200 cursor-pointer gap-2"
                     >
-                      {(settings.editor?.display?.readingFormat || 'hiragana') === 'hiragana'
-                        ? <span className="text-[10px] font-medium text-zinc-500">あ → ア</span>
-                        : <span className="text-[10px] font-medium text-zinc-500">ア → あ</span>
-                      }
-                      {t(`editor.readingFormat.${settings.editor?.display?.readingFormat || 'hiragana'}`)}
+                      <span className="w-3.5 h-3.5 flex items-center justify-center text-[10px] font-bold flex-shrink-0">
+                        {(settings.editor?.display?.readingFormat || 'hiragana') === 'hiragana' ? 'ア' : 'あ'}
+                      </span>
+                      {t(`editor.readingFormat.${(settings.editor?.display?.readingFormat || 'hiragana') === 'hiragana' ? 'katakana' : 'hiragana'}`)}
                     </DropdownMenuItem>
                     <DropdownMenuSeparator className="bg-zinc-700/50" />
                     <DropdownMenuItem
@@ -496,13 +495,12 @@ export default function EditorToolbar({
                       updateSetting('editor.display.readingFormat', next);
                       onConvertReadings?.(next);
                     }}
-                    className="text-xs text-zinc-400 focus:bg-zinc-800 focus:text-zinc-200 cursor-pointer gap-2 pl-6"
+                    className="text-xs text-zinc-400 focus:bg-zinc-800 focus:text-zinc-200 cursor-pointer gap-2"
                   >
-                    {(settings.editor?.display?.readingFormat || 'hiragana') === 'hiragana'
-                      ? <span className="text-[10px] font-medium text-zinc-500">あ → ア</span>
-                      : <span className="text-[10px] font-medium text-zinc-500">ア → あ</span>
-                    }
-                    {t(`editor.readingFormat.${settings.editor?.display?.readingFormat || 'hiragana'}`)}
+                    <span className="w-3.5 h-3.5 flex items-center justify-center text-[10px] font-bold flex-shrink-0">
+                      {(settings.editor?.display?.readingFormat || 'hiragana') === 'hiragana' ? 'ア' : 'あ'}
+                    </span>
+                    {t(`editor.readingFormat.${(settings.editor?.display?.readingFormat || 'hiragana') === 'hiragana' ? 'katakana' : 'hiragana'}`)}
                   </DropdownMenuItem>
                 </>
               )}
