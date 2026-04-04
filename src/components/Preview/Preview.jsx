@@ -1,4 +1,6 @@
-﻿import { usePreview } from './usePreview';
+﻿import { useRef, useEffect, useState, useCallback } from 'react';
+import { createPortal } from 'react-dom';
+import { usePreview } from './usePreview';
 import ExportPanel from './ExportPanel';
 import PreviewPasteArea from './PreviewPasteArea';
 import PreviewLine from './PreviewLine';
@@ -9,7 +11,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Eye, Share2, X } from 'lucide-react';
+import { SharePanel } from '../shared/ShareModal';
+import { Eye, Share2, X, Lock, LockOpen } from 'lucide-react';
 
 export default function Preview(props) {
   const {
@@ -60,9 +63,39 @@ export default function Preview(props) {
     handleCopy,
   } = usePreview(props);
 
-  const { lines, playbackPosition, exportToUrl, isSharedSession, editorMode } = props;
+  const { lines, playbackPosition, exportToUrl, isSharedSession, sharedReadOnly, setSharedReadOnly, editorMode, shareModal, setShareModal } = props;
+
+  const shareTriggerRef = useRef(null);
+  const sharePanelRef = useRef(null);
+  const [shareAnchor, setShareAnchor] = useState(null);
+
+  // Close panel on outside click
+  useEffect(() => {
+    if (!shareModal) return;
+    const handler = (e) => {
+      if (shareTriggerRef.current?.contains(e.target)) return;
+      if (sharePanelRef.current?.contains(e.target)) return;
+      setShareModal(null);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [shareModal, setShareModal]);
+
+  const handleShareToggle = useCallback(() => {
+    if (shareModal) {
+      setShareModal(null);
+      setShareAnchor(null);
+      return;
+    }
+    if (shareTriggerRef.current) {
+      const rect = shareTriggerRef.current.getBoundingClientRect();
+      setShareAnchor({ top: rect.bottom + 8, right: window.innerWidth - rect.right });
+    }
+    exportToUrl();
+  }, [shareModal, setShareModal, exportToUrl]);
 
   return (
+    <>
     <div className="glass relative rounded-xl sm:rounded-2xl p-3 sm:p-5 flex flex-col h-full animate-fade-in">
       {/* Header */}
       <div className="flex items-center justify-between mb-2 sm:mb-4 gap-2 sm:gap-4 relative z-raised">
@@ -73,14 +106,39 @@ export default function Preview(props) {
           <div className="relative flex items-center gap-1 text-zinc-300">
             {/* Share button */}
             <Button
+              ref={shareTriggerRef}
               variant="ghost"
               size="icon-sm"
-              onClick={exportToUrl}
-              className={`flex-shrink-0 ${isSharedSession ? 'text-primary bg-primary/10 hover:bg-primary/20' : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'}`}
-              title={isSharedSession ? 'Viewing shared session' : 'Share session'}
+              onClick={handleShareToggle}
+              className={`flex-shrink-0 transition-colors ${
+                isSharedSession
+                  ? 'text-primary bg-primary/10 hover:bg-primary/20'
+                  : shareModal
+                    ? 'bg-zinc-800 text-zinc-100 hover:bg-zinc-700'
+                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'
+              }`}
+              title={shareModal ? t('share.close', 'Close') : (isSharedSession ? 'Viewing shared session' : 'Share session')}
             >
-              <Share2 className="w-4 sm:w-5 h-4 sm:h-5" strokeWidth={1.8} />
+              {shareModal
+                ? <X className="w-4 sm:w-5 h-4 sm:h-5" strokeWidth={2} />
+                : <Share2 className="w-4 sm:w-5 h-4 sm:h-5" strokeWidth={1.8} />
+              }
             </Button>
+            {/* Lock/unlock toggle for shared sessions */}
+            {isSharedSession && (
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={() => setSharedReadOnly?.(!sharedReadOnly)}
+                className={`flex-shrink-0 ${sharedReadOnly ? 'text-amber-400 hover:text-amber-300 bg-amber-400/10 hover:bg-amber-400/20' : 'text-emerald-400 hover:text-emerald-300 bg-emerald-400/10 hover:bg-emerald-400/20'}`}
+                title={sharedReadOnly ? 'Read-only \u2014 click to edit your copy' : 'Editing your personal copy'}
+              >
+                {sharedReadOnly
+                  ? <Lock className="w-4 sm:w-5 h-4 sm:h-5" strokeWidth={1.8} />
+                  : <LockOpen className="w-4 sm:w-5 h-4 sm:h-5" strokeWidth={1.8} />
+                }
+              </Button>
+            )}
             {lines.some(l => l.translation) && (
               <Button
                 variant="ghost"
@@ -291,5 +349,22 @@ export default function Preview(props) {
         </div>
       )}
     </div>
+      {shareModal && shareAnchor && createPortal(
+        <div
+          ref={sharePanelRef}
+          style={{ position: 'fixed', top: shareAnchor.top, right: shareAnchor.right }}
+          className="z-overlay w-80 bg-zinc-900 border border-zinc-700/80 rounded-xl shadow-elevated animate-fade-in"
+        >
+          <div className="flex items-center gap-2 px-4 pt-3 pb-1">
+            <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-primary to-accent-purple flex items-center justify-center flex-shrink-0">
+              <Share2 className="w-3 h-3 text-white" strokeWidth={2} />
+            </div>
+            <span className="text-xs font-bold text-zinc-100">{t('share.title', 'Share Session')}</span>
+          </div>
+          <SharePanel {...shareModal} />
+        </div>,
+        document.body
+      )}
+    </>
   );
 }
