@@ -390,7 +390,7 @@ function VirtualizedLineList({
                   handleSetActiveWordIndex={handleSetActiveWordIndex}
                   handleSetTimestamp={handleSetTimestamp}
                   handleSetWordReading={handleSetWordReading}
-                  playbackPosition={playbackPosition}
+                  playbackPosition={isActive ? playbackPosition : null}
                   isOverlapping={overlappingLines.has(i)}
                   upcomingDepth={upcomingDepth}
                 />

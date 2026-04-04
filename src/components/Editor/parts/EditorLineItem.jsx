@@ -196,6 +196,9 @@ const EditorLineItem = React.memo(({
   const [justSynced, setJustSynced] = useState(false);
   const nudgeTimerRef = useRef(null);
   const justSyncedTimerRef = useRef(null);
+  // Touch gesture refs
+  const touchStartRef = useRef(null);
+  const longPressTimerRef = useRef(null);
 
   const showNudge = useCallback((delta) => {
     const sign = delta > 0 ? '+' : '';
@@ -211,8 +214,47 @@ const EditorLineItem = React.memo(({
     showNudge(delta);
   }, [shiftTime, showNudge]);
 
-  // Cleanup nudge timer
-  useEffect(() => () => clearTimeout(nudgeTimerRef.current), []);
+  // ── Touch gesture handlers ──
+  const handleTouchStart = useCallback((e) => {
+    const touch = e.touches[0];
+    touchStartRef.current = { x: touch.clientX, y: touch.clientY, time: Date.now() };
+
+    // Long-press → select (500ms)
+    clearTimeout(longPressTimerRef.current);
+    longPressTimerRef.current = setTimeout(() => {
+      handleToggleLine(i);
+      touchStartRef.current = null; // cancel swipe
+    }, 500);
+  }, [handleToggleLine, i]);
+
+  const handleTouchEnd = useCallback((e) => {
+    clearTimeout(longPressTimerRef.current);
+    if (!touchStartRef.current) return;
+    const touch = e.changedTouches[0];
+    const dx = touch.clientX - touchStartRef.current.x;
+    const dy = touch.clientY - touchStartRef.current.y;
+    const elapsed = Date.now() - touchStartRef.current.time;
+    touchStartRef.current = null;
+
+    // Only register horizontal swipe: |dx| > 40px, |dy| < 30px, < 500ms
+    if (Math.abs(dx) > 40 && Math.abs(dy) < 30 && elapsed < 500 && isSynced) {
+      const nudge = settings.editor?.nudge?.default || 0.1;
+      const delta = dx > 0 ? nudge : -nudge;
+      shiftTime(i, delta);
+      showNudge(delta);
+    }
+  }, [isSynced, settings.editor?.nudge?.default, shiftTime, showNudge, i]);
+
+  const handleTouchMove = useCallback(() => {
+    // Cancel long-press if finger moved
+    clearTimeout(longPressTimerRef.current);
+  }, []);
+
+  // Cleanup timers
+  useEffect(() => () => {
+    clearTimeout(nudgeTimerRef.current);
+    clearTimeout(longPressTimerRef.current);
+  }, []);
 
   // Just-synced flash: trigger when line transitions from unsynced to synced
   const [prevIsSynced, setPrevIsSynced] = useState(isSynced);
@@ -242,6 +284,9 @@ const EditorLineItem = React.memo(({
       onClick={(e) => handleLineClick(i, e)}
       onMouseEnter={() => handleLineHover(i)}
       onMouseLeave={handleLineHoverEnd}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      onTouchMove={handleTouchMove}
       draggable
       onDragStart={(e) => handleDragStart(e, i)}
       onDragOver={(e) => handleDragOver(e, i)}
