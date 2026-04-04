@@ -1,6 +1,10 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { extractVideoId } from './playerService';
 
+// Module-level WeakMap: stores raw YouTube player objects outside React's
+// tracking system so React DevTools never walks the cross-origin iframe.
+const ytPlayerStore = new WeakMap();
+
 export default function useYouTubePlayer({
   containerRef,
   t,
@@ -16,7 +20,43 @@ export default function useYouTubePlayer({
   initialYtUrl,
   onYtUrlChange,
 }) {
+  // useRef gives a stable identity ESLint recognises as safe in dep arrays.
+  // On first render we redefine `current` as a non-enumerable WeakMap-backed
+  // accessor so React DevTools' property-walker never reaches the raw YT player
+  // object (which would throw a cross-origin SecurityError).
   const ytPlayerRef = useRef(null);
+  const _ytRefInitialized = useRef(false);
+  if (!_ytRefInitialized.current) {
+    _ytRefInitialized.current = true;
+    const _ref = ytPlayerRef; // capture stable reference for the closure
+    Object.defineProperty(ytPlayerRef, 'current', {
+      enumerable: false, // hidden from DevTools enumeration
+      configurable: true,
+      get: () => {
+        const raw = ytPlayerStore.get(_ref) ?? null;
+        if (!raw) return null;
+        // Wrap in a Proxy so React DevTools can never walk into the YT player's
+        // cross-origin iframe properties (e.g. contentWindow) that throw SecurityError.
+        // ownKeys/getOwnPropertyDescriptor return nothing → DevTools sees an opaque
+        // object and stops; our own code still reaches all API methods via the get trap.
+        return new Proxy(raw, {
+          get(target, prop) {
+            try {
+              const val = target[prop];
+              return typeof val === 'function' ? val.bind(target) : val;
+            } catch {
+              return undefined;
+            }
+          },
+          ownKeys() { return []; },
+          getOwnPropertyDescriptor() { return undefined; },
+          getPrototypeOf() { return null; },
+          has() { return false; },
+        });
+      },
+      set: (v) => { if (v == null) ytPlayerStore.delete(_ref); else ytPlayerStore.set(_ref, v); },
+    });
+  }
   const ytInnerRef = useRef(null);
   const rafIdRef = useRef(null);
   const apiLoadedRef = useRef(false);
