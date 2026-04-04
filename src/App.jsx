@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useCallback } from 'react';
+import { lazy, Suspense, useEffect, useCallback, useState } from 'react';
 import Player from './components/Player';
 import { SettingsProvider } from './contexts/SettingsContext';
 
@@ -16,7 +16,7 @@ import {
   DropdownMenuTrigger,
 } from './components/ui/dropdown-menu';
 import { ToggleGroup, ToggleGroupItem } from './components/ui/toggle-group';
-import { Music2, UploadCloud, Globe, Settings as SettingsIcon, Share2, Pencil, Eye, Play, Lock, LockOpen } from 'lucide-react';
+import { Music2, UploadCloud, Globe, Settings as SettingsIcon, Share2, Pencil, Eye, Play, Lock, LockOpen, LayoutList } from 'lucide-react';
 import { useScrollLock } from './hooks/useScrollLock';
 import { useNetworkStatus } from './hooks/useNetworkStatus';
 
@@ -76,6 +76,9 @@ function AppInner() {
 
   const { settings, updateSetting } = useSettings();
   const focusMode = settings.interface?.focusMode || 'default';
+
+  // Mobile tab state: 'editor' | 'preview'
+  const [mobileTab, setMobileTab] = useState('editor');
 
   const setFocusMode = useCallback((mode) => {
     updateSetting('interface.focusMode', mode);
@@ -249,12 +252,12 @@ function AppInner() {
         </div>
       </header>
 
-      <div className="relative z-raised max-w-7xl mx-auto w-full flex-1 min-h-0 px-2 sm:px-4 lg:px-6 pb-36 lg:pb-4 flex flex-col">
+      <div className="relative z-raised max-w-7xl mx-auto w-full flex-1 min-h-0 px-2 sm:px-4 lg:px-6 max-lg:pb-[144px] lg:pb-4 flex flex-col">
         {/* Main content grid */}
         <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-2 sm:gap-3 lg:gap-4 min-h-0 lg:overflow-hidden max-lg:overflow-visible transition-all duration-300">
           {/* Left: Editor */}
           {showEditor && (
-            <div className={`${editorColClass} relative flex flex-col gap-2 sm:gap-3 lg:gap-4 min-h-0 max-lg:h-[85vh] transition-all duration-300`}>
+            <div className={`${editorColClass} relative flex flex-col gap-2 sm:gap-3 lg:gap-4 min-h-0 max-lg:h-full transition-all duration-300 ${mobileTab !== 'editor' ? 'max-lg:hidden' : ''}`}>
               {isSharedSession && sharedReadOnly && (
                 <div className="absolute inset-0 z-10 rounded-xl sm:rounded-2xl backdrop-blur-[3px] bg-zinc-950/60 flex flex-col items-center justify-center gap-3">
                   <div className="flex items-center gap-2 px-4 py-2.5 bg-zinc-900/95 border border-zinc-700/80 rounded-xl shadow-lg">
@@ -274,6 +277,15 @@ function AppInner() {
                 </div>
               )}
               <div className="flex-1 min-h-0 flex flex-col">
+                <Suspense fallback={
+                  <div className="glass rounded-xl sm:rounded-2xl p-3 sm:p-5 flex flex-col gap-3 h-full animate-fade-in">
+                    <div className="skeleton h-8 rounded-lg w-3/4" />
+                    <div className="skeleton h-8 rounded-lg w-full" />
+                    <div className="skeleton h-8 rounded-lg w-5/6" />
+                    <div className="skeleton h-8 rounded-lg w-2/3" />
+                    <div className="skeleton h-8 rounded-lg w-4/5" />
+                  </div>
+                }>
                 <Editor
                   lines={lines}
                   setLines={setLines}
@@ -295,13 +307,23 @@ function AppInner() {
                   isAutosaving={isAutosaving}
                   compact={focusMode === 'preview'}
                 />
+                </Suspense>
               </div>
             </div>
           )}
 
           {/* Right: Preview */}
           {showPreview && (
-            <div className={`flex ${previewColClass} min-h-0 flex-col max-lg:h-[85vh] max-lg:mt-4 transition-all duration-300`}>
+            <div className={`flex ${previewColClass} min-h-0 flex-col max-lg:h-full max-lg:mt-0 lg:mt-0 transition-all duration-300 ${mobileTab !== 'preview' ? 'max-lg:hidden' : ''}`}>
+              <Suspense fallback={
+                <div className="glass rounded-xl sm:rounded-2xl p-3 sm:p-5 flex flex-col gap-3 h-full animate-fade-in">
+                  <div className="skeleton h-6 rounded-lg w-1/4 mb-2" />
+                  <div className="skeleton h-10 rounded-lg w-full" />
+                  <div className="skeleton h-8 rounded-lg w-3/4" />
+                  <div className="skeleton h-10 rounded-lg w-5/6" />
+                  <div className="skeleton h-7 rounded-lg w-2/3" />
+                </div>
+              }>
               <Preview
                 lines={lines}
                 setLines={setLines}
@@ -317,14 +339,18 @@ function AppInner() {
                 shareModal={shareModal}
                 setShareModal={setShareModal}
               />
+              </Suspense>
             </div>
           )}
         </div>
       </div>
 
-      {/* Docked Player — persistent bottom bar */}
-      <div className="max-lg:fixed max-lg:bottom-0 max-lg:left-0 max-lg:right-0 z-raised w-full border-t border-zinc-700/50 bg-zinc-900/80 backdrop-blur-md shadow-[0_-4px_24px_rgba(0,0,0,0.3)]">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-2 sm:py-3">
+      {/* ── Player (one instance) ──
+          Desktop: docked bottom bar.
+          Mobile:  fixed compact bar above the tab bar — compact layout
+                   shows seekbar + finger-friendly action row. ── */}
+      <div className="lg:relative lg:z-raised lg:w-full lg:border-t lg:border-zinc-700/50 lg:bg-zinc-900/80 lg:backdrop-blur-md lg:shadow-[0_-4px_24px_rgba(0,0,0,0.3)] max-lg:fixed max-lg:inset-x-0 max-lg:bottom-14 max-lg:z-30">
+        <div className="max-w-7xl mx-auto max-lg:p-0 lg:px-6 lg:py-3">
           <Player
             ref={playerRef}
             mediaTitle={mediaTitle}
@@ -338,9 +364,34 @@ function AppInner() {
             initialSpeed={restoredSpeed}
             lines={lines}
             playbackPosition={playbackPosition}
+            syncMode={syncMode}
           />
         </div>
       </div>
+
+      {/* ── Mobile: Bottom tab bar ── */}
+      <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 h-14 bg-zinc-900/95 backdrop-blur-md border-t border-zinc-700/50 flex items-stretch pb-safe">
+        {[
+          { id: 'editor',  label: t('app.tab.editor', 'Editor'),  Icon: LayoutList },
+          { id: 'preview', label: t('app.tab.preview', 'Preview'), Icon: Eye },
+        ].map(({ id, label, Icon }) => (
+          <button
+            key={id}
+            onClick={() => setMobileTab(id)}
+            className={`flex-1 flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold transition-colors ${
+              mobileTab === id
+                ? 'text-primary'
+                : 'text-zinc-500 hover:text-zinc-300'
+            }`}
+            aria-label={label}
+            aria-current={mobileTab === id ? 'page' : undefined}
+          >
+            <Icon className="w-5 h-5" strokeWidth={mobileTab === id ? 2.5 : 1.8} />
+            <span>{label}</span>
+          </button>
+        ))}
+      </nav>
+
       <Suspense fallback={null}>
         {showKeyboardHelp && <KeyboardHelp isOpen={showKeyboardHelp} onClose={() => setShowKeyboardHelp(false)} />}
       </Suspense>
