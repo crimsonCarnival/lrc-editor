@@ -9,7 +9,8 @@ export default {
         "sync": "Sync",
         "preview": "Preview",
         "playback": "Playback"
-      }
+      },
+      "hideEditor": "Hide Editor"
     },
 
     "player": {
@@ -90,6 +91,13 @@ export default {
       "syncProgress": "{{synced}}/{{total}} synced",
       "wordBadgeHint": "{{count}} word timestamps — switch to Words mode to sync",
       "markInstructionWords": "Press Space to stamp the next word",
+      "overlapWarning": "Overlapping timestamp",
+      "actions": "Actions",
+      "wordReadingEdit": "Reading: {{reading}} — click to edit",
+      "wordReadingAdd": "Click to add reading",
+      "wordChipTitle": "{{word}} @ {{time}} — click to focus",
+      "wordChipTitleReading": "{{word}} @ {{time}} — dbl-click to edit reading",
+      "clearWordTimestamp": "Clear timestamp for \"{{word}}\"",
       "startTime": "Start",
       "endTime": "End",
       "syncModeOnly": "Editor only",
@@ -183,6 +191,11 @@ export default {
 
     "share": {
       "title": "Share Session",
+      "close": "Close",
+      "viewingShared": "Viewing shared session",
+      "shareSession": "Share session",
+      "readOnlyTitle": "Read-only — click to edit your copy",
+      "editingTitle": "Editing your personal copy",
       "youtubeIncluded": "YouTube included",
       "noYoutube": "No YouTube loaded",
       "syncedLines": "synced lines",
@@ -290,7 +303,20 @@ export default {
         "showLineNumbers": "Show line numbers",
         "showLineNumbersDesc": "Display line numbers in the editor",
         "timestampPrecision": "Timestamp precision",
-        "timestampPrecisionDesc": "Decimal places in editor timestamps"
+        "timestampPrecisionDesc": "Decimal places in editor timestamps",
+        "nudgeFine": "Fine nudge (Shift+Arrow)",
+        "nudgeFineDesc": "Seconds shifted with Shift+Arrow for precision adjustment",
+        "autoAdvanceMode": "Advance to",
+        "autoAdvanceModeDesc": "Which line the cursor jumps to after marking",
+        "advanceModeNext": "Next line",
+        "advanceModeNextUnsynced": "Next unsynced",
+        "srtSection": "SRT / Subtitles",
+        "srtDuration": "Default duration",
+        "srtDurationDesc": "Seconds applied to new SRT subtitles when no end time is set",
+        "srtGap": "Min gap between captions",
+        "srtGapDesc": "Minimum gap (seconds) between SRT subtitle blocks",
+        "srtSnap": "Snap end to next line",
+        "srtSnapDesc": "Auto-trim SRT end times to the start of the next subtitle"
       },
 
       "export": {
@@ -310,7 +336,9 @@ export default {
         "stripEmptyLines": "Strip empty lines",
         "stripEmptyLinesDesc": "Exclude lines with no text from exported files",
         "normalizeTimestamps": "Normalize timestamps",
-        "normalizeTimestampsDesc": "Sort lines by timestamp order before exporting"
+        "normalizeTimestampsDesc": "Sort lines by timestamp order before exporting",
+        "includeMetadata": "Include LRC metadata",
+        "includeMetadataDesc": "Embed title, artist and album tags in LRC exports"
       },
 
       "interface": {
@@ -347,16 +375,20 @@ export default {
         "translationLayout": "Translation layout",
         "translationLayoutDesc": "Show translations side by side or stacked below",
         "layoutStacked": "Stacked",
-        "layoutSideBySide": "Side by side"
+        "layoutSideBySide": "Side by side",
+        "scrollTop": "Top",
+        "scrollOff": "Off",
+        "readingFormat": "Furigana format",
+        "readingFormatDesc": "Reading script for generated Japanese furigana"
       },
 
       "advanced": {
         "label": "Advanced",
         "autoSave": "Auto-save",
-        "autoSaveDesc": "Automatically save session data",
+        "autoSaveDesc": "Automatically save session data in the background",
         "autoSaveInterval": "Save every",
-        "autoSaveIntervalDesc": "Number of edits between each auto-save",
-        "autoSaveActions": "{{count}} actions",
+        "autoSaveIntervalDesc": "Time between auto-saves",
+        "autoSaveSeconds": "{{count}}s",
         "confirmDestructive": "Confirm destructive actions",
         "confirmDestructiveDesc": "Ask before clearing or deleting",
         "timezone": "Timezone",
@@ -414,7 +446,14 @@ export default {
         "focusPreviewLabel": "Preview Mode",
         "focusPreviewDesc": "Expand preview, minimize editor",
         "focusPlaybackLabel": "Playback Mode",
-        "focusPlaybackDesc": "Player + preview, hide editor"
+        "focusPlaybackDesc": "Player + preview, hide editor",
+        "input": {
+          "taken": "Taken!",
+          "pressKey": "Press key\u2026",
+          "modifier": "Modifier\u2026",
+          "none": "None",
+          "plusClick": "+ Click"
+        }
       },
 
       "options": {
@@ -439,6 +478,18 @@ export default {
           "zoom": "Zoom",
           "color": "Bright Color",
           "dim": "Dim Others"
+        },
+        "formats": {
+          "lrc": "LRC",
+          "srt": "SRT"
+        },
+        "precision": {
+          "hundredths": "mm:ss.xx",
+          "thousandths": "mm:ss.xxx"
+        },
+        "lineEndings": {
+          "lf": "Unix (LF)",
+          "crlf": "Windows (CRLF)"
         }
       }
     }

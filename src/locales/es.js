@@ -9,7 +9,8 @@ export default {
         "sync": "Sincronizar",
         "preview": "Vista previa",
         "playback": "Reproducción"
-      }
+      },
+      "hideEditor": "Ocultar editor"
     },
 
     "player": {
@@ -90,6 +91,13 @@ export default {
       "syncProgress": "{{synced}}/{{total}} sincronizadas",
       "wordBadgeHint": "{{count}} marcas de tiempo de palabras — cambia al modo Palabras para sincronizar",
       "markInstructionWords": "Presiona Espacio para marcar la siguiente palabra",
+      "overlapWarning": "Marca de tiempo superpuesta",
+      "actions": "Acciones",
+      "wordReadingEdit": "Lectura: {{reading}} — clic para editar",
+      "wordReadingAdd": "Clic para añadir lectura",
+      "wordChipTitle": "{{word}} @ {{time}} — clic para enfocar",
+      "wordChipTitleReading": "{{word}} @ {{time}} — doble clic para editar lectura",
+      "clearWordTimestamp": "Borrar marca de \"{{word}}\"",
       "startTime": "Inicio",
       "endTime": "Fin",
       "syncModeOnly": "Solo en Editor",
@@ -183,6 +191,11 @@ export default {
 
     "share": {
       "title": "Compartir sesión",
+      "close": "Cerrar",
+      "viewingShared": "Viendo sesión compartida",
+      "shareSession": "Compartir sesión",
+      "readOnlyTitle": "Solo lectura — clic para editar tu copia",
+      "editingTitle": "Editando tu copia personal",
       "youtubeIncluded": "YouTube incluido",
       "noYoutube": "Sin YouTube cargado",
       "syncedLines": "líneas sincronizadas",
@@ -290,7 +303,20 @@ export default {
         "showLineNumbers": "Mostrar números de línea",
         "showLineNumbersDesc": "Mostrar números de línea en el editor",
         "timestampPrecision": "Precisión de tiempo",
-        "timestampPrecisionDesc": "Decimales en las marcas de tiempo del editor"
+        "timestampPrecisionDesc": "Decimales en las marcas de tiempo del editor",
+        "nudgeFine": "Ajuste fino (Shift+Flecha)",
+        "nudgeFineDesc": "Segundos ajustados con Shift+Flecha para ajuste de precisión",
+        "autoAdvanceMode": "Avanzar a",
+        "autoAdvanceModeDesc": "A qué línea salta el cursor tras marcar",
+        "advanceModeNext": "Siguiente línea",
+        "advanceModeNextUnsynced": "Siguiente sin sincronizar",
+        "srtSection": "SRT / Subtítulos",
+        "srtDuration": "Duración predeterminada",
+        "srtDurationDesc": "Segundos para nuevos subtítulos SRT sin tiempo final",
+        "srtGap": "Espacio mínimo entre subtítulos",
+        "srtGapDesc": "Espacio mínimo (segundos) entre bloques SRT",
+        "srtSnap": "Ajustar al final de la siguiente línea",
+        "srtSnapDesc": "Recortar automáticamente el tiempo final SRT al inicio del siguiente subtítulo"
       },
 
       "export": {
@@ -310,7 +336,9 @@ export default {
         "stripEmptyLines": "Eliminar líneas vacías",
         "stripEmptyLinesDesc": "Excluir líneas sin texto de los archivos exportados",
         "normalizeTimestamps": "Normalizar tiempos",
-        "normalizeTimestampsDesc": "Ordenar las líneas por marca de tiempo antes de exportar"
+        "normalizeTimestampsDesc": "Ordenar las líneas por marca de tiempo antes de exportar",
+        "includeMetadata": "Incluir metadatos LRC",
+        "includeMetadataDesc": "Incluir etiquetas de título, artista y álbum en exportaciones LRC"
       },
 
       "interface": {
@@ -347,16 +375,20 @@ export default {
         "translationLayout": "Disposición de traducción",
         "translationLayoutDesc": "Mostrar traducciones lado a lado o apiladas debajo",
         "layoutStacked": "Apilado",
-        "layoutSideBySide": "Lado a lado"
+        "layoutSideBySide": "Lado a lado",
+        "scrollTop": "Arriba",
+        "scrollOff": "Desactivado",
+        "readingFormat": "Formato furigana",
+        "readingFormatDesc": "Tipo de lectura para furigana japonés generado"
       },
 
       "advanced": {
         "label": "Avanzado",
         "autoSave": "Autoguardado",
-        "autoSaveDesc": "Guardar automáticamente los datos de sesión",
+        "autoSaveDesc": "Guardar automáticamente los datos de sesión en segundo plano",
         "autoSaveInterval": "Guardar cada",
-        "autoSaveIntervalDesc": "Número de ediciones entre cada autoguardado",
-        "autoSaveActions": "{{count}} acciones",
+        "autoSaveIntervalDesc": "Tiempo entre autoguardados",
+        "autoSaveSeconds": "{{count}}s",
         "confirmDestructive": "Confirmar acciones destructivas",
         "confirmDestructiveDesc": "Preguntar antes de borrar o eliminar",
         "timezone": "Zona horaria",
@@ -408,7 +440,14 @@ export default {
         "addSecondaryLabel": "Agregar letra secundaria",
         "addSecondaryDesc": "Abrir panel para pegar letra secundaria",
         "addTranslationLabel": "Agregar traducciones",
-        "addTranslationDesc": "Abrir panel para pegar traducciones"
+        "addTranslationDesc": "Abrir panel para pegar traducciones",
+        "input": {
+          "taken": "\u00a1Ocupado!",
+          "pressKey": "Pulsa tecla\u2026",
+          "modifier": "Modificador\u2026",
+          "none": "Ninguna",
+          "plusClick": "+ Clic"
+        }
       },
 
       "options": {
@@ -433,6 +472,18 @@ export default {
           "zoom": "Zoom",
           "color": "Color brillante",
           "dim": "Atenuar otros"
+        },
+        "formats": {
+          "lrc": "LRC",
+          "srt": "SRT"
+        },
+        "precision": {
+          "hundredths": "mm:ss.xx",
+          "thousandths": "mm:ss.xxx"
+        },
+        "lineEndings": {
+          "lf": "Unix (LF)",
+          "crlf": "Windows (CRLF)"
         }
       }
     }
