@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "WORKER-NAME",
+  "name": "lrc-editor",
   "main": "src/main.jsx",
   "compatibility_date": "2025-02-04",
   "observability": {
