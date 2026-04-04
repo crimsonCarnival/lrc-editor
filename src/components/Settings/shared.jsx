@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Switch } from '@/components/ui/switch';
 import { Kbd } from '@/components/ui/kbd';
 import { KEY_SYMBOLS } from './keySymbols';
@@ -67,6 +68,7 @@ export function Section({ title, icon: Icon, children, searchTerm }) {
 }
 
 export function ModifierInput({ value, onChange, validateModifier }) {
+  const { t } = useTranslation();
   const [recording, setRecording] = useState(false);
   const [error, setError] = useState(false);
 
@@ -111,23 +113,24 @@ export function ModifierInput({ value, onChange, validateModifier }) {
         onBlur={() => setRecording(false)}
       >
         {error ? (
-          <span className="text-red-400 text-xs font-medium">Taken!</span>
+          <span className="text-red-400 text-xs font-medium">{t('settings.shortcuts.input.taken')}</span>
         ) : recording ? (
-          <span className="text-primary text-xs animate-pulse font-medium">Modifier…</span>
+          <span className="text-primary text-xs animate-pulse font-medium">{t('settings.shortcuts.input.modifier')}</span>
         ) : displayVal ? (
           <Kbd className="bg-zinc-700/60 text-zinc-200 border border-zinc-600/50 h-auto px-1.5 py-0.5 text-xs">
             {displayVal}
           </Kbd>
         ) : (
-          <span className="text-zinc-500 text-xs">None</span>
+          <span className="text-zinc-500 text-xs">{t('settings.shortcuts.input.none')}</span>
         )}
       </button>
-      <span className="text-zinc-500 text-[10px]">+ Click</span>
+      <span className="text-zinc-500 text-[10px]">{t('settings.shortcuts.input.plusClick')}</span>
     </div>
   );
 }
 
 export function ShortcutInput({ value, onChange, onValidate, conflict }) {
+  const { t } = useTranslation();
   const [recording, setRecording] = useState(false);
   const [error, setError] = useState(false);
 
@@ -175,9 +178,9 @@ export function ShortcutInput({ value, onChange, onValidate, conflict }) {
         onBlur={() => setRecording(false)}
       >
         {error ? (
-          <span className="text-red-400 text-xs font-medium">Taken!</span>
+          <span className="text-red-400 text-xs font-medium">{t('settings.shortcuts.input.taken')}</span>
         ) : recording ? (
-          <span className="text-primary text-xs animate-pulse font-medium">Press key…</span>
+          <span className="text-primary text-xs animate-pulse font-medium">{t('settings.shortcuts.input.pressKey')}</span>
         ) : value ? (
           value.split(/(?<=.)\+/).map((part, idx) => (
             <React.Fragment key={idx}>
@@ -188,7 +191,7 @@ export function ShortcutInput({ value, onChange, onValidate, conflict }) {
             </React.Fragment>
           ))
         ) : (
-          <span className="text-zinc-500 text-xs">None</span>
+          <span className="text-zinc-500 text-xs">{t('settings.shortcuts.input.none')}</span>
         )}
       </button>
       {conflict && (
