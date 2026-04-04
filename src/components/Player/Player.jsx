@@ -10,12 +10,12 @@ import VolumeControl from './VolumeControl';
 import SpeedControl from './SpeedControl';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Music2, Trash2, AlertTriangle, Play, Pause, Headphones, FolderOpen, Upload, Repeat, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Music2, Trash2, AlertTriangle, Play, Pause, Headphones, FolderOpen, Upload, Repeat, ChevronLeft, ChevronRight, SkipBack, SkipForward } from 'lucide-react';
 
 const ALL_SPEED_PRESETS = [0.25, 0.5, 0.75, 1, 1.25, 1.5];
 
 const Player = forwardRef(function Player(
-  { onTimeUpdate, onDurationChange, onMediaChange, playerRef: _legacyRef, mediaTitle, onTitleChange, initialYtUrl, onYtUrlChange, initialSeek, initialSpeed, lines, playbackPosition },
+  { onTimeUpdate, onDurationChange, onMediaChange, playerRef: _legacyRef, mediaTitle, onTitleChange, initialYtUrl, onYtUrlChange, initialSeek, initialSpeed, lines, playbackPosition, syncMode = false },
   ref,
 ) {
   const { t } = useTranslation();
@@ -168,6 +168,7 @@ const Player = forwardRef(function Player(
     () => ({
       getCurrentTime: () =>
         source === 'local' ? local.getCurrentTime() : yt.getCurrentTime(),
+      isPlaying: () => isPlaying,
       play: () => {
         if (!isPlaying) togglePlay();
       },
@@ -218,316 +219,482 @@ const Player = forwardRef(function Player(
   }, [source, local, yt, requestConfirm, t, onTimeUpdate, onDurationChange, onTitleChange, onMediaChange]);
 
   return (
-    <div className="glass rounded-xl sm:rounded-2xl p-2.5 sm:p-4 space-y-1.5 sm:space-y-3 animate-fade-in overflow-visible">
-      {/* Header */}
-      <div className="flex flex-row items-center justify-between gap-2 sm:gap-4 mb-1">
-        <h2 className="text-xs sm:text-sm font-semibold tracking-widest text-zinc-400 flex items-center gap-2 overflow-hidden flex-1 pb-0.5 min-w-0">
-          <span className="uppercase shrink-0 text-xs sm:text-sm flex items-center gap-1.5"><Headphones className="w-3.5 h-3.5" />{t('player.title')}</span>
-          {mediaTitle && (
-            <div className="flex items-center gap-1 px-1.5 py-0.5 rounded text-xs min-w-0 flex-1">
-              <Music2 className="w-2.5 h-2.5 text-primary shrink-0" strokeWidth={2.5} />
-              <div className="flex-1 min-w-0 overflow-hidden relative" style={{ maskImage: 'linear-gradient(to right, transparent, black 10px, black calc(100% - 10px), transparent)' }}>
-                <span className="text-primary normal-case tracking-normal animate-marquee inline-block whitespace-nowrap">{mediaTitle}</span>
-              </div>
-            </div>
-          )}
-        </h2>
-        {hasMedia && (
-          <div className="flex items-center gap-1 shrink-0">
-            <label
-              htmlFor="audio-file-input"
-              className="flex items-center gap-1 px-2 py-1.5 text-xs font-medium text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700/60 rounded-lg cursor-pointer transition-colors"
-              title={t('player.changeSong')}
-            >
-              <Upload className="w-3.5 h-3.5" />
-              <input
-                id="audio-file-input"
-                type="file"
-                accept="audio/*"
-                onChange={local.handleFileChange}
-                className="hidden"
-              />
-            </label>
-            <Button
-              id="remove-media-btn"
-              variant="ghost"
-              onClick={removeMedia}
-              className="gap-1 px-2 py-1.5 text-xs font-medium text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg shrink-0 h-auto"
-              title={t('player.remove')}
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-            </Button>
-          </div>
-        )}
-      </div>
-
-      {/* Loading placeholder while YouTube initialises */}
-      {!hasMedia && yt.ytLoading && (
-        <div className="flex items-center justify-center gap-3 py-6 animate-fade-in">
-          <svg className="w-5 h-5 text-primary animate-spin" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-          </svg>
-          <span className="text-sm text-zinc-400">{t('player.loading') || 'Loading…'}</span>
-        </div>
-      )}
-
-      {/* Unified media loader — shown when no media is loaded */}
-      {!hasMedia && !yt.ytLoading && (
-        <div className="animate-fade-in overflow-hidden">
-          {/* Drop zone — hidden once a URL has been entered */}
-          {!yt.ytUrl.trim() && (<>
-            <label
-              htmlFor="audio-file-input"
-              className="flex items-center gap-3 px-3 py-3 cursor-pointer group transition-colors rounded-xl hover:bg-zinc-800/40"
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={(e) => {
-                e.preventDefault();
-                const file = e.dataTransfer.files?.[0];
-                if (file) local.handleFileChange({ target: { files: [file] } });
-              }}
-            >
-              <div className="w-8 h-8 rounded-lg bg-zinc-800 border border-zinc-700/60 flex items-center justify-center group-hover:border-primary/40 group-hover:bg-zinc-700/60 transition-all flex-shrink-0">
-                <FolderOpen className="w-4 h-4 text-zinc-500 group-hover:text-primary transition-colors" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-zinc-300 group-hover:text-zinc-100 transition-colors">{t('player.dropAudio')}</p>
-                <p className="text-[11px] text-zinc-600">{t('player.dropHint')}</p>
-              </div>
-              <input
-                id="audio-file-input"
-                type="file"
-                accept="audio/*"
-                onChange={local.handleFileChange}
-                className="hidden"
-              />
-            </label>
-
-            {/* Divider */}
-            <div className="flex items-center gap-3 px-3 py-0.5">
-              <div className="flex-1 h-px bg-zinc-800" />
-              <span className="text-[10px] text-zinc-600 uppercase tracking-widest">{t('player.or')}</span>
-              <div className="flex-1 h-px bg-zinc-800" />
-            </div>
-          </>)}
-
-          {/* YouTube URL — always visible; shows clear button once a URL is present */}
-          <div className="px-1 py-2 space-y-2">
-            <div className="flex gap-2 items-center">
-              {yt.ytUrl.trim() && (
-                <Button
-                  variant="ghost"
-                  size="icon-xs"
-                  onClick={() => { yt.setYtUrl(''); yt.setYtError(''); }}
-                  className="w-7 h-8 text-zinc-500 hover:text-zinc-200 hover:bg-zinc-700/60 shrink-0"
-                  title={t('player.clearUrl')}
-                >
-                  ←
-                </Button>
-              )}
-              <div className="relative flex-1">
-                <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-red-500/70 shrink-0 pointer-events-none" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
-                </svg>
-                <Input
-                  id="youtube-url-input"
-                  type="text"
-                  value={yt.ytUrl}
-                  onChange={(e) => { yt.setYtUrl(e.target.value); yt.setYtError(''); }}
-                  onKeyDown={(e) => e.key === 'Enter' && yt.loadYouTube()}
-                  placeholder={t('player.pasteUrl')}
-                  className={`pl-7 bg-zinc-800/60 text-zinc-100 placeholder-zinc-500 ${yt.ytError ? 'border-red-500/70 focus-visible:ring-red-500/25' : 'border-zinc-700 focus-visible:ring-primary/25'}`}
-                />
-              </div>
-              <Button
-                id="load-youtube-btn"
-                onClick={yt.loadYouTube}
-                className="px-4 bg-red-600 hover:bg-red-500 text-white text-sm font-medium rounded-lg shrink-0"
-              >
-                {t('player.load')}
-              </Button>
-            </div>
-            {yt.ytError && (
-              <p className="text-xs text-red-400 flex items-center gap-1.5 animate-fade-in">
-                <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-                {yt.ytError}
-              </p>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Local audio waveform */}
+    <>
+      {/* Always-rendered media elements – audio context must survive layout switches */}
       {source === 'local' && local.localUrl && (
-        <div className="animate-fade-in space-y-3">
-          <WaveformDisplay
-            showWaveform={settings.playback?.showWaveform}
-            waveformSnap={settings.playback?.waveformSnap}
-            audioRef={audioRef}
-            localUrl={local.localUrl}
-            onTimeUpdate={onTimeUpdate}
-            lines={lines}
-            playbackPosition={playbackPosition}
-            duration={duration}
-          />
-          <audio
-            ref={audioRef}
-            src={local.localUrl}
-            onTimeUpdate={local.handleTimeUpdate}
-            onLoadedMetadata={local.handleLoadedMetadata}
-            onPause={local.handlePause}
-            className="hidden"
-            crossOrigin="anonymous"
-          />
-        </div>
+        <audio
+          ref={audioRef}
+          src={local.localUrl}
+          onTimeUpdate={local.handleTimeUpdate}
+          onLoadedMetadata={local.handleLoadedMetadata}
+          onPause={local.handlePause}
+          className="hidden"
+          crossOrigin="anonymous"
+        />
       )}
-
       <div
         ref={ytContainerRef}
         className={`fixed -top-[9999px] -left-[9999px] w-0 h-0 opacity-0 pointer-events-none ${source === 'youtube' && yt.ytReady ? '' : 'hidden'}`}
       />
 
-      {(local.localUrl || yt.ytReady) && (
-        <div className="space-y-1 sm:space-y-2 pt-1 sm:pt-2 animate-fade-in">
-          <div className="flex items-center gap-2 sm:gap-3 flex-wrap sm:flex-nowrap">
-            <Button
-              id="play-pause-btn"
-              onClick={togglePlay}
-              aria-label={isPlaying ? t('shortcuts.playPause') || 'Pause' : t('shortcuts.playPause') || 'Play'}
-              className="w-9 sm:w-10 h-9 sm:h-10 rounded-full bg-primary hover:bg-primary-dim text-zinc-950 hover:scale-105 active:scale-95 glow-primary flex-shrink-0 p-0"
-            >
-              {isPlaying ? (
-                <Pause className="w-3 sm:w-4 h-3 sm:h-4" fill="currentColor" />
-              ) : (
-                <Play className="w-3 sm:w-4 h-3 sm:h-4 ml-0.5" fill="currentColor" />
-              )}
-            </Button>
-
-            <span className="text-xs text-zinc-400 font-mono tabular-nums w-14 sm:w-[68px] text-right shrink-0">
-              {formatTime(currentTime)}
-            </span>
-
-            {/* Frame step back */}
-            <button
-              onClick={() => seek(Math.max(0, currentTime - 0.01))}
-              className="p-1 rounded text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/60 transition-colors flex-shrink-0 hidden sm:block"
-              title="-0.01s"
-            >
-              <ChevronLeft className="w-3 h-3" />
-            </button>
-
-            <div className="flex-1 min-w-0 relative">
-              {/* A-B loop region overlay */}
-              {loopA != null && loopB != null && duration > 0 && (
-                <div
-                  className="absolute top-0 bottom-0 bg-accent-purple/15 border-x border-accent-purple/40 rounded-sm pointer-events-none z-10"
-                  style={{
-                    left: `${(loopA / duration) * 100}%`,
-                    width: `${((loopB - loopA) / duration) * 100}%`,
-                  }}
+      {/* ─────────────── Desktop full card (hidden on mobile) ─────────────── */}
+      <div className="max-lg:hidden glass rounded-xl sm:rounded-2xl p-2.5 sm:p-4 space-y-1.5 sm:space-y-3 animate-fade-in overflow-visible">
+        {/* Header */}
+        <div className="flex flex-row items-center justify-between gap-2 sm:gap-4 mb-1">
+          <h2 className="text-xs sm:text-sm font-semibold tracking-widest text-zinc-400 flex items-center gap-2 overflow-hidden flex-1 pb-0.5 min-w-0">
+            <span className="uppercase shrink-0 text-xs sm:text-sm flex items-center gap-1.5"><Headphones className="w-3.5 h-3.5" />{t('player.title')}</span>
+            {mediaTitle && (
+              <div className="flex items-center gap-1 px-1.5 py-0.5 rounded text-xs min-w-0 flex-1">
+                <Music2 className="w-2.5 h-2.5 text-primary shrink-0" strokeWidth={2.5} />
+                <div className="flex-1 min-w-0 overflow-hidden relative" style={{ maskImage: 'linear-gradient(to right, transparent, black 10px, black calc(100% - 10px), transparent)' }}>
+                  <span className="text-primary normal-case tracking-normal animate-marquee inline-block whitespace-nowrap">{mediaTitle}</span>
+                </div>
+              </div>
+            )}
+          </h2>
+          {hasMedia && (
+            <div className="flex items-center gap-1 shrink-0">
+              <label
+                htmlFor="audio-file-input"
+                className="flex items-center gap-1 px-2 py-1.5 text-xs font-medium text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700/60 rounded-lg cursor-pointer transition-colors"
+                title={t('player.changeSong')}
+              >
+                <Upload className="w-3.5 h-3.5" />
+                <input
+                  id="audio-file-input"
+                  type="file"
+                  accept="audio/*"
+                  onChange={local.handleFileChange}
+                  className="hidden"
                 />
-              )}
-              <input
-                id="seek-slider"
-                type="range"
-                min={0}
-                max={duration || 0}
-                step={0.1}
-                value={currentTime}
-                aria-label="Seek"
-                aria-valuenow={Math.round(currentTime)}
-                aria-valuemin={0}
-                aria-valuemax={Math.round(duration)}
-                onChange={(e) => {
-                  const raw = parseFloat(e.target.value);
-                  // Shift-drag: 10:1 precision (move 1/10th of normal)
-                  if (e.nativeEvent?.shiftKey) {
-                    const delta = (raw - currentTime) / 10;
-                    seek(Math.max(0, Math.min(duration, currentTime + delta)));
-                  } else {
-                    seek(raw);
-                  }
-                }}
-                className="w-full relative z-20"
-                style={{
-                  background: `linear-gradient(to right, var(--color-primary) ${duration ? (currentTime / duration) * 100 : 0}%, rgba(255, 255, 255, 0.15) ${duration ? (currentTime / duration) * 100 : 0}%)`,
-                }}
-              />
+              </label>
+              <Button
+                id="remove-media-btn"
+                variant="ghost"
+                onClick={removeMedia}
+                className="gap-1 px-2 py-1.5 text-xs font-medium text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg shrink-0 h-auto"
+                title={t('player.remove')}
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </Button>
             </div>
+          )}
+        </div>
 
-            {/* Frame step forward */}
-            <button
-              onClick={() => seek(Math.min(duration, currentTime + 0.01))}
-              className="p-1 rounded text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/60 transition-colors flex-shrink-0 hidden sm:block"
-              title="+0.01s"
-            >
-              <ChevronRight className="w-3 h-3" />
-            </button>
+        {/* Loading placeholder while YouTube initialises */}
+        {!hasMedia && yt.ytLoading && (
+          <div className="flex items-center justify-center gap-3 py-6 animate-fade-in">
+            <svg className="w-5 h-5 text-primary animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+            </svg>
+            <span className="text-sm text-zinc-400">{t('player.loading') || 'Loading…'}</span>
+          </div>
+        )}
 
-            <span className="text-xs text-zinc-400 font-mono tabular-nums w-14 sm:w-[68px] text-left shrink-0">
-              {formatTime(duration)}
-            </span>
+        {/* Unified media loader — shown when no media is loaded */}
+        {!hasMedia && !yt.ytLoading && (
+          <div className="animate-fade-in overflow-hidden">
+            {/* Drop zone — hidden once a URL has been entered */}
+            {!yt.ytUrl.trim() && (<>
+              <label
+                htmlFor="audio-file-input"
+                className="flex items-center gap-3 px-3 py-3 cursor-pointer group transition-colors rounded-xl hover:bg-zinc-800/40"
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const file = e.dataTransfer.files?.[0];
+                  if (file) local.handleFileChange({ target: { files: [file] } });
+                }}
+              >
+                <div className="w-8 h-8 rounded-lg bg-zinc-800 border border-zinc-700/60 flex items-center justify-center group-hover:border-primary/40 group-hover:bg-zinc-700/60 transition-all flex-shrink-0">
+                  <FolderOpen className="w-4 h-4 text-zinc-500 group-hover:text-primary transition-colors" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-zinc-300 group-hover:text-zinc-100 transition-colors">{t('player.dropAudio')}</p>
+                  <p className="text-[11px] text-zinc-600">{t('player.dropHint')}</p>
+                </div>
+                <input
+                  id="audio-file-input"
+                  type="file"
+                  accept="audio/*"
+                  onChange={local.handleFileChange}
+                  className="hidden"
+                />
+              </label>
 
-            <VolumeControl />
+              {/* Divider */}
+              <div className="flex items-center gap-3 px-3 py-0.5">
+                <div className="flex-1 h-px bg-zinc-800" />
+                <span className="text-[10px] text-zinc-600 uppercase tracking-widest">{t('player.or')}</span>
+                <div className="flex-1 h-px bg-zinc-800" />
+              </div>
+            </>)}
 
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => {
-                if (loopA != null && loopB != null) {
-                  clearLoop();
-                } else {
-                  // Loop the currently active line (use live time for accuracy)
-                  const now = source === 'local'
-                    ? (audioRef.current?.currentTime ?? currentTime)
-                    : (yt.getCurrentTime?.() ?? currentTime);
-                  if (lines?.length) {
-                    let activeIdx = -1;
-                    for (let i = 0; i < lines.length; i++) {
-                      if (lines[i].timestamp != null && lines[i].timestamp <= now) activeIdx = i;
-                    }
-                    if (activeIdx >= 0) {
-                      const activeLine = lines[activeIdx];
-                      const a = activeLine.timestamp;
-                      // Prefer SRT endTime, fall back to next synced line's start
-                      let b = activeLine.endTime ?? null;
-                      if (b == null) {
-                        b = duration;
-                        for (let i = activeIdx + 1; i < lines.length; i++) {
-                          if (lines[i].timestamp != null) { b = lines[i].timestamp; break; }
-                        }
-                      }
-                      setLoop(a, b);
-                    }
-                  }
-                }
-              }}
-              className={`rounded-full flex-shrink-0 ${
-                loopA != null && loopB != null
-                  ? 'bg-accent-purple/20 text-accent-purple hover:bg-accent-purple/30'
-                  : 'bg-zinc-800/80 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700'
-              }`}
-              title={loopA != null && loopB != null
-                ? `${t('player.loopActive') || 'Loop active'}: ${formatTime(loopA)} – ${formatTime(loopB)} (click to clear)`
-                : t('player.setLoop') || 'Set A-B loop'
-              }
-            >
-              <Repeat className="w-4 h-4" />
-            </Button>
+            {/* YouTube URL — always visible; shows clear button once a URL is present */}
+            <div className="px-1 py-2 space-y-2">
+              <div className="flex gap-2 items-center">
+                {yt.ytUrl.trim() && (
+                  <Button
+                    variant="ghost"
+                    size="icon-xs"
+                    onClick={() => { yt.setYtUrl(''); yt.setYtError(''); }}
+                    className="w-7 h-8 text-zinc-500 hover:text-zinc-200 hover:bg-zinc-700/60 shrink-0"
+                    title={t('player.clearUrl')}
+                  >
+                    ←
+                  </Button>
+                )}
+                <div className="relative flex-1">
+                  <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-red-500/70 shrink-0 pointer-events-none" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                  </svg>
+                  <Input
+                    id="youtube-url-input"
+                    type="text"
+                    value={yt.ytUrl}
+                    onChange={(e) => { yt.setYtUrl(e.target.value); yt.setYtError(''); }}
+                    onKeyDown={(e) => e.key === 'Enter' && yt.loadYouTube()}
+                    placeholder={t('player.pasteUrl')}
+                    className={`pl-7 bg-zinc-800/60 text-zinc-100 placeholder-zinc-500 ${yt.ytError ? 'border-red-500/70 focus-visible:ring-red-500/25' : 'border-zinc-700 focus-visible:ring-primary/25'}`}
+                  />
+                </div>
+                <Button
+                  id="load-youtube-btn"
+                  onClick={yt.loadYouTube}
+                  className="px-4 bg-red-600 hover:bg-red-500 text-white text-sm font-medium rounded-lg shrink-0"
+                >
+                  {t('player.load')}
+                </Button>
+              </div>
+              {yt.ytError && (
+                <p className="text-xs text-red-400 flex items-center gap-1.5 animate-fade-in">
+                  <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                  {yt.ytError}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
 
-            <SpeedControl
-              playbackSpeed={playbackSpeed}
-              applySpeed={applySpeed}
-              MIN_SPEED={MIN_SPEED}
-              MAX_SPEED={MAX_SPEED}
-              SPEED_PRESETS={SPEED_PRESETS}
+        {/* Local audio waveform */}
+        {source === 'local' && local.localUrl && (
+          <div className="animate-fade-in space-y-3">
+            <WaveformDisplay
+              showWaveform={settings.playback?.showWaveform}
+              waveformSnap={settings.playback?.waveformSnap}
+              audioRef={audioRef}
+              localUrl={local.localUrl}
+              onTimeUpdate={onTimeUpdate}
+              lines={lines}
+              playbackPosition={playbackPosition}
+              duration={duration}
             />
           </div>
-        </div>
-      )}
+        )}
+
+        {(local.localUrl || yt.ytReady) && (
+          <div className="space-y-1 sm:space-y-2 pt-1 sm:pt-2 animate-fade-in">
+            <div className="flex items-center gap-2 sm:gap-3 flex-wrap sm:flex-nowrap">
+              <Button
+                id="play-pause-btn"
+                onClick={togglePlay}
+                aria-label={isPlaying ? t('shortcuts.playPause') || 'Pause' : t('shortcuts.playPause') || 'Play'}
+                className="w-9 sm:w-10 h-9 sm:h-10 rounded-full bg-primary hover:bg-primary-dim text-zinc-950 hover:scale-105 active:scale-95 glow-primary flex-shrink-0 p-0"
+              >
+                {isPlaying ? (
+                  <Pause className="w-3 sm:w-4 h-3 sm:h-4" fill="currentColor" />
+                ) : (
+                  <Play className="w-3 sm:w-4 h-3 sm:h-4 ml-0.5" fill="currentColor" />
+                )}
+              </Button>
+
+              <span className="text-xs text-zinc-400 font-mono tabular-nums w-14 sm:w-[68px] text-right shrink-0">
+                {formatTime(currentTime)}
+              </span>
+
+              {/* Frame step back */}
+              <button
+                onClick={() => seek(Math.max(0, currentTime - 0.01))}
+                className="p-1 rounded text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/60 transition-colors flex-shrink-0 hidden sm:block"
+                title="-0.01s"
+              >
+                <ChevronLeft className="w-3 h-3" />
+              </button>
+
+              <div className="flex-1 min-w-0 relative">
+                {/* A-B loop region overlay */}
+                {loopA != null && loopB != null && duration > 0 && (
+                  <div
+                    className="absolute top-0 bottom-0 bg-accent-purple/15 border-x border-accent-purple/40 rounded-sm pointer-events-none z-10"
+                    style={{
+                      left: `${(loopA / duration) * 100}%`,
+                      width: `${((loopB - loopA) / duration) * 100}%`,
+                    }}
+                  />
+                )}
+                <input
+                  id="seek-slider"
+                  type="range"
+                  min={0}
+                  max={duration || 0}
+                  step={0.1}
+                  value={currentTime}
+                  aria-label="Seek"
+                  aria-valuenow={Math.round(currentTime)}
+                  aria-valuemin={0}
+                  aria-valuemax={Math.round(duration)}
+                  onChange={(e) => {
+                    const raw = parseFloat(e.target.value);
+                    // Shift-drag: 10:1 precision (move 1/10th of normal)
+                    if (e.nativeEvent?.shiftKey) {
+                      const delta = (raw - currentTime) / 10;
+                      seek(Math.max(0, Math.min(duration, currentTime + delta)));
+                    } else {
+                      seek(raw);
+                    }
+                  }}
+                  className="w-full relative z-20"
+                  style={{
+                    background: `linear-gradient(to right, var(--color-primary) ${duration ? (currentTime / duration) * 100 : 0}%, rgba(255, 255, 255, 0.15) ${duration ? (currentTime / duration) * 100 : 0}%)`,
+                  }}
+                />
+              </div>
+
+              {/* Frame step forward */}
+              <button
+                onClick={() => seek(Math.min(duration, currentTime + 0.01))}
+                className="p-1 rounded text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/60 transition-colors flex-shrink-0 hidden sm:block"
+                title="+0.01s"
+              >
+                <ChevronRight className="w-3 h-3" />
+              </button>
+
+              <span className="text-xs text-zinc-400 font-mono tabular-nums w-14 sm:w-[68px] text-left shrink-0">
+                {formatTime(duration)}
+              </span>
+
+              <VolumeControl />
+
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  if (loopA != null && loopB != null) {
+                    clearLoop();
+                  } else {
+                    // Loop the currently active line (use live time for accuracy)
+                    const now = source === 'local'
+                      ? (audioRef.current?.currentTime ?? currentTime)
+                      : (yt.getCurrentTime?.() ?? currentTime);
+                    if (lines?.length) {
+                      let activeIdx = -1;
+                      for (let i = 0; i < lines.length; i++) {
+                        if (lines[i].timestamp != null && lines[i].timestamp <= now) activeIdx = i;
+                      }
+                      if (activeIdx >= 0) {
+                        const activeLine = lines[activeIdx];
+                        const a = activeLine.timestamp;
+                        // Prefer SRT endTime, fall back to next synced line's start
+                        let b = activeLine.endTime ?? null;
+                        if (b == null) {
+                          b = duration;
+                          for (let i = activeIdx + 1; i < lines.length; i++) {
+                            if (lines[i].timestamp != null) { b = lines[i].timestamp; break; }
+                          }
+                        }
+                        setLoop(a, b);
+                      }
+                    }
+                  }
+                }}
+                className={`rounded-full flex-shrink-0 ${
+                  loopA != null && loopB != null
+                    ? 'bg-accent-purple/20 text-accent-purple hover:bg-accent-purple/30'
+                    : 'bg-zinc-800/80 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700'
+                }`}
+                title={loopA != null && loopB != null
+                  ? `${t('player.loopActive') || 'Loop active'}: ${formatTime(loopA)} – ${formatTime(loopB)} (click to clear)`
+                  : t('player.setLoop') || 'Set A-B loop'
+                }
+              >
+                <Repeat className="w-4 h-4" />
+              </Button>
+
+              <SpeedControl
+                playbackSpeed={playbackSpeed}
+                applySpeed={applySpeed}
+                MIN_SPEED={MIN_SPEED}
+                MAX_SPEED={MAX_SPEED}
+                SPEED_PRESETS={SPEED_PRESETS}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ─────────────── Compact mobile bar (hidden on desktop) ─────────────── */}
+      <div className="lg:hidden border-t border-zinc-700/50 bg-zinc-900/90 backdrop-blur-md">
+        {/* No media */}
+        {!hasMedia && (
+          <div className="flex items-center gap-2 px-3 h-[88px]">
+            {yt.ytLoading ? (
+              <div className="flex items-center gap-3 flex-1">
+                <svg className="w-5 h-5 text-primary animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                </svg>
+                <span className="text-sm text-zinc-400">{t('player.loading') || 'Loading…'}</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 flex-1">
+                <label
+                  htmlFor="audio-file-compact"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-zinc-800 border border-zinc-700/60 text-sm font-medium text-zinc-300 cursor-pointer active:scale-95 transition-transform shrink-0"
+                >
+                  <FolderOpen className="w-4 h-4" />
+                  {t('player.dropAudio') || 'Load audio'}
+                  <input id="audio-file-compact" type="file" accept="audio/*" onChange={local.handleFileChange} className="hidden" />
+                </label>
+                <div className="flex flex-1 gap-2">
+                  <Input
+                    type="text"
+                    value={yt.ytUrl}
+                    onChange={(e) => { yt.setYtUrl(e.target.value); yt.setYtError(''); }}
+                    onKeyDown={(e) => e.key === 'Enter' && yt.loadYouTube()}
+                    placeholder={t('player.pasteUrl') || 'YouTube URL'}
+                    className="flex-1 h-9 bg-zinc-800/60 text-zinc-100 placeholder-zinc-500 border-zinc-700 text-xs"
+                  />
+                  <Button onClick={yt.loadYouTube} className="px-3 h-9 bg-red-600 hover:bg-red-500 text-white text-xs font-medium rounded-lg shrink-0">
+                    {t('player.load') || 'Load'}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Has media: seekbar row + action row */}
+        {hasMedia && (
+          <>
+            {/* Row 1 — seekbar (h-10) */}
+            <div className="flex items-center gap-2 px-3 h-10">
+              <button
+                onClick={togglePlay}
+                aria-label={isPlaying ? 'Pause' : 'Play'}
+                className="w-8 h-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0 active:scale-95 transition-transform"
+              >
+                {isPlaying
+                  ? <Pause className="w-3.5 h-3.5 text-zinc-950" fill="currentColor" />
+                  : <Play  className="w-3.5 h-3.5 text-zinc-950 ml-0.5" fill="currentColor" />}
+              </button>
+              <span className="text-[10px] font-mono tabular-nums text-zinc-400 w-10 shrink-0 text-right">
+                {formatTime(currentTime)}
+              </span>
+              <div className="flex-1 relative min-w-0">
+                {loopA != null && loopB != null && duration > 0 && (
+                  <div
+                    className="absolute top-0 bottom-0 bg-accent-purple/15 border-x border-accent-purple/40 rounded-sm pointer-events-none z-10"
+                    style={{
+                      left: `${(loopA / duration) * 100}%`,
+                      width: `${((loopB - loopA) / duration) * 100}%`,
+                    }}
+                  />
+                )}
+                <input
+                  type="range" min={0} max={duration || 0} step={0.1} value={currentTime}
+                  aria-label="Seek" aria-valuenow={Math.round(currentTime)} aria-valuemin={0} aria-valuemax={Math.round(duration)}
+                  onChange={(e) => seek(parseFloat(e.target.value))}
+                  className="w-full relative z-20"
+                  style={{ background: `linear-gradient(to right, var(--color-primary) ${duration ? (currentTime / duration) * 100 : 0}%, rgba(255, 255, 255, 0.15) ${duration ? (currentTime / duration) * 100 : 0}%)` }}
+                />
+              </div>
+              <span className="text-[10px] font-mono tabular-nums text-zinc-400 w-10 shrink-0">
+                {formatTime(duration)}
+              </span>
+              <SpeedControl playbackSpeed={playbackSpeed} applySpeed={applySpeed} MIN_SPEED={MIN_SPEED} MAX_SPEED={MAX_SPEED} SPEED_PRESETS={SPEED_PRESETS} />
+            </div>
+
+            {/* Row 2 — finger-friendly action buttons (h-12) */}
+            <div className="flex items-center justify-evenly h-12 border-t border-zinc-800/40">
+              <button
+                onClick={() => seek(Math.max(0, currentTime - (settings.playback?.seekTime ?? 5)))}
+                aria-label={`Skip back ${settings.playback?.seekTime ?? 5} seconds`}
+                className="flex flex-col items-center justify-center w-11 h-11 rounded-xl text-zinc-400 active:text-zinc-100 active:bg-zinc-800/60 transition-all"
+              >
+                <SkipBack className="w-5 h-5" />
+                <span className="text-[8px] font-bold leading-none mt-0.5">{settings.playback?.seekTime ?? 5}</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  if (loopA != null && loopB != null) {
+                    clearLoop();
+                  } else {
+                    const now = source === 'local' ? (audioRef.current?.currentTime ?? currentTime) : (yt.getCurrentTime?.() ?? currentTime);
+                    if (lines?.length) {
+                      let activeIdx = -1;
+                      for (let i = 0; i < lines.length; i++) {
+                        if (lines[i].timestamp != null && lines[i].timestamp <= now) activeIdx = i;
+                      }
+                      if (activeIdx >= 0) {
+                        const a = lines[activeIdx].timestamp;
+                        let b = lines[activeIdx].endTime ?? null;
+                        if (b == null) {
+                          b = duration;
+                          for (let i = activeIdx + 1; i < lines.length; i++) {
+                            if (lines[i].timestamp != null) { b = lines[i].timestamp; break; }
+                          }
+                        }
+                        setLoop(a, b);
+                      }
+                    }
+                  }
+                }}
+                aria-label={loopA != null && loopB != null ? 'Clear A-B loop' : 'Set A-B loop'}
+                className={`flex flex-col items-center justify-center w-11 h-11 rounded-xl transition-all ${loopA != null && loopB != null ? 'text-accent-purple bg-accent-purple/10' : 'text-zinc-400 active:text-zinc-100 active:bg-zinc-800/60'}`}
+              >
+                <Repeat className="w-5 h-5" />
+              </button>
+
+              <VolumeControl />
+
+              <label
+                htmlFor="audio-file-compact-change"
+                className="flex flex-col items-center justify-center w-11 h-11 rounded-xl text-zinc-400 active:text-zinc-100 active:bg-zinc-800/60 transition-all cursor-pointer"
+                aria-label="Change audio file"
+              >
+                <Upload className="w-5 h-5" />
+                <input id="audio-file-compact-change" type="file" accept="audio/*" onChange={local.handleFileChange} className="hidden" />
+              </label>
+
+              <button
+                onClick={() => seek(Math.min(duration, currentTime + (settings.playback?.seekTime ?? 5)))}
+                aria-label={`Skip forward ${settings.playback?.seekTime ?? 5} seconds`}
+                className="flex flex-col items-center justify-center w-11 h-11 rounded-xl text-zinc-400 active:text-zinc-100 active:bg-zinc-800/60 transition-all"
+              >
+                <SkipForward className="w-5 h-5" />
+                <span className="text-[8px] font-bold leading-none mt-0.5">{settings.playback?.seekTime ?? 5}</span>
+              </button>
+
+              {syncMode && (
+                <button
+                  onPointerDown={(e) => { e.preventDefault(); window.dispatchEvent(new CustomEvent('editor:mark')); }}
+                  aria-label="Mark timestamp"
+                  className="flex flex-col items-center justify-center w-12 h-11 rounded-xl bg-primary/15 border border-primary/30 text-primary active:bg-primary/25 active:scale-95 transition-all"
+                >
+                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                    <circle cx="12" cy="12" r="3" fill="currentColor" />
+                  </svg>
+                </button>
+              )}
+            </div>
+          </>
+        )}
+      </div>
 
       {confirmModal}
-    </div>
+    </>
   );
 });
 
