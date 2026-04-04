@@ -1,20 +1,14 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "lrc-editor",
-  "main": "src/main.jsx",
-  "compatibility_date": "2025-02-04",
+  "compatibility_date": "2026-03-29",
   "observability": {
     "enabled": true
   },
-
-  // Add this to your wrangler.jsonc
-  "kv_namespaces": [
-    {
-      "binding": "KV",
-      "id": "39d9119dbbff4dfdb3400294521fe743",
-      
-      // Optional: preview_id used when running `wrangler dev` for local dev
-      // "preview_id": "<ID_OF_PREVIEW_KV_NAMESPACE_FOR_LOCAL_DEVELOPMENT>"
-    }
+  "assets": {
+    "not_found_handling": "single-page-application"
+  },
+  "compatibility_flags": [
+    "nodejs_compat"
   ]
 }
