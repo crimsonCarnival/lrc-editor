@@ -1,5 +1,6 @@
-﻿import { useRef, useEffect, useState, useCallback } from 'react';
+﻿import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { usePreview } from './usePreview';
 import ExportPanel from './ExportPanel';
 import PreviewPasteArea from './PreviewPasteArea';
@@ -255,98 +256,28 @@ export default function Preview(props) {
           handleSavePaste={handleSavePaste}
         />
       ) : (
-        <div
-          ref={containerRef}
-          className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 scroll-smooth mask-edges rounded-lg"
-        >
-          {!lines.length ? (
-            <div className="flex items-center justify-center h-full">
-              <p className="text-zinc-600 text-xs sm:text-sm italic text-center px-4">
-                {t('editor.pastePlaceholder')}
-              </p>
-            </div>
-          ) : !hasSyncedLines ? (
-            <div className="flex items-center justify-center h-full">
-              <p className="text-zinc-600 text-xs sm:text-sm italic text-center px-4">
-                {t('preview.placeholder')}
-              </p>
-            </div>
-          ) : (() => {
-            const isDualLine = settings.editor?.display?.dualLine;
-            const showNextLine = settings.editor?.display?.showNextLine !== false;
-
-            let displayLines = lines.map((l, i) => ({ line: l, originalIndex: i }));
-            
-            if (isDualLine) {
-              if (currentIndex === -1) {
-                 const firstSynced = lines.findIndex(l => l.timestamp != null);
-                 displayLines = firstSynced !== -1 
-                   ? [{ line: lines[firstSynced], originalIndex: firstSynced }]
-                   : [{ line: lines[0], originalIndex: 0 }];
-                 
-                 if (showNextLine && displayLines[0].originalIndex + 1 < lines.length) {
-                    const idx = displayLines[0].originalIndex + 1;
-                    displayLines.push({ line: lines[idx], originalIndex: idx });
-                 }
-              } else {
-                 displayLines = [{ line: lines[currentIndex], originalIndex: currentIndex }];
-                 if (showNextLine) {
-                    let nextIdx = currentIndex + 1;
-                    while (nextIdx < lines.length && lines[nextIdx].timestamp == null) {
-                       nextIdx++;
-                    }
-                    if (nextIdx < lines.length) {
-                       displayLines.push({ line: lines[nextIdx], originalIndex: nextIdx });
-                    }
-                 }
-              }
-            }
-
-            // Pre-compute nextTimestamp for karaoke fill
-            const nextTimestamps = {};
-            for (let idx = 0; idx < lines.length; idx++) {
-              for (let j = idx + 1; j < lines.length; j++) {
-                if (lines[j].timestamp != null) {
-                  nextTimestamps[idx] = lines[j].timestamp;
-                  break;
-                }
-              }
-            }
-
-            return (
-              <div className={`overflow-x-hidden px-1 sm:px-0 scroll-smooth ${isDualLine ? 'h-full flex flex-col justify-center items-center gap-4 sm:gap-8' : wrapperSpacing[spacingOption] || 'space-y-1'}`}>
-                {displayLines.map(({ line, originalIndex: i }) => (
-                  <PreviewLine
-                    key={i}
-                    line={{ ...line, nextTimestamp: nextTimestamps[i] ?? null }}
-                    originalIndex={i}
-                    displayedActiveIndex={currentIndex}
-                    lockedLineIndex={null}
-                    isDualLine={isDualLine}
-                    displayLines={displayLines}
-                    playbackPosition={playbackPosition}
-                    activeRef={activeRef}
-                    handleLineClick={handleLineClick}
-                    handleLineHover={() => {}}
-                    handleLineHoverEnd={() => {}}
-                    showTranslationsInPreview={showTranslationsInPreview}
-                    showFuriganaInPreview={showFuriganaInPreview}
-                    sizeOption={sizeOption}
-                    spacingOption={spacingOption}
-                    activeSecondarySizes={activeSecondarySizes}
-                    inactiveSecondarySizes={inactiveSecondarySizes}
-                    activeFontSizes={activeFontSizes}
-                    inactiveFontSizes={inactiveFontSizes}
-                    activeMargin={activeMargin}
-                    distanceFromActive={currentIndex >= 0 ? Math.abs(i - currentIndex) : null}
-                    totalLines={lines.length}
-                    editorMode={editorMode}
-                  />
-                ))}
-              </div>
-            );
-          })()}
-        </div>
+        <PreviewViewport
+          containerRef={containerRef}
+          lines={lines}
+          currentIndex={currentIndex}
+          hasSyncedLines={hasSyncedLines}
+          playbackPosition={playbackPosition}
+          activeRef={activeRef}
+          handleLineClick={handleLineClick}
+          showTranslationsInPreview={showTranslationsInPreview}
+          showFuriganaInPreview={showFuriganaInPreview}
+          sizeOption={sizeOption}
+          spacingOption={spacingOption}
+          activeSecondarySizes={activeSecondarySizes}
+          inactiveSecondarySizes={inactiveSecondarySizes}
+          activeFontSizes={activeFontSizes}
+          inactiveFontSizes={inactiveFontSizes}
+          activeMargin={activeMargin}
+          wrapperSpacing={wrapperSpacing}
+          settings={settings}
+          editorMode={editorMode}
+          t={t}
+        />
       )}
     </div>
       {shareModal && shareAnchor && createPortal(
@@ -366,5 +297,216 @@ export default function Preview(props) {
         document.body
       )}
     </>
+  );
+}
+
+// ────────────────────────────────────────────────────────
+// Virtualized preview viewport — handles both normal and dual-line modes
+// ────────────────────────────────────────────────────────
+function PreviewViewport({
+  containerRef,
+  lines,
+  currentIndex,
+  hasSyncedLines,
+  playbackPosition,
+  activeRef,
+  handleLineClick,
+  showTranslationsInPreview,
+  showFuriganaInPreview,
+  sizeOption,
+  spacingOption,
+  activeSecondarySizes,
+  inactiveSecondarySizes,
+  activeFontSizes,
+  inactiveFontSizes,
+  activeMargin,
+  wrapperSpacing,
+  settings,
+  editorMode,
+  t,
+}) {
+  const isDualLine = settings.editor?.display?.dualLine;
+  const showNextLine = settings.editor?.display?.showNextLine !== false;
+  const scrollAlignment = settings.editor?.scroll?.alignment || 'center';
+  const scrollMode = settings.editor?.scroll?.mode || 'smooth';
+
+  // Pre-compute nextTimestamp for karaoke fill
+  const nextTimestamps = useMemo(() => {
+    const result = {};
+    for (let idx = 0; idx < lines.length; idx++) {
+      for (let j = idx + 1; j < lines.length; j++) {
+        if (lines[j].timestamp != null) {
+          result[idx] = lines[j].timestamp;
+          break;
+        }
+      }
+    }
+    return result;
+  }, [lines]);
+
+  // Compute display lines for dual-line mode
+  const dualDisplayLines = useMemo(() => {
+    if (!isDualLine) return null;
+    let result;
+    if (currentIndex === -1) {
+      const firstSynced = lines.findIndex((l) => l.timestamp != null);
+      result = firstSynced !== -1
+        ? [{ line: lines[firstSynced], originalIndex: firstSynced }]
+        : [{ line: lines[0], originalIndex: 0 }];
+      if (showNextLine && result[0].originalIndex + 1 < lines.length) {
+        const idx = result[0].originalIndex + 1;
+        result.push({ line: lines[idx], originalIndex: idx });
+      }
+    } else {
+      result = [{ line: lines[currentIndex], originalIndex: currentIndex }];
+      if (showNextLine) {
+        let nextIdx = currentIndex + 1;
+        while (nextIdx < lines.length && lines[nextIdx].timestamp == null) nextIdx++;
+        if (nextIdx < lines.length) result.push({ line: lines[nextIdx], originalIndex: nextIdx });
+      }
+    }
+    return result;
+  }, [isDualLine, lines, currentIndex, showNextLine]);
+
+  const virtualizer = useVirtualizer({
+    count: isDualLine ? 0 : lines.length,
+    getScrollElement: () => containerRef.current,
+    estimateSize: () => 52,
+    overscan: 5,
+    measureElement: (el) => el?.getBoundingClientRect().height ?? 52,
+  });
+
+  // Auto-scroll to active line (virtual)
+  useEffect(() => {
+    if (isDualLine || scrollAlignment === 'none' || currentIndex < 0) return;
+    virtualizer.scrollToIndex(currentIndex, {
+      align: scrollAlignment === 'start' ? 'start' : scrollAlignment === 'end' ? 'end' : 'center',
+      behavior: scrollMode,
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentIndex, isDualLine, scrollAlignment, scrollMode]);
+
+  if (!lines.length) {
+    return (
+      <div
+        ref={containerRef}
+        className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 mask-edges rounded-lg flex items-center justify-center"
+      >
+        <p className="text-zinc-600 text-xs sm:text-sm italic text-center px-4">
+          {t('editor.pastePlaceholder')}
+        </p>
+      </div>
+    );
+  }
+
+  if (!hasSyncedLines) {
+    return (
+      <div
+        ref={containerRef}
+        className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 mask-edges rounded-lg flex items-center justify-center"
+      >
+        <p className="text-zinc-600 text-xs sm:text-sm italic text-center px-4">
+          {t('preview.placeholder')}
+        </p>
+      </div>
+    );
+  }
+
+  if (isDualLine) {
+    return (
+      <div
+        ref={containerRef}
+        className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 scroll-smooth mask-edges rounded-lg"
+      >
+        <div className="h-full flex flex-col justify-center items-center gap-4 sm:gap-8 overflow-x-hidden px-1 sm:px-0">
+          {dualDisplayLines.map(({ line, originalIndex: i }) => (
+            <PreviewLine
+              key={i}
+              line={{ ...line, nextTimestamp: nextTimestamps[i] ?? null }}
+              originalIndex={i}
+              displayedActiveIndex={currentIndex}
+              lockedLineIndex={null}
+              isDualLine
+              displayLines={dualDisplayLines}
+              playbackPosition={playbackPosition}
+              activeRef={activeRef}
+              handleLineClick={handleLineClick}
+              handleLineHover={() => {}}
+              handleLineHoverEnd={() => {}}
+              showTranslationsInPreview={showTranslationsInPreview}
+              showFuriganaInPreview={showFuriganaInPreview}
+              sizeOption={sizeOption}
+              spacingOption={spacingOption}
+              activeSecondarySizes={activeSecondarySizes}
+              inactiveSecondarySizes={inactiveSecondarySizes}
+              activeFontSizes={activeFontSizes}
+              inactiveFontSizes={inactiveFontSizes}
+              activeMargin={activeMargin}
+              distanceFromActive={currentIndex >= 0 ? Math.abs(i - currentIndex) : null}
+              totalLines={lines.length}
+              editorMode={editorMode}
+            />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Normal mode — virtualized
+  return (
+    <div
+      ref={containerRef}
+      className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 mask-edges rounded-lg"
+    >
+      <div
+        style={{ height: virtualizer.getTotalSize(), position: 'relative' }}
+        className={`overflow-x-hidden px-1 sm:px-0`}
+      >
+        {virtualizer.getVirtualItems().map((vRow) => {
+          const i = vRow.index;
+          const line = lines[i];
+          return (
+            <div
+              key={i}
+              data-index={i}
+              ref={virtualizer.measureElement}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                transform: `translateY(${vRow.start}px)`,
+              }}
+            >
+              <PreviewLine
+                line={{ ...line, nextTimestamp: nextTimestamps[i] ?? null }}
+                originalIndex={i}
+                displayedActiveIndex={currentIndex}
+                lockedLineIndex={null}
+                isDualLine={false}
+                displayLines={null}
+                playbackPosition={i === currentIndex ? playbackPosition : null}
+                activeRef={i === currentIndex ? activeRef : null}
+                handleLineClick={handleLineClick}
+                handleLineHover={() => {}}
+                handleLineHoverEnd={() => {}}
+                showTranslationsInPreview={showTranslationsInPreview}
+                showFuriganaInPreview={showFuriganaInPreview}
+                sizeOption={sizeOption}
+                spacingOption={spacingOption}
+                activeSecondarySizes={activeSecondarySizes}
+                inactiveSecondarySizes={inactiveSecondarySizes}
+                activeFontSizes={activeFontSizes}
+                inactiveFontSizes={inactiveFontSizes}
+                activeMargin={activeMargin}
+                distanceFromActive={currentIndex >= 0 ? Math.abs(i - currentIndex) : null}
+                totalLines={lines.length}
+                editorMode={editorMode}
+              />
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }

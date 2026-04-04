@@ -135,36 +135,22 @@ export function usePreview({ lines, setLines, playbackPosition, playerRef, durat
     return bestIdx;
   }, [syncedEntries, lines, playbackPosition, editorMode]);
 
+  // Scroll-to-active is now handled by PreviewViewport's virtualizer (scrollToIndex).
+  // The ref-based fallback below is kept only for dual-line mode where the
+  // virtualizer is inactive and activeRef still applies.
   useEffect(() => {
-    if (activeRef.current && containerRef.current && settings.editor?.scroll?.alignment !== 'none') {
-      const container = containerRef.current;
-      const element = activeRef.current;
-
-      const containerRect = container.getBoundingClientRect();
-      const elementRect = element.getBoundingClientRect();
-
-      const elementTop = elementRect.top - containerRect.top + container.scrollTop;
-      let scrollTo = container.scrollTop;
-
-      if (settings.editor?.scroll?.alignment === 'center') {
-        scrollTo = elementTop - (containerRect.height / 2) + (elementRect.height / 2);
-      } else if (settings.editor?.scroll?.alignment === 'start') {
-        scrollTo = elementTop;
-      } else if (settings.editor?.scroll?.alignment === 'end') {
-        scrollTo = elementTop - containerRect.height + elementRect.height;
-      } else {
-        if (elementRect.top < containerRect.top) {
-          scrollTo = elementTop;
-        } else if (elementRect.bottom > containerRect.bottom) {
-          scrollTo = elementTop - containerRect.height + elementRect.height;
-        }
-      }
-
-      container.scrollTo({
-        top: scrollTo,
-        behavior: settings.editor?.scroll?.mode || 'smooth',
-      });
-    }
+    if (!activeRef.current || !containerRef.current) return;
+    if (settings.editor?.scroll?.alignment === 'none') return;
+    const container = containerRef.current;
+    const element = activeRef.current;
+    const containerRect = container.getBoundingClientRect();
+    const elementRect = element.getBoundingClientRect();
+    if (elementRect.top >= containerRect.top && elementRect.bottom <= containerRect.bottom) return;
+    const elementTop = elementRect.top - containerRect.top + container.scrollTop;
+    container.scrollTo({
+      top: elementTop - containerRect.height / 2 + elementRect.height / 2,
+      behavior: settings.editor?.scroll?.mode || 'smooth',
+    });
   }, [currentIndex, settings.editor?.scroll?.mode, settings.editor?.scroll?.alignment]);
 
   const hasSyncedLines = syncedIndices.length > 0;
