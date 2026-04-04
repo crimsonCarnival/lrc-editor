@@ -23,6 +23,7 @@ const WaveformDisplay = React.memo(function WaveformDisplay({
   const waveformSnapRef = useRef(waveformSnap);
   waveformSnapRef.current = waveformSnap;
   const [zoomLevel, setZoomLevel] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
   const timestampsRef = useRef([]);
 
   // Extract sorted timestamps from lines
@@ -200,6 +201,7 @@ const WaveformDisplay = React.memo(function WaveformDisplay({
   }, []);
 
   const initWaveform = useCallback(async (url, audioEl) => {
+    setIsLoading(true);
     // Dynamically import wavesurfer.js
     const WaveSurfer = (await import('wavesurfer.js')).default;
 
@@ -231,6 +233,8 @@ const WaveformDisplay = React.memo(function WaveformDisplay({
     ws.on('seeking', (time) => {
       onTimeUpdate?.(time);
     });
+
+    ws.on('ready', () => setIsLoading(false));
 
     // Cursor following state
     let isFollowingCursor = false;
@@ -365,6 +369,10 @@ const WaveformDisplay = React.memo(function WaveformDisplay({
   return (
     <div className="space-y-1">
       <div ref={wrapperRef} className="relative w-full rounded-lg overflow-hidden bg-zinc-900/40 border border-zinc-800/50 cursor-pointer">
+        {/* Skeleton shimmer while WaveSurfer initializes */}
+        {isLoading && (
+          <div className="skeleton-wave absolute inset-0 z-20 rounded-lg" style={{ height: 48 }} />
+        )}
         {/* WaveSurfer renders into this div */}
         <div ref={waveContainerRef} className="w-full" />
         {/* Overlay canvas — sibling to WaveSurfer container, not a child */}
