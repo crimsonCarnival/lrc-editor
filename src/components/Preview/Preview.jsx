@@ -118,7 +118,7 @@ export default function Preview(props) {
                     ? 'bg-zinc-800 text-zinc-100 hover:bg-zinc-700'
                     : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'
               }`}
-              title={shareModal ? t('share.close', 'Close') : (isSharedSession ? 'Viewing shared session' : 'Share session')}
+              title={shareModal ? t('share.close') : (isSharedSession ? t('share.viewingShared') : t('app.shareSession'))}
             >
               {shareModal
                 ? <X className="w-4 sm:w-5 h-4 sm:h-5" strokeWidth={2} />
@@ -132,7 +132,7 @@ export default function Preview(props) {
                 size="icon-sm"
                 onClick={() => setSharedReadOnly?.(!sharedReadOnly)}
                 className={`flex-shrink-0 ${sharedReadOnly ? 'text-amber-400 hover:text-amber-300 bg-amber-400/10 hover:bg-amber-400/20' : 'text-emerald-400 hover:text-emerald-300 bg-emerald-400/10 hover:bg-emerald-400/20'}`}
-                title={sharedReadOnly ? 'Read-only \u2014 click to edit your copy' : 'Editing your personal copy'}
+                title={sharedReadOnly ? t('share.readOnlyTitle') : t('share.editingTitle')}
               >
                 {sharedReadOnly
                   ? <Lock className="w-4 sm:w-5 h-4 sm:h-5" strokeWidth={1.8} />

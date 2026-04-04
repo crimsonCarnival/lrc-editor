@@ -1,6 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSettings } from '../../contexts/useSettings';
+import { toHiragana, toKatakana } from '../../utils/furigana';
 
 export default function PreviewLine({
   line,
@@ -191,6 +192,8 @@ function renderMainTrack({ line, isActive, isPast, hasWordTimestamps, playbackPo
   const hasReadings = line.words?.some((w) => w.reading);
   const mainText = line.text || '♪';
   const hasCJK = /[\u3000-\u9FFF\uF900-\uFAFF]/.test(mainText);
+  const readingFmt = settings.editor?.display?.readingFormat || 'hiragana';
+  const fmtReading = (r) => r ? (readingFmt === 'katakana' ? toKatakana(r) : toHiragana(r)) : r;
 
   return (
     <p className={`transition-all duration-500 ease-out w-full break-words overflow-wrap-anywhere hyphens-auto ${isActive ? activeClass : isPast ? pastClass : futureClass}`} style={{ lineHeight: hasReadings ? '2' : undefined }}>
@@ -211,7 +214,7 @@ function renderMainTrack({ line, isActive, isPast, hasWordTimestamps, playbackPo
               const filled = fillPct >= 50;
               return (
                 <React.Fragment key={wi}>
-                  {renderWordUnit(w, filled)}
+                  {renderWordUnit(w, filled, fmtReading)}
                   {addSpace ? ' ' : null}
                 </React.Fragment>
               );
@@ -219,7 +222,7 @@ function renderMainTrack({ line, isActive, isPast, hasWordTimestamps, playbackPo
 
             // Latin text: use overlay technique for smooth sub-character fill
             const wordContent = w.reading && isKanjiWord(w.word)
-              ? <ruby>{w.word}<rp>(</rp><rt style={{ paddingBottom: '2px' }}>{w.reading}</rt><rp>)</rp></ruby>
+              ? <ruby>{w.word}<rp>(</rp><rt style={{ paddingBottom: '2px' }}>{fmtReading(w.reading)}</rt><rp>)</rp></ruby>
               : w.word;
             return (
               <React.Fragment key={wi}>
@@ -239,7 +242,7 @@ function renderMainTrack({ line, isActive, isPast, hasWordTimestamps, playbackPo
             );
           })
         // No word timestamps: just render text with furigana if available, no fill
-        : hasReadings ? renderLineWithReadings(line) : mainText
+        : hasReadings ? renderLineWithReadings(line, fmtReading) : mainText
       }
     </p>
   );
@@ -252,13 +255,13 @@ function isKanjiWord(word) {
 }
 
 // ——— Render a single word with optional ruby (only on kanji) and fill color ———
-function renderWordUnit(w, filled) {
+function renderWordUnit(w, filled, fmtReading) {
   const textCls = `transition-colors duration-75 ${filled ? 'text-primary' : 'text-zinc-500'}`;
   const rtCls = `transition-colors duration-75 ${filled ? '!text-primary' : '!text-zinc-600'}`;
   if (w.reading && isKanjiWord(w.word)) {
     return (
       <ruby className={textCls}>
-        {w.word}<rp>(</rp><rt className={rtCls} style={{ paddingBottom: '2px' }}>{w.reading}</rt><rp>)</rp>
+        {w.word}<rp>(</rp><rt className={rtCls} style={{ paddingBottom: '2px' }}>{fmtReading(w.reading)}</rt><rp>)</rp>
       </ruby>
     );
   }
@@ -266,12 +269,12 @@ function renderWordUnit(w, filled) {
 }
 
 // ——— Render line text with ruby annotations from word.reading (only on kanji) ———
-function renderLineWithReadings(line) {
+function renderLineWithReadings(line, fmtReading) {
   const words = line.words || [];
   if (words.length === 0) return line.text || '♪';
   return words.map((w, i) =>
     w.reading && isKanjiWord(w.word)
-      ? <ruby key={i}>{w.word}<rp>(</rp><rt style={{ paddingBottom: '2px' }}>{w.reading}</rt><rp>)</rp></ruby>
+      ? <ruby key={i}>{w.word}<rp>(</rp><rt style={{ paddingBottom: '2px' }}>{fmtReading(w.reading)}</rt><rp>)</rp></ruby>
       : <React.Fragment key={i}>{w.word}</React.Fragment>
   );
 }
