@@ -2,7 +2,7 @@
 import { Section, SettingRow, Toggle } from '../shared';
 import { useExportSettings } from '../hooks/useExportSettings';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Download, WrapText, Clipboard, FileDown, Clock, FileText, FilterX, ArrowUpDown } from 'lucide-react';
+import { Download, WrapText, Clipboard, FileDown, Clock, FileText, FilterX, ArrowUpDown, Tag } from 'lucide-react';
 
 export default function ExportSettings({ settings, updateSetting, searchTerm }) {
   const { t } = useTranslation();
@@ -25,8 +25,8 @@ export default function ExportSettings({ settings, updateSetting, searchTerm }) 
             <SelectValue />
           </SelectTrigger>
           <SelectContent className="bg-zinc-900 border-zinc-700">
-            <SelectItem value="lf">Unix (LF)</SelectItem>
-            <SelectItem value="crlf">Windows (CRLF)</SelectItem>
+            <SelectItem value="lf">{t('settings.options.lineEndings.lf')}</SelectItem>
+            <SelectItem value="crlf">{t('settings.options.lineEndings.crlf')}</SelectItem>
           </SelectContent>
         </Select>
       </SettingRow>
@@ -39,8 +39,8 @@ export default function ExportSettings({ settings, updateSetting, searchTerm }) 
             <SelectValue />
           </SelectTrigger>
           <SelectContent className="bg-zinc-900 border-zinc-700">
-            <SelectItem value="lrc">.lrc</SelectItem>
-            <SelectItem value="srt">.srt</SelectItem>
+            <SelectItem value="lrc">{t('settings.options.formats.lrc')}</SelectItem>
+            <SelectItem value="srt">{t('settings.options.formats.srt')}</SelectItem>
           </SelectContent>
         </Select>
       </SettingRow>
@@ -53,8 +53,8 @@ export default function ExportSettings({ settings, updateSetting, searchTerm }) 
             <SelectValue />
           </SelectTrigger>
           <SelectContent className="bg-zinc-900 border-zinc-700">
-            <SelectItem value="lrc">.lrc</SelectItem>
-            <SelectItem value="srt">.srt</SelectItem>
+            <SelectItem value="lrc">{t('settings.options.formats.lrc')}</SelectItem>
+            <SelectItem value="srt">{t('settings.options.formats.srt')}</SelectItem>
           </SelectContent>
         </Select>
       </SettingRow>
@@ -67,8 +67,8 @@ export default function ExportSettings({ settings, updateSetting, searchTerm }) 
             <SelectValue />
           </SelectTrigger>
           <SelectContent className="bg-zinc-900 border-zinc-700">
-            <SelectItem value="hundredths">mm:ss.xx</SelectItem>
-            <SelectItem value="thousandths">mm:ss.xxx</SelectItem>
+            <SelectItem value="hundredths">{t('settings.options.precision.hundredths')}</SelectItem>
+            <SelectItem value="thousandths">{t('settings.options.precision.thousandths')}</SelectItem>
           </SelectContent>
         </Select>
       </SettingRow>
@@ -98,6 +98,13 @@ export default function ExportSettings({ settings, updateSetting, searchTerm }) 
           id="toggle-normalize-ts"
           checked={settings.export?.normalizeTimestamps ?? false}
           onChange={(v) => updateSetting('export.normalizeTimestamps', v)}
+        />
+      </SettingRow>
+      <SettingRow icon={Tag} label={t('settings.export.includeMetadata')} description={t('settings.export.includeMetadataDesc')}>
+        <Toggle
+          id="toggle-include-metadata"
+          checked={settings.export?.includeMetadata ?? true}
+          onChange={(v) => updateSetting('export.includeMetadata', v)}
         />
       </SettingRow>
     </Section>

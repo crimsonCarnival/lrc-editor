@@ -90,7 +90,7 @@ export const DEFAULT_SETTINGS = {
     focusPlayback: ['Ctrl+3'],
   },
   advanced: {
-    autoSave: { enabled: false, interval: 10 },
+    autoSave: { enabled: false, timeInterval: 30 },
     confirmDestructive: true,
     timezone: 'auto'
   }

@@ -3,7 +3,7 @@ import NumberInput from '../../shared/NumberInput';
 import { Section, SettingRow, Toggle } from '../shared';
 import { useEditorSettings } from '../hooks/useEditorSettings';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { FileText, PauseCircle, SlidersHorizontal, ChevronDown, SkipForward, MoveHorizontal, Hash, Clock } from 'lucide-react';
+import { FileText, PauseCircle, SlidersHorizontal, ChevronDown, SkipForward, MoveHorizontal, Hash, Clock, Film, Magnet } from 'lucide-react';
 
 export default function EditorSettings({ settings, updateSetting, searchTerm }) {
   const { t } = useTranslation();
@@ -18,6 +18,7 @@ export default function EditorSettings({ settings, updateSetting, searchTerm }) 
   } = useEditorSettings(updateSetting);
 
   return (
+    <>
     <Section title={t('settings.editor.label')} icon={FileText} searchTerm={searchTerm}>
       <SettingRow
         icon={PauseCircle}
@@ -44,12 +45,40 @@ export default function EditorSettings({ settings, updateSetting, searchTerm }) 
           className="w-20"
         />
       </SettingRow>
+      <SettingRow
+        icon={SlidersHorizontal}
+        label={t('settings.editor.nudgeFine')}
+        description={t('settings.editor.nudgeFineDesc')}
+      >
+        <NumberInput
+          min={0.001}
+          max={1}
+          step={0.001}
+          value={settings.editor?.nudge?.fine ?? 0.01}
+          onChange={(e) => updateSetting('editor.nudge.fine', Math.max(0.001, parseFloat(e.target.value) || 0.01))}
+          className="w-20"
+        />
+      </SettingRow>
       <SettingRow icon={ChevronDown} label={t('settings.editor.autoAdvance')} description={t('settings.editor.autoAdvanceDesc')}>
         <Toggle
           id="toggle-auto-advance"
           checked={settings.editor?.autoAdvance?.enabled ?? true}
           onChange={handleAutoAdvanceChange}
         />
+      </SettingRow>
+      <SettingRow icon={SkipForward} label={t('settings.editor.autoAdvanceMode')} description={t('settings.editor.autoAdvanceModeDesc')}>
+        <Select
+          value={settings.editor?.autoAdvance?.mode ?? 'next'}
+          onValueChange={(val) => updateSetting('editor.autoAdvance.mode', val)}
+        >
+          <SelectTrigger className="bg-zinc-900 border-zinc-700 text-xs text-zinc-200 focus:border-primary/50 h-8 w-auto">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="bg-zinc-900 border-zinc-700">
+            <SelectItem value="next">{t('settings.editor.advanceModeNext')}</SelectItem>
+            <SelectItem value="next-unsynced">{t('settings.editor.advanceModeNextUnsynced')}</SelectItem>
+          </SelectContent>
+        </Select>
       </SettingRow>
       <SettingRow icon={SkipForward} label={t('settings.editor.skipBlank')} description={t('settings.editor.skipBlankDesc')}>
         <Toggle
@@ -85,11 +114,41 @@ export default function EditorSettings({ settings, updateSetting, searchTerm }) 
             <SelectValue />
           </SelectTrigger>
           <SelectContent className="bg-zinc-900 border-zinc-700">
-            <SelectItem value="hundredths">mm:ss.xx</SelectItem>
-            <SelectItem value="thousandths">mm:ss.xxx</SelectItem>
+            <SelectItem value="hundredths">{t('settings.options.precision.hundredths')}</SelectItem>
+            <SelectItem value="thousandths">{t('settings.options.precision.thousandths')}</SelectItem>
           </SelectContent>
         </Select>
       </SettingRow>
     </Section>
+    <Section title={t('settings.editor.srtSection')} icon={Film} searchTerm={searchTerm}>
+      <SettingRow icon={Clock} label={t('settings.editor.srtDuration')} description={t('settings.editor.srtDurationDesc')}>
+        <NumberInput
+          min={0.5}
+          max={30}
+          step={0.5}
+          value={settings.editor?.srt?.defaultSubtitleDuration ?? 5}
+          onChange={(e) => updateSetting('editor.srt.defaultSubtitleDuration', Math.max(0.5, parseFloat(e.target.value) || 5))}
+          className="w-20"
+        />
+      </SettingRow>
+      <SettingRow icon={MoveHorizontal} label={t('settings.editor.srtGap')} description={t('settings.editor.srtGapDesc')}>
+        <NumberInput
+          min={0}
+          max={5}
+          step={0.1}
+          value={settings.editor?.srt?.minSubtitleGap ?? 0}
+          onChange={(e) => updateSetting('editor.srt.minSubtitleGap', Math.max(0, parseFloat(e.target.value) || 0))}
+          className="w-20"
+        />
+      </SettingRow>
+      <SettingRow icon={Magnet} label={t('settings.editor.srtSnap')} description={t('settings.editor.srtSnapDesc')}>
+        <Toggle
+          id="toggle-srt-snap"
+          checked={settings.editor?.srt?.snapToNextLine ?? false}
+          onChange={(v) => updateSetting('editor.srt.snapToNextLine', v)}
+        />
+      </SettingRow>
+    </Section>
+    </>
   );
 }

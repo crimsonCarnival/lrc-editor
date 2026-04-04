@@ -16,7 +16,7 @@ export default function AdvancedSettings({ settings, updateSetting, searchTerm }
   const { t } = useTranslation();
   const {
     handleAutoSaveToggle,
-    handleAutoSaveIntervalChange,
+    handleAutoSaveTimeIntervalChange,
     handleConfirmDestructiveChange,
     handleTimezoneChange,
   } = useAdvancedSettings(updateSetting);
@@ -32,21 +32,24 @@ export default function AdvancedSettings({ settings, updateSetting, searchTerm }
       </SettingRow>
 
       {settings.advanced?.autoSave?.enabled && (
-        <SettingRow          icon={Timer}          label={t('settings.advanced.autoSaveInterval')}
+        <SettingRow
+          icon={Timer}
+          label={t('settings.advanced.autoSaveInterval')}
           description={t('settings.advanced.autoSaveIntervalDesc')}
         >
           <Select
-            value={String(settings.advanced?.autoSave?.interval ?? 10)}
-            onValueChange={(val) => handleAutoSaveIntervalChange({ target: { value: Number(val) } })}
+            value={String(settings.advanced?.autoSave?.timeInterval ?? 30)}
+            onValueChange={(val) => handleAutoSaveTimeIntervalChange({ target: { value: Number(val) } })}
           >
             <SelectTrigger className="bg-zinc-900 border-zinc-700 text-xs text-zinc-200 focus:border-primary/50 h-8 w-auto">
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="bg-zinc-900 border-zinc-700">
-              <SelectItem value="5">{t('settings.advanced.autoSaveActions', { count: 5 })}</SelectItem>
-              <SelectItem value="10">{t('settings.advanced.autoSaveActions', { count: 10 })}</SelectItem>
-              <SelectItem value="20">{t('settings.advanced.autoSaveActions', { count: 20 })}</SelectItem>
-              <SelectItem value="50">{t('settings.advanced.autoSaveActions', { count: 50 })}</SelectItem>
+              <SelectItem value="5">{t('settings.advanced.autoSaveSeconds', { count: 5 })}</SelectItem>
+              <SelectItem value="10">{t('settings.advanced.autoSaveSeconds', { count: 10 })}</SelectItem>
+              <SelectItem value="30">{t('settings.advanced.autoSaveSeconds', { count: 30 })}</SelectItem>
+              <SelectItem value="60">{t('settings.advanced.autoSaveSeconds', { count: 60 })}</SelectItem>
+              <SelectItem value="120">{t('settings.advanced.autoSaveSeconds', { count: 120 })}</SelectItem>
             </SelectContent>
           </Select>
         </SettingRow>

@@ -2,7 +2,7 @@
 import { Section, SettingRow, Toggle } from '../shared';
 import { useInterfaceSettings } from '../hooks/useInterfaceSettings';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Monitor, Moon, Sparkles, Globe, ScrollText, AlignCenter, AlignLeft, Type, Rows2, LayoutList, ChevronDown, Columns } from 'lucide-react';
+import { Monitor, Moon, Sparkles, Globe, ScrollText, AlignCenter, AlignLeft, Type, Rows2, LayoutList, ChevronDown, Columns, BookOpen } from 'lucide-react';
 
 export default function InterfaceSettings({ settings, updateSetting, searchTerm }) {
   const { t } = useTranslation();
@@ -91,8 +91,8 @@ export default function InterfaceSettings({ settings, updateSetting, searchTerm 
           <SelectContent className="bg-zinc-900 border-zinc-700">
             <SelectItem value="center">{t('settings.interface.scrollCenter')}</SelectItem>
             <SelectItem value="nearest">{t('settings.interface.scrollNearest')}</SelectItem>
-            <SelectItem value="start">Top</SelectItem>
-            <SelectItem value="none">Disabled</SelectItem>
+            <SelectItem value="start">{t('settings.interface.scrollTop')}</SelectItem>
+            <SelectItem value="none">{t('settings.interface.scrollOff')}</SelectItem>
           </SelectContent>
         </Select>
       </SettingRow>
@@ -169,6 +169,20 @@ export default function InterfaceSettings({ settings, updateSetting, searchTerm 
           <SelectContent className="bg-zinc-900 border-zinc-700">
             <SelectItem value="stacked">{t('settings.interface.layoutStacked')}</SelectItem>
             <SelectItem value="side-by-side">{t('settings.interface.layoutSideBySide')}</SelectItem>
+          </SelectContent>
+        </Select>
+      </SettingRow>
+      <SettingRow icon={BookOpen} label={t('settings.interface.readingFormat')} description={t('settings.interface.readingFormatDesc')}>
+        <Select
+          value={settings.editor?.display?.readingFormat ?? 'hiragana'}
+          onValueChange={(val) => updateSetting('editor.display.readingFormat', val)}
+        >
+          <SelectTrigger className="bg-zinc-900 border-zinc-700 text-xs text-zinc-200 focus:border-primary/50 h-8 w-auto">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="bg-zinc-900 border-zinc-700">
+            <SelectItem value="hiragana">{t('editor.readingFormat.hiragana')}</SelectItem>
+            <SelectItem value="katakana">{t('editor.readingFormat.katakana')}</SelectItem>
           </SelectContent>
         </Select>
       </SettingRow>

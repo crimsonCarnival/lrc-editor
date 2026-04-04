@@ -80,7 +80,7 @@ function upgradeLegacySettings(parsed) {
 
   // Advanced
   if (parsed.autoSaveEnabled !== undefined) migrated.advanced.autoSave.enabled = parsed.autoSaveEnabled;
-  if (parsed.autoSaveInterval !== undefined) migrated.advanced.autoSave.interval = parsed.autoSaveInterval;
+  if (parsed.autoSaveInterval !== undefined) migrated.advanced.autoSave.timeInterval = parsed.autoSaveInterval;
   if (parsed.confirmDestructive !== undefined) migrated.advanced.confirmDestructive = parsed.confirmDestructive;
 
   return migrated;

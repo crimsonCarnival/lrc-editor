@@ -1,8 +1,8 @@
 export function useAdvancedSettings(updateSetting) {
   const handleAutoSaveToggle = (v) => updateSetting('advanced.autoSave.enabled', v);
 
-  const handleAutoSaveIntervalChange = (e) =>
-    updateSetting('advanced.autoSave.interval', parseInt(e.target.value, 10));
+  const handleAutoSaveTimeIntervalChange = (e) =>
+    updateSetting('advanced.autoSave.timeInterval', parseInt(e.target.value, 10));
 
   const handleConfirmDestructiveChange = (v) =>
     updateSetting('advanced.confirmDestructive', v);
@@ -12,7 +12,7 @@ export function useAdvancedSettings(updateSetting) {
 
   return {
     handleAutoSaveToggle,
-    handleAutoSaveIntervalChange,
+    handleAutoSaveTimeIntervalChange,
     handleConfirmDestructiveChange,
     handleTimezoneChange,
   };
