@@ -286,6 +286,7 @@ export function useAppState() {
           words: Array.isArray(l.words) ? l.words.map((w) => ({
             word: typeof w.word === 'string' ? w.word : '',
             time: typeof w.time === 'number' && isFinite(w.time) ? w.time : null,
+            ...(typeof w.reading === 'string' && w.reading ? { reading: w.reading } : {}),
           })).filter((w) => w.word) : undefined,
         }));
         if (validLines.length === 0) return;
@@ -351,30 +352,56 @@ export function useAppState() {
     [editorMode, duration, setLines, settings.editor?.srt],
   );
 
-  // ——— Auto-save (action-count based) ———
-  const actionCountRef = useRef(0);
-  // Sync latest volatile values so the lines-only effect never captures stale closures
+  // ——— Auto-save (dual-condition: time OR action count, whichever first) ———
+  // Sync latest volatile values into a ref so callbacks never capture stale closures
   const autoSaveRef = useRef(null);
   useEffect(() => {
     autoSaveRef.current = {
       pendingSession,
       enabled: settings.advanced.autoSave.enabled,
-      interval: settings.advanced.autoSave.interval ?? 10,
+      timeInterval: settings.advanced.autoSave.timeInterval ?? 30,
       buildPayload: buildSessionPayload,
       isSharedSession,
     };
   });
-  useEffect(() => {
+  const lastSaveTimeRef = useRef(Date.now());
+  const changeCountRef = useRef(0);
+  const doAutoSave = useCallback(() => {
     const s = autoSaveRef.current;
-    if (!s || s.pendingSession !== null || !lines.length || !s.enabled) return;
-    actionCountRef.current += 1;
-    if (actionCountRef.current < s.interval) return;
-    actionCountRef.current = 0;
+    if (!s || s.pendingSession !== null || !s.enabled) return;
+    const payload = s.buildPayload();
+    if (!payload?.lines?.length) return;
     const key = s.isSharedSession ? SHARED_SESSION_KEY : SESSION_KEY;
-    localStorage.setItem(key, JSON.stringify(s.buildPayload()));
+    localStorage.setItem(key, JSON.stringify(payload));
+    lastSaveTimeRef.current = Date.now();
+    changeCountRef.current = 0;
     setIsAutosaving(true);
     setTimeout(() => setIsAutosaving(false), 1200);
-  }, [lines]);
+  }, []);
+  // Action-based trigger
+  const isFirstLinesRender = useRef(true);
+  useEffect(() => {
+    if (isFirstLinesRender.current) { isFirstLinesRender.current = false; return; }
+    const s = autoSaveRef.current;
+    if (!s?.enabled) return;
+    changeCountRef.current += 1;
+    if (changeCountRef.current >= 5) {
+      doAutoSave();
+    }
+  }, [lines, doAutoSave]);
+  // Time-based trigger (ticks every second)
+  useEffect(() => {
+    if (!settings.advanced.autoSave.enabled) return;
+    const id = setInterval(() => {
+      const s = autoSaveRef.current;
+      if (!s?.enabled) return;
+      const elapsedSec = (Date.now() - lastSaveTimeRef.current) / 1000;
+      if (elapsedSec >= (s.timeInterval ?? 30)) {
+        doAutoSave();
+      }
+    }, 1000);
+    return () => clearInterval(id);
+  }, [settings.advanced.autoSave.enabled, doAutoSave]);
 
   const handleRestoreSession = () => {
     if (pendingSession) {
@@ -391,6 +418,7 @@ export function useAppState() {
         words: Array.isArray(l.words) ? l.words.map((w) => ({
           word: typeof w.word === 'string' ? w.word : '',
           time: typeof w.time === 'number' && isFinite(w.time) ? w.time : null,
+          ...(typeof w.reading === 'string' && w.reading ? { reading: w.reading } : {}),
         })).filter((w) => w.word) : undefined,
       }));
       if (validLines.length === 0) {

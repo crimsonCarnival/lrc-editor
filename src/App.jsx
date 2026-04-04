@@ -15,8 +15,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from './components/ui/dropdown-menu';
-import { ToggleGroup, ToggleGroupItem } from './components/ui/toggle-group';
-import { Music2, UploadCloud, Globe, Settings as SettingsIcon, Share2, Pencil, Eye, Play, Lock, LockOpen, LayoutList } from 'lucide-react';
+import { Music2, UploadCloud, Globe, Settings as SettingsIcon, Eye, EyeOff, Lock, LockOpen, LayoutList } from 'lucide-react';
 import { useScrollLock } from './hooks/useScrollLock';
 import { useNetworkStatus } from './hooks/useNetworkStatus';
 
@@ -75,7 +74,10 @@ function AppInner() {
   useNetworkStatus();
 
   const { settings, updateSetting } = useSettings();
-  const focusMode = settings.interface?.focusMode || 'default';
+  const rawFocusMode = settings.interface?.focusMode || 'default';
+  // Normalize: if old 'preview' mode was saved, fall back to 'default'
+  const focusMode = ['default', 'sync', 'playback'].includes(rawFocusMode) ? rawFocusMode : 'default';
+  const [hideEditor, setHideEditor] = useState(false);
 
   // Mobile tab state: 'editor' | 'preview'
   const [mobileTab, setMobileTab] = useState('editor');
@@ -84,9 +86,9 @@ function AppInner() {
     updateSetting('interface.focusMode', mode);
   }, [updateSetting]);
 
-  // Cycle: default → sync → preview → playback → default
+  // Cycle: default → sync → playback → default
   const cycleFocusMode = useCallback(() => {
-    const modes = ['default', 'sync', 'preview', 'playback'];
+    const modes = ['default', 'sync', 'playback'];
     const idx = modes.indexOf(focusMode);
     setFocusMode(modes[(idx + 1) % modes.length]);
   }, [focusMode, setFocusMode]);
@@ -101,7 +103,7 @@ function AppInner() {
         setFocusMode(focusMode === 'sync' ? 'default' : 'sync');
       } else if (matchKey(e, settings.shortcuts?.focusPreview?.[0] || 'Ctrl+2')) {
         e.preventDefault();
-        setFocusMode(focusMode === 'preview' ? 'default' : 'preview');
+        setHideEditor(h => !h);
       } else if (matchKey(e, settings.shortcuts?.focusPlayback?.[0] || 'Ctrl+3')) {
         e.preventDefault();
         setFocusMode(focusMode === 'playback' ? 'default' : 'playback');
@@ -112,21 +114,17 @@ function AppInner() {
   }, [settings.shortcuts, focusMode, setFocusMode]);
 
   // Grid column classes per focus mode
-  const editorColClass = {
+  const editorColClass = ({
     default: 'lg:col-span-7',
     sync: 'lg:col-span-8',
-    preview: 'lg:col-span-6',
     playback: 'hidden',
-  }[focusMode];
+  }[focusMode]) || 'lg:col-span-7';
 
-  const previewColClass = {
-    default: 'lg:col-span-5',
-    sync: 'lg:col-span-4',
-    preview: 'lg:col-span-6',
-    playback: 'lg:col-span-12',
-  }[focusMode];
+  const previewColClass = (hideEditor || focusMode === 'playback')
+    ? 'lg:col-span-12'
+    : ({ default: 'lg:col-span-5', sync: 'lg:col-span-4' }[focusMode] || 'lg:col-span-5');
 
-  const showEditor = focusMode !== 'playback';
+  const showEditor = focusMode !== 'playback' && !hideEditor;
   const showPreview = true; // always visible
 
   return (
@@ -162,38 +160,20 @@ function AppInner() {
         </div>
 
         <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
-          {/* Focus Mode Toggle */}
-          <ToggleGroup
-            type="single"
-            value={focusMode}
-            onValueChange={(val) => val && setFocusMode(val)}
-            className="flex bg-zinc-800/80 rounded-lg border border-zinc-700/60 overflow-hidden h-auto p-0 gap-0"
+          {/* Hide Editor Toggle — desktop only */}
+          <Button
+            variant="outline"
+            onClick={() => setHideEditor(h => !h)}
+            className={`hidden lg:flex px-2 py-1.5 h-auto text-[10px] font-bold border rounded-lg gap-1 flex-shrink-0 transition-colors ${
+              hideEditor
+                ? 'bg-primary text-zinc-950 border-primary hover:bg-primary/90 hover:text-zinc-950'
+                : 'bg-zinc-800/80 border-zinc-700/60 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700'
+            }`}
+            title={`${t('app.hideEditor')} (Ctrl+2)`}
           >
-            <ToggleGroupItem
-              value="sync"
-              className="px-2 py-1.5 text-[10px] font-bold rounded-none border-0 data-[state=on]:bg-primary data-[state=on]:text-zinc-950 text-zinc-400 hover:text-zinc-200 hover:bg-transparent h-auto gap-1"
-              title={`${t('app.focusMode.sync')} (Ctrl+1)`}
-            >
-              <Pencil className="w-3 h-3" />
-              <span className="hidden xl:inline">{t('app.focusMode.sync')}</span>
-            </ToggleGroupItem>
-            <ToggleGroupItem
-              value="preview"
-              className="px-2 py-1.5 text-[10px] font-bold rounded-none border-0 data-[state=on]:bg-primary data-[state=on]:text-zinc-950 text-zinc-400 hover:text-zinc-200 hover:bg-transparent h-auto gap-1"
-              title={`${t('app.focusMode.preview')} (Ctrl+2)`}
-            >
-              <Eye className="w-3 h-3" />
-              <span className="hidden xl:inline">{t('app.focusMode.preview')}</span>
-            </ToggleGroupItem>
-            <ToggleGroupItem
-              value="playback"
-              className="px-2 py-1.5 text-[10px] font-bold rounded-none border-0 data-[state=on]:bg-primary data-[state=on]:text-zinc-950 text-zinc-400 hover:text-zinc-200 hover:bg-transparent h-auto gap-1"
-              title={`${t('app.focusMode.playback')} (Ctrl+3)`}
-            >
-              <Play className="w-3 h-3" />
-              <span className="hidden xl:inline">{t('app.focusMode.playback')}</span>
-            </ToggleGroupItem>
-          </ToggleGroup>
+            {hideEditor ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+            <span className="hidden xl:inline">{t('app.hideEditor')}</span>
+          </Button>
 
           {/* Language Selector */}
           <DropdownMenu>
@@ -305,7 +285,7 @@ function AppInner() {
                   onImport={triggerImportSave}
                   handleManualSave={handleManualSave}
                   isAutosaving={isAutosaving}
-                  compact={focusMode === 'preview'}
+                  compact={false}
                 />
                 </Suspense>
               </div>
