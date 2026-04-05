@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { TimerOff, ChevronLeft, ChevronRight, Trash2, X, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { Tip } from '@/components/ui/tip';
 
 export default function SelectionActionBar({
   selectedLines,
@@ -25,77 +26,84 @@ export default function SelectionActionBar({
         {selectedLines.size}
       </Badge>
       <Separator orientation="vertical" className="h-4 bg-zinc-700/50" />
-      <Button
-        variant="ghost"
-        size="icon-xs"
-        onClick={handleBulkClearTimestamps}
-        className="text-orange-400 hover:bg-orange-500/15 hover:text-orange-300"
-        title={t('editor.selection.clearTimestamps') || 'Clear timestamps'}
-      >
-        <TimerOff className="w-3.5 h-3.5" />
-      </Button>
-      <Button
-        variant="ghost"
-        size="icon-xs"
-        onClick={() => handleBulkShift(-(settings.editor?.nudge?.default || 0.1))}
-        className="text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700/60"
-        title={`(-${settings.editor?.nudge?.default || 0.1}s)`}
-      >
-        <ChevronLeft className="w-3.5 h-3.5" />
-      </Button>
-      <Button
-        variant="ghost"
-        size="icon-xs"
-        onClick={() => handleBulkShift((settings.editor?.nudge?.default || 0.1))}
-        className="text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700/60"
-        title={`(+${settings.editor?.nudge?.default || 0.1}s)`}
-      >
-        <ChevronRight className="w-3.5 h-3.5" />
-      </Button>
+      <Tip content={t('editor.selection.clearTimestamps') || 'Clear timestamps'}>
+        <Button
+          variant="ghost"
+          size="icon-xs"
+          onClick={handleBulkClearTimestamps}
+          className="text-orange-400 hover:bg-orange-500/15 hover:text-orange-300"
+        >
+          <TimerOff className="w-3.5 h-3.5" />
+        </Button>
+      </Tip>
+      <Tip content={`(-${settings.editor?.nudge?.default || 0.1}s)`}>
+        <Button
+          variant="ghost"
+          size="icon-xs"
+          onClick={() => handleBulkShift(-(settings.editor?.nudge?.default || 0.1))}
+          className="text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700/60"
+        >
+          <ChevronLeft className="w-3.5 h-3.5" />
+        </Button>
+      </Tip>
+      <Tip content={`(+${settings.editor?.nudge?.default || 0.1}s)`}>
+        <Button
+          variant="ghost"
+          size="icon-xs"
+          onClick={() => handleBulkShift((settings.editor?.nudge?.default || 0.1))}
+          className="text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700/60"
+        >
+          <ChevronRight className="w-3.5 h-3.5" />
+        </Button>
+      </Tip>
       {/* Shift All (larger offset) */}
       {settings.editor?.showShiftAll && handleApplyOffset && (
         <>
           <Separator orientation="vertical" className="h-4 bg-zinc-700/50" />
-          <Button
-            variant="ghost"
-            size="icon-xs"
-            onClick={() => handleApplyOffset(-shiftAmount)}
-            className="text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700/60"
-            title={`${t('editor.shiftAll')} (-${shiftAmount}s)`}
-          >
-            <ChevronsLeft className="w-3.5 h-3.5" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon-xs"
-            onClick={() => handleApplyOffset(shiftAmount)}
-            className="text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700/60"
-            title={`${t('editor.shiftAll')} (+${shiftAmount}s)`}
-          >
-            <ChevronsRight className="w-3.5 h-3.5" />
-          </Button>
+          <Tip content={`${t('editor.shiftAll')} (-${shiftAmount}s)`}>
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              onClick={() => handleApplyOffset(-shiftAmount)}
+              className="text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700/60"
+            >
+              <ChevronsLeft className="w-3.5 h-3.5" />
+            </Button>
+          </Tip>
+          <Tip content={`${t('editor.shiftAll')} (+${shiftAmount}s)`}>
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              onClick={() => handleApplyOffset(shiftAmount)}
+              className="text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700/60"
+            >
+              <ChevronsRight className="w-3.5 h-3.5" />
+            </Button>
+          </Tip>
         </>
       )}
       <Separator orientation="vertical" className="h-4 bg-zinc-700/50" />
-      <Button
-        variant="ghost"
-        size="icon-xs"
-        onClick={handleBulkDelete}
-        className="text-red-400 hover:bg-red-500/15 hover:text-red-300"
-        title={t('editor.selection.deleteSelected') || 'Delete selected'}
-      >
-        <Trash2 className="w-3.5 h-3.5" />
-      </Button>
+      <Tip content={t('editor.selection.deleteSelected') || 'Delete selected'}>
+        <Button
+          variant="ghost"
+          size="icon-xs"
+          onClick={handleBulkDelete}
+          className="text-red-400 hover:bg-red-500/15 hover:text-red-300"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+        </Button>
+      </Tip>
       <Separator orientation="vertical" className="h-4 bg-zinc-700/50" />
-      <Button
-        variant="ghost"
-        size="icon-xs"
-        onClick={clearSelection}
-        className="text-zinc-500 hover:text-zinc-200 hover:bg-zinc-700/60"
-        title={t('editor.selection.deselectAll') || 'Deselect all (Esc)'}
-      >
-        <X className="w-3.5 h-3.5" />
-      </Button>
+      <Tip content={t('editor.selection.deselectAll') || 'Deselect all (Esc)'}>
+        <Button
+          variant="ghost"
+          size="icon-xs"
+          onClick={clearSelection}
+          className="text-zinc-500 hover:text-zinc-200 hover:bg-zinc-700/60"
+        >
+          <X className="w-3.5 h-3.5" />
+        </Button>
+      </Tip>
     </div>
   );
 }
