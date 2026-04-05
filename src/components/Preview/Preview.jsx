@@ -65,7 +65,7 @@ export default function Preview(props) {
     handleCopy,
   } = usePreview(props);
 
-  const { lines, playbackPosition, exportToUrl, isSharedSession, sharedReadOnly, setSharedReadOnly, editorMode, shareModal, setShareModal } = props;
+  const { lines, playbackPosition, exportToUrl, isSharedSession, sharedReadOnly, setSharedReadOnly, editorMode, shareModal, setShareModal, hasMedia } = props;
 
   const shareTriggerRef = useRef(null);
   const sharePanelRef = useRef(null);
@@ -442,6 +442,7 @@ function PreviewViewport({
               distanceFromActive={currentIndex >= 0 ? Math.abs(i - currentIndex) : null}
               totalLines={lines.length}
               editorMode={editorMode}
+              hasMedia={hasMedia}
             />
           ))}
         </div>
@@ -499,6 +500,7 @@ function PreviewViewport({
                 distanceFromActive={currentIndex >= 0 ? Math.abs(i - currentIndex) : null}
                 totalLines={lines.length}
                 editorMode={editorMode}
+                hasMedia={hasMedia}
               />
             </div>
           );

@@ -335,6 +335,7 @@ function AppInner() {
                 setSharedReadOnly={setSharedReadOnly}
                 shareModal={shareModal}
                 setShareModal={setShareModal}
+                hasMedia={hasMedia}
               />
               </Suspense>
             </div>

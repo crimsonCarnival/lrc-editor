@@ -26,6 +26,7 @@ export default function PreviewLine({
   inactiveFontSizes,
   activeMargin,
   distanceFromActive,
+  hasMedia,
 }) {
   const { t } = useTranslation();
   const { settings } = useSettings();
@@ -50,18 +51,19 @@ export default function PreviewLine({
 
   const translationLayout = settings.editor?.display?.translationLayout || 'side-by-side';
 
-  return (
-    <Tip content={isLocked ? t('preview.locked') : t('preview.hoverHint')}>
+  const inner = (
     <div
       ref={isActive && !isDualLine ? activeRef : null}
-      onClick={() => handleLineClick(line, i)}
-      onMouseEnter={() => handleLineHover(i)}
-      onMouseLeave={handleLineHoverEnd}
+      onClick={hasMedia ? () => handleLineClick(line, i) : undefined}
+      onMouseEnter={hasMedia ? () => handleLineHover(i) : undefined}
+      onMouseLeave={hasMedia ? handleLineHoverEnd : undefined}
       style={{
         opacity: parallaxOpacity,
         animationDelay: staggerDelay,
       }}
-      className={`group px-2 sm:px-4 py-1 sm:py-2 rounded-lg transition-all duration-500 ease-out flex cursor-pointer select-none relative overflow-hidden animate-preview-line-in ${
+      className={`group px-2 sm:px-4 py-1 sm:py-2 rounded-lg transition-all duration-500 ease-out flex select-none relative overflow-hidden animate-preview-line-in ${
+        hasMedia ? 'cursor-pointer' : 'cursor-default'
+      } ${
         translationLayout === 'side-by-side' && line.translation && showTranslationsInPreview
           ? 'flex-row items-center gap-3 sm:gap-6'
           : 'flex-col'
@@ -71,7 +73,7 @@ export default function PreviewLine({
         'items-start text-left'
       } ${isActive
         ? `${settings.editor?.display?.activeHighlight === 'zoom' ? 'scale-y-105' : ''} origin-center bg-zinc-800/10 ${activeMargin[spacingOption] || 'my-1 sm:my-2'}`
-        : 'hover:bg-zinc-800/30'
+        : hasMedia ? 'hover:bg-zinc-800/30' : ''
       }`}
     >
       {line.timestamp != null && (
@@ -145,8 +147,9 @@ export default function PreviewLine({
         </>
       )}
     </div>
-    </Tip>
   );
+
+  return hasMedia ? <Tip content={isLocked ? t('preview.locked') : t('preview.hoverHint')}>{inner}</Tip> : inner;
 }
 
 // ——— CJK detection for spaceless scripts ———
