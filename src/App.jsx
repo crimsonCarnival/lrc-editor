@@ -10,11 +10,12 @@ import { matchKey } from './utils/keyboard';
 import { Kbd } from './components/shared/Kbd';
 import { Button } from './components/ui/button';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from './components/ui/dropdown-menu';
+  Popover,
+  PopoverContent,
+  PopoverItem,
+  PopoverTrigger,
+} from './components/ui/popover';
+import { Tip } from './components/ui/tip';
 import { Music2, UploadCloud, Globe, Settings as SettingsIcon, Eye, EyeOff, Lock, LockOpen, LayoutList } from 'lucide-react';
 import { useScrollLock } from './hooks/useScrollLock';
 import { useNetworkStatus } from './hooks/useNetworkStatus';
@@ -171,6 +172,7 @@ function AppInner() {
 
         <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
           {/* Hide Editor Toggle — desktop only */}
+          <Tip content={`${t('app.hideEditor')} (Ctrl+2)`}>
           <Button
             variant="outline"
             onClick={() => {
@@ -186,64 +188,62 @@ function AppInner() {
                 ? 'bg-primary text-zinc-950 border-primary hover:bg-primary/90 hover:text-zinc-950'
                 : 'bg-zinc-800/80 border-zinc-700/60 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700'
             }`}
-            title={`${t('app.hideEditor')} (Ctrl+2)`}
           >
             {(hideEditor || focusMode === 'playback') ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
-            <span className="hidden xl:inline">{t('app.hideEditor')}</span>
           </Button>
+          </Tip>
 
           {/* Language Selector */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
+          <Popover>
+            <PopoverTrigger asChild>
               <Button
                 variant="outline"
                 className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 h-8 sm:h-9 bg-zinc-800/80 hover:bg-zinc-700 border-zinc-700/60 rounded-lg sm:rounded-xl text-zinc-200 flex-shrink-0"
-                title={t('settings.interface.languageDesc') || 'Language'}
               >
                 <Globe className="w-4 h-4 text-zinc-400" strokeWidth={2} />
                 <span className="text-xs font-semibold uppercase">{i18n.resolvedLanguage?.split('-')[0] || 'en'}</span>
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-28 bg-zinc-900 border-zinc-700/80" align="end">
+            </PopoverTrigger>
+            <PopoverContent className="w-28" align="end">
               {[
                 { code: 'en', label: 'EN' },
                 { code: 'es', label: 'ES' }
               ].map(lang => (
-                <DropdownMenuItem
+                <PopoverItem
                   key={lang.code}
                   onClick={() => i18n.changeLanguage(lang.code)}
-                  className={`text-xs font-semibold text-center justify-center cursor-pointer ${(i18n.resolvedLanguage?.split('-')[0] === lang.code)
-                      ? 'bg-zinc-800/60 text-primary focus:bg-zinc-800 focus:text-primary'
-                      : 'text-zinc-300 focus:bg-zinc-800/80 focus:text-zinc-100'
+                  className={`font-semibold text-center justify-center ${(i18n.resolvedLanguage?.split('-')[0] === lang.code)
+                      ? 'bg-primary/15 text-primary hover:bg-primary/20'
+                      : ''
                     }`}
                 >
                   {lang.label}
-                </DropdownMenuItem>
+                </PopoverItem>
               ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+            </PopoverContent>
+          </Popover>
 
           {/* Settings button */}
+          <Tip content={t('settings.title')}>
           <Button
             variant="outline"
             onClick={() => setShowSettings(true)}
             className="px-2 sm:px-3 h-8 sm:h-9 bg-zinc-800/80 border-zinc-700/60 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700 rounded-lg sm:rounded-xl flex-shrink-0"
-            title={t('settings.title')}
           >
             <SettingsIcon className="w-4 sm:w-[18px] h-4 sm:h-[18px]" strokeWidth={1.8} />
-            <span className="hidden sm:inline text-xs font-semibold">{t('settings.title')}</span>
           </Button>
+          </Tip>
 
           {/* Help button */}
+          <Tip content={t('shortcuts.title') || 'Shortcuts'}>
           <Button
             variant="outline"
             onClick={() => setShowKeyboardHelp(prev => !prev)}
             className="px-2 sm:px-3 h-8 sm:h-9 bg-zinc-800/80 border-zinc-700/60 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700 rounded-lg sm:rounded-xl flex-shrink-0"
-            title={t('shortcuts.title') || 'Shortcuts'}
           >
             <Kbd>?</Kbd>
-            <span className="hidden sm:inline text-xs font-semibold">{t('shortcuts.title') || 'Help'}</span>
           </Button>
+          </Tip>
 
 
         </div>
