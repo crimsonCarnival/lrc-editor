@@ -184,7 +184,6 @@ const EditorLineItem = React.memo(({
   handleDeleteLine,
   handleToggleLine,
   handleMark,
-  isLastLine,
   activeWordIndex,
   handleClearWordTimestamp,
   handleSetActiveWordIndex,
@@ -193,7 +192,6 @@ const EditorLineItem = React.memo(({
   stampTarget = 'main',
   handleStampTargetToggle,
   playbackPosition,
-  isOverlapping,
   upcomingDepth,
 }) => {
   const { t } = useTranslation();
@@ -340,12 +338,6 @@ const EditorLineItem = React.memo(({
             </span>
           )}
         </div>
-      )}
-      {/* Overlap warning indicator */}
-      {isOverlapping && (
-        <Tip content={t('editor.overlapWarning')}>
-          <span className="w-1.5 h-1.5 rounded-full bg-orange-400 shrink-0 animate-pulse" />
-        </Tip>
       )}
       <span
         className={`text-xs font-mono tabular-nums shrink-0 transition-colors ${isSynced
@@ -606,11 +598,8 @@ const EditorLineItem = React.memo(({
               >
                 {line.endTime != null
                   ? (() => {
-                      const isOverlap = !isLastLine && line.nextTimestamp != null && line.endTime > line.nextTimestamp;
-                      const colorClass = isOverlap ? 'text-red-400 font-bold underline decoration-wavy decoration-red-500/50' : 'text-accent-blue';
-                      return isOverlap
-                        ? <Tip content={t('editor.overlapWarning')}><span className={awaitingEndMark === i ? 'animate-pulse-glow text-primary' : colorClass}>{formatTimestamp(line.endTime, settings.editor?.timestampPrecision || 'hundredths')}</span></Tip>
-                        : <span className={awaitingEndMark === i ? 'animate-pulse-glow text-primary' : colorClass}>{formatTimestamp(line.endTime, settings.editor?.timestampPrecision || 'hundredths')}</span>;
+                      const colorClass = 'text-accent-blue';
+                      return <span className={awaitingEndMark === i ? 'animate-pulse-glow text-primary' : colorClass}>{formatTimestamp(line.endTime, settings.editor?.timestampPrecision || 'hundredths')}</span>;
                     })()
                   : <span className={awaitingEndMark === i ? 'animate-pulse-glow text-zinc-400' : ''}>--:--.--</span>
                 }

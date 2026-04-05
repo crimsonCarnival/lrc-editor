@@ -190,15 +190,33 @@ function renderMainTrack({ line, isActive, isPast, hasWordTimestamps, playbackPo
   const readingFmt = settings.editor?.display?.readingFormat || 'hiragana';
   const fmtReading = (r) => r ? (readingFmt === 'katakana' ? toKatakana(r) : toHiragana(r)) : r;
 
+  // Estimate fill end time for the last timed word to avoid an abrupt 0→100% snap
+  let lastWordFillEnd = null;
+  if (effectiveHasWordTimestamps) {
+    const timedWordsList = line.words.filter((w2) => w2.time != null);
+    if (timedWordsList.length > 0) {
+      const lastTW = timedWordsList[timedWordsList.length - 1];
+      if (line.endTime != null && line.endTime > lastTW.time) {
+        lastWordFillEnd = line.endTime;
+      } else if (timedWordsList.length >= 2) {
+        const avgDur = (lastTW.time - timedWordsList[0].time) / (timedWordsList.length - 1);
+        lastWordFillEnd = lastTW.time + avgDur;
+      } else {
+        lastWordFillEnd = lastTW.time + 0.8;
+      }
+    }
+  }
+
   return (
     <p className={`transition-all duration-500 ease-out w-full break-words overflow-wrap-anywhere hyphens-auto ${isActive ? activeClass : isPast ? pastClass : futureClass}`} style={{ lineHeight: hasReadings ? '2' : undefined }}>
       {effectiveHasWordTimestamps
         ? line.words.map((w, wi) => {
             const nextT = line.words.slice(wi + 1).find((w2) => w2.time != null)?.time;
+            const effectiveNextT = nextT ?? lastWordFillEnd;
             let fillPct = 0;
             if (w.time != null && w.time <= playbackPosition) {
-              fillPct = nextT != null && nextT > playbackPosition
-                ? Math.min(100, ((playbackPosition - w.time) / (nextT - w.time)) * 100)
+              fillPct = effectiveNextT != null && effectiveNextT > playbackPosition
+                ? Math.min(100, ((playbackPosition - w.time) / (effectiveNextT - w.time)) * 100)
                 : 100;
             }
             const nextWord = line.words[wi + 1];
@@ -259,14 +277,28 @@ function renderSecondaryTrack({ line, isActive, playbackPosition, activeSecondar
     return <p className={baseClass}>{line.secondary}</p>;
   }
 
+  // Estimate fill end time for the last timed secondary word
+  const timedSecWordsList = line.secondaryWords.filter((w2) => w2.time != null);
+  let lastSecWordFillEnd = null;
+  if (timedSecWordsList.length > 0) {
+    const lastTW = timedSecWordsList[timedSecWordsList.length - 1];
+    if (timedSecWordsList.length >= 2) {
+      const avgDur = (lastTW.time - timedSecWordsList[0].time) / (timedSecWordsList.length - 1);
+      lastSecWordFillEnd = lastTW.time + avgDur;
+    } else {
+      lastSecWordFillEnd = lastTW.time + 0.8;
+    }
+  }
+
   return (
     <p className={baseClass}>
       {line.secondaryWords.map((w, wi) => {
         const nextT = line.secondaryWords.slice(wi + 1).find((w2) => w2.time != null)?.time;
+        const effectiveNextT = nextT ?? lastSecWordFillEnd;
         let fillPct = 0;
         if (w.time != null && w.time <= playbackPosition) {
-          fillPct = nextT != null && nextT > playbackPosition
-            ? Math.min(100, ((playbackPosition - w.time) / (nextT - w.time)) * 100)
+          fillPct = effectiveNextT != null && effectiveNextT > playbackPosition
+            ? Math.min(100, ((playbackPosition - w.time) / (effectiveNextT - w.time)) * 100)
             : 100;
         }
         const addSpace = wi < line.secondaryWords.length - 1;
