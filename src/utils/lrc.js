@@ -7,15 +7,35 @@ import { serializeToRubyMarkup } from './furigana';
 /**
  * Build the secondary (furigana/romaji) text for a line.
  * If the line has words with readings, serialize to {word|reading} markup.
+ * If the line has secondaryWords with timestamps, serialize with <mm:ss.xx> tokens.
  * Otherwise fall back to line.secondary.
- * @param {{ secondary?: string, words?: Array }} line
+ * @param {{ secondary?: string, secondaryWords?: Array, words?: Array }} line
  * @returns {string|null}
  */
 function buildSecondaryText(line) {
+  if (line.secondaryWords?.length && line.secondaryWords.some(w => w.time != null)) {
+    return formatWordsToLrc(line.secondaryWords);
+  }
   if (line.words?.some(w => w.reading)) {
     return serializeToRubyMarkup(line.words);
   }
   return line.secondary || null;
+}
+
+/**
+ * Format an array of {word, time} into LRC inline word-timestamp text.
+ * E.g. "<00:05.12>Hello <00:05.56>world"
+ */
+function formatWordsToLrc(words) {
+  const cjk = (ch) => { const c = ch?.codePointAt(0) ?? 0; return (c >= 0x3000 && c <= 0x9FFF) || (c >= 0xF900 && c <= 0xFAFF) || (c >= 0xFF00 && c <= 0xFFEF) || (c >= 0x20000 && c <= 0x2FA1F); };
+  return words.map((w, i, arr) => {
+    const token = `${formatWordTimestamp(w.time)}${w.word}`;
+    const next = arr[i + 1];
+    if (!next) return token;
+    const lastChar = w.word.slice(-1);
+    const firstChar = next.word.slice(0, 1);
+    return cjk(lastChar) || cjk(firstChar) ? token : token + ' ';
+  }).join('');
 }
 
 /**
@@ -76,21 +96,11 @@ export function compileLRC(lines, includeTranslations = false, precision = 'hund
   const body = lines
     .flatMap((line) => {
       if (line.timestamp != null) {
-        const allTs = [line.timestamp, ...(line.extraTimestamps || [])].sort((a, b) => a - b);
-        return allTs.map((ts) => {
-          const wordText = line.words?.length
-            ? line.words.map((w, i, arr) => {
-                const token = `${formatWordTimestamp(w.time)}${w.word}`;
-                const next = arr[i + 1];
-                if (!next) return token;
-                // Skip space between CJK characters (Japanese, Chinese, etc.)
-                const lastChar = w.word.slice(-1);
-                const firstChar = next.word.slice(0, 1);
-                const cjk = (ch) => { const c = ch?.codePointAt(0) ?? 0; return (c >= 0x3000 && c <= 0x9FFF) || (c >= 0xF900 && c <= 0xFAFF) || (c >= 0xFF00 && c <= 0xFFEF) || (c >= 0x20000 && c <= 0x2FA1F); };
-                return cjk(lastChar) || cjk(firstChar) ? token : token + ' ';
-              }).join('')
-            : line.text;
-          let out = `[${formatTimestamp(ts, precision)}] ${wordText}`;
+        const ts = line.timestamp;
+        const wordText = line.words?.length
+          ? formatWordsToLrc(line.words)
+          : line.text;
+        let out = `[${formatTimestamp(ts, precision)}] ${wordText}`;
           if (includeSecondary) {
             const sec = buildSecondaryText(line);
             if (sec) out += `\n[${formatTimestamp(ts, precision)}] ${sec}`;
@@ -99,7 +109,6 @@ export function compileLRC(lines, includeTranslations = false, precision = 'hund
             out += `\n[${formatTimestamp(ts, precision)}] ${line.translation}`;
           }
           return out;
-        });
       }
       return [line.text];
     })
@@ -314,9 +323,9 @@ export function parseLrcSrtFile(content, filename) {
         // Strip <mm:ss.xx> tokens to get clean display text
         const text = rawText.replace(/<\d{1,2}:\d{2}\.\d{2,3}>/g, '').trim();
         collectedTs.sort((a, b) => a - b);
-        const [primary, ...extras] = collectedTs;
+
+        const [primary] = collectedTs;
         const entry = { text, timestamp: primary, id: crypto.randomUUID() };
-        if (extras.length > 0) entry.extraTimestamps = extras;
         if (words.length > 0) entry.words = words;
         parsedLines.push(entry);
       } else if (remaining !== '' && !/^\[[^\]]*:[^\]]*\]/.test(remaining)) {
@@ -341,7 +350,13 @@ export function parseLrcSrtFile(content, filename) {
       const existing = mergedLines[existingIndex];
       if (!existing.secondary && !existing.translation) {
         // 2nd same-ts line: treat as secondary (romaji / furigana markup)
-        existing.secondary = line.text;
+        const secWords = parseWordTimestamps(line.text);
+        if (secWords.length > 0) {
+          existing.secondaryWords = secWords;
+          existing.secondary = line.text.replace(/<\d{1,2}:\d{2}\.\d{2,3}>/g, '').trim();
+        } else {
+          existing.secondary = line.text;
+        }
       } else if (!existing.translation) {
         // 3rd same-ts line: treat as translation; keep text+secondary intact
         existing.translation = line.text;
