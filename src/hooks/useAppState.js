@@ -47,10 +47,12 @@ function buildSharePayload(lines, editorMode, ytUrl, readOnly = true) {
       if (editorMode === 'srt' && l.endTime != null) entry.e = l.endTime;
       if (l.secondary) entry.x = l.secondary;
       if (l.translation) entry.r = l.translation;
+      if (Array.isArray(l.extraTimestamps) && l.extraTimestamps.length) entry.xt = l.extraTimestamps;
       if (Array.isArray(l.words) && l.words.length) {
         const wArr = l.words.map((w) => {
           const we = { w: w.word };
           if (w.time != null) we.t = w.time;
+          if (w.reading) we.rd = w.reading;
           return we;
         });
         entry.w = wArr;
@@ -69,8 +71,13 @@ function expandSharePayload(p) {
     secondary: l.x || '',
     translation: l.r || '',
     id: crypto.randomUUID(),
+    extraTimestamps: Array.isArray(l.xt) && l.xt.length ? l.xt : undefined,
     words: Array.isArray(l.w)
-      ? l.w.map((w) => ({ word: w.w || '', time: w.t ?? null })).filter((w) => w.word)
+      ? l.w.map((w) => ({
+          word: w.w || '',
+          time: w.t ?? null,
+          ...(w.rd ? { reading: w.rd } : {}),
+        })).filter((w) => w.word)
       : undefined,
   }));
   return {
@@ -288,10 +295,6 @@ export function useAppState() {
             time: typeof w.time === 'number' && isFinite(w.time) ? w.time : null,
             ...(typeof w.reading === 'string' && w.reading ? { reading: w.reading } : {}),
           })).filter((w) => w.word) : undefined,
-          secondaryWords: Array.isArray(l.secondaryWords) ? l.secondaryWords.map((w) => ({
-            word: typeof w.word === 'string' ? w.word : '',
-            time: typeof w.time === 'number' && isFinite(w.time) ? w.time : null,
-          })).filter((w) => w.word) : undefined,
         }));
         if (validLines.length === 0) return;
         setLines(validLines);
@@ -424,10 +427,7 @@ export function useAppState() {
           time: typeof w.time === 'number' && isFinite(w.time) ? w.time : null,
           ...(typeof w.reading === 'string' && w.reading ? { reading: w.reading } : {}),
         })).filter((w) => w.word) : undefined,
-        secondaryWords: Array.isArray(l.secondaryWords) ? l.secondaryWords.map((w) => ({
-          word: typeof w.word === 'string' ? w.word : '',
-          time: typeof w.time === 'number' && isFinite(w.time) ? w.time : null,
-        })).filter((w) => w.word) : undefined,
+
       }));
       if (validLines.length === 0) {
         setPendingSession(null);
