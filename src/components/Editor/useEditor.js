@@ -318,13 +318,14 @@ export function useEditor({
 
       // Compute target time before updating state — state updaters must be pure
       let targetTime = null;
+      const ftWordField = focusedTimestamp?.type === 'secondaryWord' ? 'secondaryWords' : 'words';
       if (
         focusedTimestamp?.lineIndex === index &&
-        focusedTimestamp.type === 'word' &&
+        (focusedTimestamp.type === 'word' || focusedTimestamp.type === 'secondaryWord') &&
         focusedTimestamp.wordIndex != null &&
-        currentLines[index].words?.[focusedTimestamp.wordIndex]?.time != null
+        currentLines[index][ftWordField]?.[focusedTimestamp.wordIndex]?.time != null
       ) {
-        const newWordTime = Math.max(0, currentLines[index].words[focusedTimestamp.wordIndex].time + numericDelta);
+        const newWordTime = Math.max(0, currentLines[index][ftWordField][focusedTimestamp.wordIndex].time + numericDelta);
         if (!isNaN(newWordTime)) targetTime = newWordTime;
       } else if (
         focusedTimestamp?.lineIndex === index &&
@@ -342,18 +343,19 @@ export function useEditor({
         const updated = [...prev];
         if (!updated[index]) return prev;
 
+        const wField = focusedTimestamp?.type === 'secondaryWord' ? 'secondaryWords' : 'words';
         if (
           focusedTimestamp?.lineIndex === index &&
-          focusedTimestamp.type === 'word' &&
+          (focusedTimestamp.type === 'word' || focusedTimestamp.type === 'secondaryWord') &&
           focusedTimestamp.wordIndex != null &&
-          updated[index].words?.[focusedTimestamp.wordIndex]?.time != null
+          updated[index][wField]?.[focusedTimestamp.wordIndex]?.time != null
         ) {
           const wi = focusedTimestamp.wordIndex;
-          const newWordTime = Math.max(0, updated[index].words[wi].time + numericDelta);
+          const newWordTime = Math.max(0, updated[index][wField][wi].time + numericDelta);
           if (!isNaN(newWordTime)) {
-            const newWords = [...updated[index].words];
+            const newWords = [...updated[index][wField]];
             newWords[wi] = { ...newWords[wi], time: newWordTime };
-            updated[index] = { ...updated[index], words: newWords };
+            updated[index] = { ...updated[index], [wField]: newWords };
           }
         } else if (
           focusedTimestamp?.lineIndex === index &&
@@ -539,7 +541,7 @@ export function useEditor({
       if (newTranslation !== undefined) line.translation = newTranslation || undefined;
       // Always re-tokenize when text or markup changed
       const textChanged = plainText !== (prevLine.text || '');
-      if (line.words && (textChanged || hasMarkup)) {
+      if (hasMarkup || (line.words && textChanged)) {
         const isCJKText = hasCJK(plainText || '');
         // Build a map from old char positions so timestamps survive edits
         const oldWordAtPos = new Map();
@@ -795,40 +797,14 @@ export function useEditor({
     setLines((prev) => applyBulkShift(prev, selectedLines, delta));
   };
 
-  const handleAddExtraTimestamp = useCallback((lineIndex) => {
-    const time = playerRef?.current?.getCurrentTime?.() ?? playbackPositionRef.current;
+  const handleClearWordTimestamp = useCallback((lineIndex, wordIndex, field = 'words') => {
     setLines((prev) => {
       const updated = [...prev];
       const line = updated[lineIndex];
-      if (!line || line.timestamp == null) return prev;
-      // Prevent adding a timestamp that already exists (within 0.05s tolerance)
-      const allTs = [line.timestamp, ...(line.extraTimestamps || [])];
-      if (allTs.some((t) => Math.abs(t - time) < 0.05)) return prev;
-      const extras = [...(line.extraTimestamps || []), time].sort((a, b) => a - b);
-      updated[lineIndex] = { ...line, extraTimestamps: extras };
-      return updated;
-    });
-  }, [playerRef, setLines]);
-
-  const handleRemoveExtraTimestamp = useCallback((lineIndex, tsIndex) => {
-    setLines((prev) => {
-      const updated = [...prev];
-      const line = updated[lineIndex];
-      if (!line?.extraTimestamps?.length) return prev;
-      const extras = line.extraTimestamps.filter((_, i) => i !== tsIndex);
-      updated[lineIndex] = { ...line, extraTimestamps: extras.length ? extras : undefined };
-      return updated;
-    });
-  }, [setLines]);
-
-  const handleClearWordTimestamp = useCallback((lineIndex, wordIndex) => {
-    setLines((prev) => {
-      const updated = [...prev];
-      const line = updated[lineIndex];
-      if (!line?.words) return prev;
-      const newWords = [...line.words];
+      if (!line?.[field]) return prev;
+      const newWords = [...line[field]];
       newWords[wordIndex] = { ...newWords[wordIndex], time: null };
-      updated[lineIndex] = { ...line, words: newWords };
+      updated[lineIndex] = { ...line, [field]: newWords };
       return updated;
     });
     // activeWordIndex is synced by the lines effect above
@@ -987,8 +963,6 @@ export function useEditor({
     handleBulkClearTimestamps,
     handleBulkDelete,
     handleBulkShift,
-    handleAddExtraTimestamp,
-    handleRemoveExtraTimestamp,
     handleClearWordTimestamp,
     handleSetActiveWordIndex,
     handleSetTimestamp,

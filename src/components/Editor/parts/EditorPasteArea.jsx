@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Tip } from '@/components/ui/tip';
 
 export default function EditorPasteArea({
   rawText,
@@ -56,17 +57,17 @@ export default function EditorPasteArea({
             ref={fileInputRef}
             onChange={handleFileUpload}
           />
-          <Button
-            variant="outline"
-            onClick={() => fileInputRef.current?.click()}
-            className="flex-1 py-2 sm:py-3 bg-zinc-800 border-zinc-700 hover:bg-zinc-700 hover:border-zinc-600 text-zinc-300 font-semibold rounded-lg sm:rounded-xl h-auto text-sm"
-            title={t('editor.importFile')}
-          >
+          <Tip content={t('editor.importFile')}>
+            <Button
+              variant="outline"
+              onClick={() => fileInputRef.current?.click()}
+              className="flex-1 py-2 sm:py-3 bg-zinc-800 border-zinc-700 hover:bg-zinc-700 hover:border-zinc-600 text-zinc-300 font-semibold rounded-lg sm:rounded-xl h-auto text-sm"
+            >
             <svg className="w-4 sm:w-5 h-4 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
             </svg>
-            <span className="hidden sm:inline">{t('editor.importFile')}</span>
-          </Button>
+            </Button>
+          </Tip>
         </div>
         {/* URL import */}
         <div className="flex flex-col gap-1">
@@ -80,13 +81,13 @@ export default function EditorPasteArea({
               className="flex-1 bg-zinc-800/40 border border-zinc-700/50 text-zinc-200 text-xs rounded-lg px-2.5 py-2 placeholder:text-zinc-600 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/25 min-w-0"
               disabled={urlFetching}
             />
-            <Button
-              variant="outline"
-              onClick={handleUrlSubmit}
-              disabled={!urlInput.trim() || urlFetching}
-              className="py-2 bg-zinc-800 border-zinc-700 hover:bg-zinc-700 hover:border-zinc-600 text-zinc-300 rounded-lg h-auto text-xs px-2.5 flex-shrink-0"
-              title={t('import.fromUrl') || 'Import from URL'}
-            >
+            <Tip content={t('import.fromUrl') || 'Import from URL'}>
+              <Button
+                variant="outline"
+                onClick={handleUrlSubmit}
+                disabled={!urlInput.trim() || urlFetching}
+                className="py-2 bg-zinc-800 border-zinc-700 hover:bg-zinc-700 hover:border-zinc-600 text-zinc-300 rounded-lg h-auto text-xs px-2.5 flex-shrink-0"
+              >
               {urlFetching ? (
                 <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
@@ -97,7 +98,8 @@ export default function EditorPasteArea({
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                 </svg>
               )}
-            </Button>
+              </Button>
+            </Tip>
           </div>
           {urlError && <p className="text-[11px] text-red-400">{urlError}</p>}
         </div>

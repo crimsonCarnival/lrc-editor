@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { Kbd } from '../../shared/Kbd';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { Tip } from '@/components/ui/tip';
 import { KEY_SYMBOLS } from '../../Settings/keySymbols';
 
 export default function EditorSyncControls({
@@ -26,27 +27,29 @@ export default function EditorSyncControls({
         {settings.editor?.showShiftAll && (<>
           <span className="text-xs text-zinc-500 whitespace-nowrap flex-shrink-0">{t('editor.shiftAll')}</span>
           <div className="flex items-center gap-1">
-            <Button
-              variant="ghost"
-              size="icon-xs"
-              onClick={() => handleApplyOffset(-1)}
-              className="text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700/60 w-7 h-7"
-              title={`-${shiftAmount}s`}
-            >
-              <ChevronLeft className="w-3.5 h-3.5" />
-            </Button>
+            <Tip content={`-${shiftAmount}s`}>
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                onClick={() => handleApplyOffset(-1)}
+                className="text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700/60 w-7 h-7"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+              </Button>
+            </Tip>
             <span className="text-xs font-mono text-zinc-500 tabular-nums w-10 text-center select-none">
               {shiftAmount}s
             </span>
-            <Button
-              variant="ghost"
-              size="icon-xs"
-              onClick={() => handleApplyOffset(1)}
-              className="text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700/60 w-7 h-7"
-              title={`+${shiftAmount}s`}
-            >
-              <ChevronRight className="w-3.5 h-3.5" />
-            </Button>
+            <Tip content={`+${shiftAmount}s`}>
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                onClick={() => handleApplyOffset(1)}
+                className="text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700/60 w-7 h-7"
+              >
+                <ChevronRight className="w-3.5 h-3.5" />
+              </Button>
+            </Tip>
           </div>
         </>)}
       </div>
