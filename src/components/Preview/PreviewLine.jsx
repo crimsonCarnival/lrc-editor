@@ -2,6 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSettings } from '../../contexts/useSettings';
 import { toHiragana, toKatakana } from '../../utils/furigana';
+import { Tip } from '@/components/ui/tip';
 
 export default function PreviewLine({
   line,
@@ -50,12 +51,12 @@ export default function PreviewLine({
   const translationLayout = settings.editor?.display?.translationLayout || 'side-by-side';
 
   return (
+    <Tip content={isLocked ? t('preview.locked') : t('preview.hoverHint')}>
     <div
       ref={isActive && !isDualLine ? activeRef : null}
       onClick={() => handleLineClick(line, i)}
       onMouseEnter={() => handleLineHover(i)}
       onMouseLeave={handleLineHoverEnd}
-      title={isLocked ? t('preview.locked') : t('preview.hoverHint')}
       style={{
         opacity: parallaxOpacity,
         animationDelay: staggerDelay,
@@ -144,6 +145,7 @@ export default function PreviewLine({
         </>
       )}
     </div>
+    </Tip>
   );
 }
 

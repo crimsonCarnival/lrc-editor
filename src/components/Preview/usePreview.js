@@ -84,56 +84,25 @@ export function usePreview({ lines, setLines, playbackPosition, playerRef, durat
     return indices;
   }, [lines]);
 
-  // Expanded flat list of {lineIdx, ts} including extraTimestamps, sorted by ts.
-  // Used for binary-search active-line detection so repeated-chorus lines activate at every timestamp.
-  const syncedEntries = useMemo(() => {
-    const entries = [];
+  const currentIndex = useMemo(() => {
+    if (editorMode === 'srt' && !playbackPosition && !duration) return -1;
+    
+    let bestIdx = -1;
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
-      if (line.timestamp != null) {
-        entries.push({ lineIdx: i, ts: line.timestamp });
-        if (line.extraTimestamps?.length) {
-          for (const ts of line.extraTimestamps) {
-            entries.push({ lineIdx: i, ts });
-          }
-        }
-      }
-    }
-    entries.sort((a, b) => a.ts - b.ts);
-    return entries;
-  }, [lines]);
-
-  const currentIndex = useMemo(() => {
-    if (!syncedEntries.length) return -1;
-
-    let low = 0;
-    let high = syncedEntries.length - 1;
-    let bestIdx = -1;
-
-    while (low <= high) {
-      const mid = (low + high) >>> 1;
-      const { lineIdx, ts } = syncedEntries[mid];
-      const line = lines[lineIdx];
-
-      if (ts <= playbackPosition) {
+      if (line.timestamp == null) continue;
+      
+      if (line.timestamp <= playbackPosition) {
         if (editorMode === 'srt') {
-          if (line.endTime != null && playbackPosition >= line.endTime) {
-            low = mid + 1;
-          } else {
-            bestIdx = lineIdx;
-            low = mid + 1;
-          }
-        } else {
-          bestIdx = lineIdx;
-          low = mid + 1;
+          if (line.endTime != null && playbackPosition >= line.endTime) continue;
         }
+        bestIdx = i;
       } else {
-        high = mid - 1;
+        break;
       }
     }
-
     return bestIdx;
-  }, [syncedEntries, lines, playbackPosition, editorMode]);
+  }, [lines, playbackPosition, editorMode]);
 
   // Scroll-to-active is now handled by PreviewViewport's virtualizer (scrollToIndex).
   // The ref-based fallback below is kept only for dual-line mode where the
@@ -151,7 +120,7 @@ export function usePreview({ lines, setLines, playbackPosition, playerRef, durat
       top: elementTop - containerRect.height / 2 + elementRect.height / 2,
       behavior: settings.editor?.scroll?.mode || 'smooth',
     });
-  }, [currentIndex, settings.editor?.scroll?.mode, settings.editor?.scroll?.alignment]);
+  }, [settings.editor?.scroll?.mode, settings.editor?.scroll?.alignment]);
 
   const hasSyncedLines = syncedIndices.length > 0;
   const hasTranslations = lines.some(l => l.translation);

@@ -7,11 +7,12 @@ import PreviewPasteArea from './PreviewPasteArea';
 import PreviewLine from './PreviewLine';
 import { Button } from '@/components/ui/button';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+  Popover,
+  PopoverContent,
+  PopoverItem,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { Tip } from '@/components/ui/tip';
 import { SharePanel } from '../shared/ShareModal';
 import { Eye, Share2, X, Lock, LockOpen, BookOpen, Plus } from 'lucide-react';
 
@@ -106,73 +107,77 @@ export default function Preview(props) {
         {hasSyncedLines && (
           <div className="relative flex items-center gap-1 text-zinc-300">
             {hasFurigana && (
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                onClick={() => setShowFuriganaInPreview((v) => !v)}
-                className={`flex-shrink-0 transition-colors ${showFuriganaInPreview ? 'text-primary bg-primary/10 hover:bg-primary/20' : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'}`}
-                title={t('preview.furigana', 'Furigana')}
-              >
-                <BookOpen className="w-4 sm:w-5 h-4 sm:h-5" strokeWidth={1.8} />
-              </Button>
+              <Tip content={t('preview.furigana', 'Furigana')}>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={() => setShowFuriganaInPreview((v) => !v)}
+                  className={`flex-shrink-0 transition-colors ${showFuriganaInPreview ? 'text-primary bg-primary/10 hover:bg-primary/20' : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'}`}
+                >
+                  <BookOpen className="w-4 sm:w-5 h-4 sm:h-5" strokeWidth={1.8} />
+                </Button>
+              </Tip>
             )}
             {/* Share button */}
-            <Button
-              ref={shareTriggerRef}
-              variant="ghost"
-              size="icon-sm"
-              onClick={handleShareToggle}
-              className={`flex-shrink-0 transition-colors ${
-                isSharedSession
-                  ? 'text-primary bg-primary/10 hover:bg-primary/20'
-                  : shareModal
-                    ? 'bg-zinc-800 text-zinc-100 hover:bg-zinc-700'
-                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'
-              }`}
-              title={shareModal ? t('share.close') : (isSharedSession ? t('share.viewingShared') : t('app.shareSession'))}
-            >
+            <Tip content={shareModal ? t('share.close') : (isSharedSession ? t('share.viewingShared') : t('app.shareSession'))}>
+              <Button
+                ref={shareTriggerRef}
+                variant="ghost"
+                size="icon-sm"
+                onClick={handleShareToggle}
+                className={`flex-shrink-0 transition-colors ${
+                  isSharedSession
+                    ? 'text-primary bg-primary/10 hover:bg-primary/20'
+                    : shareModal
+                      ? 'bg-zinc-800 text-zinc-100 hover:bg-zinc-700'
+                      : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'
+                }`}
+              >
               {shareModal
                 ? <X className="w-4 sm:w-5 h-4 sm:h-5" strokeWidth={2} />
                 : <Share2 className="w-4 sm:w-5 h-4 sm:h-5" strokeWidth={1.8} />
               }
-            </Button>
+              </Button>
+            </Tip>
             {/* Lock/unlock toggle for shared sessions */}
             {isSharedSession && (
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                onClick={() => setSharedReadOnly?.(!sharedReadOnly)}
-                className={`flex-shrink-0 ${sharedReadOnly ? 'text-amber-400 hover:text-amber-300 bg-amber-400/10 hover:bg-amber-400/20' : 'text-emerald-400 hover:text-emerald-300 bg-emerald-400/10 hover:bg-emerald-400/20'}`}
-                title={sharedReadOnly ? t('share.readOnlyTitle') : t('share.editingTitle')}
-              >
-                {sharedReadOnly
-                  ? <Lock className="w-4 sm:w-5 h-4 sm:h-5" strokeWidth={1.8} />
-                  : <LockOpen className="w-4 sm:w-5 h-4 sm:h-5" strokeWidth={1.8} />
-                }
-              </Button>
+              <Tip content={sharedReadOnly ? t('share.readOnlyTitle') : t('share.editingTitle')}>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={() => setSharedReadOnly?.(!sharedReadOnly)}
+                  className={`flex-shrink-0 ${sharedReadOnly ? 'text-amber-400 hover:text-amber-300 bg-amber-400/10 hover:bg-amber-400/20' : 'text-emerald-400 hover:text-emerald-300 bg-emerald-400/10 hover:bg-emerald-400/20'}`}
+                >
+                  {sharedReadOnly
+                    ? <Lock className="w-4 sm:w-5 h-4 sm:h-5" strokeWidth={1.8} />
+                    : <LockOpen className="w-4 sm:w-5 h-4 sm:h-5" strokeWidth={1.8} />
+                  }
+                </Button>
+              </Tip>
             )}
             {lines.some(l => l.translation) && (
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                onClick={() => setShowTranslationsInPreview(!showTranslationsInPreview)}
-                className={`flex-shrink-0 ${showTranslationsInPreview ? 'text-primary hover:text-primary-dim bg-zinc-800/50 hover:bg-zinc-800' : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'}`}
-                title={t('preview.toggleTranslations') || 'Toggle Translations'}
-              >
-                <svg className="w-4 sm:w-5 h-4 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
-                </svg>
-              </Button>
+              <Tip content={t('preview.toggleTranslations') || 'Toggle Translations'}>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={() => setShowTranslationsInPreview(!showTranslationsInPreview)}
+                  className={`flex-shrink-0 ${showTranslationsInPreview ? 'text-primary hover:text-primary-dim bg-zinc-800/50 hover:bg-zinc-800' : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'}`}
+                >
+                  <svg className="w-4 sm:w-5 h-4 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+                  </svg>
+                </Button>
+              </Tip>
             )}
             <div className="relative">
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                data-export-toggle
-                onClick={() => setShowExportPanel(!showExportPanel)}
-                className={`flex-shrink-0 ${showExportPanel ? 'bg-zinc-800 text-zinc-100 hover:bg-zinc-700' : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'}`}
-                title={t('export.title') || 'Export File'}
-              >
+              <Tip content={t('export.title') || 'Export File'}>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  data-export-toggle
+                  onClick={() => setShowExportPanel(!showExportPanel)}
+                  className={`flex-shrink-0 ${showExportPanel ? 'bg-zinc-800 text-zinc-100 hover:bg-zinc-700' : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'}`}
+                >
                 {showExportPanel ? (
                   <X className="w-4 sm:w-5 h-4 sm:h-5" strokeWidth={2} />
                 ) : (
@@ -180,12 +185,13 @@ export default function Preview(props) {
                     <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                   </svg>
                 )}
-              </Button>
+                </Button>
+              </Tip>
             </div>
 
             {/* Menu */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+            <Popover>
+              <PopoverTrigger asChild>
                 <Button
                   variant="ghost"
                   size="icon-sm"
@@ -193,22 +199,22 @@ export default function Preview(props) {
                 >
                   <Plus className="w-4 sm:w-5 h-4 sm:h-5" />
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-36 sm:w-48 bg-zinc-900 border-zinc-700/80" align="end">
-                <DropdownMenuItem
+              </PopoverTrigger>
+              <PopoverContent className="w-36 sm:w-48" align="end">
+                <PopoverItem
                   onClick={() => { setPastingType('secondary'); setPasteText(lines.map(l => l.secondary || '').join('\n')); }}
-                  className="text-xs sm:text-sm text-zinc-300 focus:bg-zinc-800 focus:text-zinc-100 cursor-pointer"
+                  className="sm:text-sm"
                 >
                   {t('preview.secondaryLyrics')}
-                </DropdownMenuItem>
-                <DropdownMenuItem
+                </PopoverItem>
+                <PopoverItem
                   onClick={() => { setPastingType('translation'); setPasteText(lines.map(l => l.translation || '').join('\n')); }}
-                  className="text-xs sm:text-sm text-zinc-300 focus:bg-zinc-800 focus:text-zinc-100 cursor-pointer"
+                  className="sm:text-sm"
                 >
                   {t('preview.translation')}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                </PopoverItem>
+              </PopoverContent>
+            </Popover>
           </div>
         )}
       </div>
