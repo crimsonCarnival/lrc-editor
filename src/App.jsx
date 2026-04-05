@@ -103,7 +103,12 @@ function AppInner() {
         setFocusMode(focusMode === 'sync' ? 'default' : 'sync');
       } else if (matchKey(e, settings.shortcuts?.focusPreview?.[0] || 'Ctrl+2')) {
         e.preventDefault();
-        setHideEditor(h => !h);
+        if (focusMode === 'playback') {
+          setFocusMode('default');
+          setHideEditor(false);
+        } else {
+          setHideEditor(h => !h);
+        }
       } else if (matchKey(e, settings.shortcuts?.focusPlayback?.[0] || 'Ctrl+3')) {
         e.preventDefault();
         setFocusMode(focusMode === 'playback' ? 'default' : 'playback');
@@ -163,15 +168,22 @@ function AppInner() {
           {/* Hide Editor Toggle — desktop only */}
           <Button
             variant="outline"
-            onClick={() => setHideEditor(h => !h)}
+            onClick={() => {
+              if (focusMode === 'playback') {
+                setFocusMode('default');
+                setHideEditor(false);
+              } else {
+                setHideEditor(h => !h);
+              }
+            }}
             className={`hidden lg:flex px-2 py-1.5 h-auto text-[10px] font-bold border rounded-lg gap-1 flex-shrink-0 transition-colors ${
-              hideEditor
+              (hideEditor || focusMode === 'playback')
                 ? 'bg-primary text-zinc-950 border-primary hover:bg-primary/90 hover:text-zinc-950'
                 : 'bg-zinc-800/80 border-zinc-700/60 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700'
             }`}
             title={`${t('app.hideEditor')} (Ctrl+2)`}
           >
-            {hideEditor ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+            {(hideEditor || focusMode === 'playback') ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
             <span className="hidden xl:inline">{t('app.hideEditor')}</span>
           </Button>
 
