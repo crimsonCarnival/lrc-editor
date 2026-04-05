@@ -104,23 +104,47 @@ export function parseWordTimestamps(text) {
     const word = match[3].trimEnd();
     if (word) words.push({ word, time });
   }
-  // Split CJK word groups into individual characters, distributing timestamps
+  // Split CJK word groups into individual characters, distributing timestamps.
+  // Latin/ASCII runs are kept as whole tokens.
   const hasCJK = words.some(w => /[\u3000-\u9FFF\uF900-\uFAFF]/.test(w.word));
   if (hasCJK && words.length > 0) {
     const expanded = [];
+    const isCJKChar = (ch) => /[\u3000-\u9FFF\uF900-\uFAFF]/.test(ch);
     words.forEach((w, wi) => {
-      const chars = [...w.word].filter(ch => ch.trim());
-      if (chars.length <= 1) {
+      const codePoints = [...w.word].filter(ch => ch.trim());
+      // If the token has no CJK characters, keep it as-is (e.g. Latin words)
+      if (!codePoints.some(isCJKChar)) {
         expanded.push(w);
         return;
       }
+      // Single character — push directly
+      if (codePoints.length <= 1) {
+        expanded.push(w);
+        return;
+      }
+      // Mixed token: split CJK chars individually, keep Latin runs intact
       const nextTime = words[wi + 1]?.time;
       const duration = nextTime != null ? nextTime - w.time : null;
-      chars.forEach((ch, ci) => {
+      // Build sub-tokens (CJK individually, Latin as runs)
+      const subTokens = [];
+      let ci = 0;
+      while (ci < codePoints.length) {
+        const ch = codePoints[ci];
+        if (isCJKChar(ch)) {
+          subTokens.push(ch);
+          ci++;
+        } else {
+          let j = ci;
+          while (j < codePoints.length && !isCJKChar(codePoints[j])) j++;
+          subTokens.push(codePoints.slice(ci, j).join(''));
+          ci = j;
+        }
+      }
+      subTokens.forEach((token, si) => {
         const t = duration != null
-          ? w.time + (duration * ci / chars.length)
-          : w.time + ci * 0.1;
-        expanded.push({ word: ch, time: parseFloat(t.toFixed(3)) });
+          ? w.time + (duration * si / subTokens.length)
+          : w.time + si * 0.1;
+        expanded.push({ word: token, time: parseFloat(t.toFixed(3)) });
       });
     });
     return expanded;
