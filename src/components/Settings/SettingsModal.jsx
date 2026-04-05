@@ -12,6 +12,7 @@ import AdvancedSettings from './panels/AdvancedSettings';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { X, Headphones, FileText, Download, Monitor, Keyboard, SlidersHorizontal } from 'lucide-react';
+import { Tip } from '@/components/ui/tip';
 
 const TABS = [
   { id: 'playback', labelKey: 'settings.playback.label', icon: Headphones },
@@ -74,15 +75,16 @@ export default function SettingsModal({ isOpen, onClose }) {
                 <h3 className="text-sm font-semibold text-zinc-200 uppercase tracking-widest shrink-0">
                   {t('settings.title')}
                 </h3>
-                <Input
-                  type="text"
-                  placeholder={t('settings.search')}
-                  title={t('settings.searchTitle')}
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  onPointerDown={(e) => e.stopPropagation()}
-                  className="bg-zinc-800/50 border-zinc-700/60 text-zinc-200 placeholder-zinc-500 focus-visible:border-primary/50 w-full max-w-[200px] h-7 text-xs"
-                />
+                <Tip content={t('settings.searchTitle')}>
+                  <Input
+                    type="text"
+                    placeholder={t('settings.search')}
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    className="bg-zinc-800/50 border-zinc-700/60 text-zinc-200 placeholder-zinc-500 focus-visible:border-primary/50 w-full max-w-[200px] h-7 text-xs"
+                  />
+                </Tip>
               </div>
               <Button
                 variant="ghost"
@@ -101,21 +103,20 @@ export default function SettingsModal({ isOpen, onClose }) {
                   const label = t(tab.labelKey) || tab.fallback || tab.id;
                   const isActive = activeTab === tab.id;
                   return (
-                    <button
-                      key={tab.id}
-                      role="tab"
-                      aria-selected={isActive}
-                      onClick={() => setActiveTab(tab.id)}
-                      className={`relative flex flex-1 min-w-0 flex-col items-center gap-0.5 px-2 sm:px-3 py-2.5 text-[9px] sm:text-[10px] font-semibold whitespace-nowrap transition-all duration-150 outline-none -mb-px border-b-2 ${
-                        isActive
-                          ? 'text-primary border-primary'
-                          : 'text-zinc-500 hover:text-zinc-300 border-transparent hover:border-zinc-600'
-                      }`}
-                      title={label}
-                    >
-                      {tab.icon && <tab.icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-primary' : ''}`} />}
-                      <span className="truncate max-w-[60px] sm:max-w-none">{label}</span>
-                    </button>
+                    <Tip key={tab.id} content={label}>
+                      <button
+                        role="tab"
+                        aria-selected={isActive}
+                        onClick={() => setActiveTab(tab.id)}
+                        className={`relative flex flex-1 min-w-0 flex-col items-center gap-0.5 px-2 sm:px-3 py-2.5 text-[9px] sm:text-[10px] font-semibold whitespace-nowrap transition-all duration-150 outline-none -mb-px border-b-2 ${
+                          isActive
+                            ? 'text-primary border-primary'
+                            : 'text-zinc-500 hover:text-zinc-300 border-transparent hover:border-zinc-600'
+                        }`}
+                      >
+                        {tab.icon && <tab.icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-primary' : ''}`} />}
+                      </button>
+                    </Tip>
                   );
                 })}
               </div>

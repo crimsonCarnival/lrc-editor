@@ -7,7 +7,7 @@ const STORAGE_KEY = 'lrc-syncer-settings';
 function deepMerge(target, source) {
   if (typeof target !== 'object' || target === null) return source;
   if (typeof source !== 'object' || source === null) return target;
-  
+
   const output = { ...target };
   Object.keys(source).forEach(key => {
     if (source[key] instanceof Array) {
@@ -26,10 +26,10 @@ function upgradeLegacySettings(parsed) {
   if (parsed.playback && typeof parsed.playback === 'object') {
     return parsed;
   }
-  
+
   // Create a base config using defaults
   const migrated = structuredClone(DEFAULT_SETTINGS);
-  
+
   // Playback
   if (parsed.defaultVolume !== undefined) migrated.playback.volume = parsed.defaultVolume;
   if (parsed.volume !== undefined) migrated.playback.volume = parsed.volume;
@@ -89,10 +89,10 @@ function upgradeLegacySettings(parsed) {
 // Migrate stored shortcut defaults that changed across versions.
 // Only rewrites values that exactly match the old default — custom bindings are preserved.
 const SHORTCUT_RENAMES = [
-  { key: 'nudgeLeft',    from: 'ArrowLeft',      to: 'Alt+ArrowLeft' },
-  { key: 'nudgeRight',   from: 'ArrowRight',     to: 'Alt+ArrowRight' },
-  { key: 'seekBackward', from: 'Alt+ArrowLeft',  to: 'ArrowLeft' },
-  { key: 'seekForward',  from: 'Alt+ArrowRight', to: 'ArrowRight' },
+  { key: 'nudgeLeft', from: 'ArrowLeft', to: 'Alt+ArrowLeft' },
+  { key: 'nudgeRight', from: 'ArrowRight', to: 'Alt+ArrowRight' },
+  { key: 'seekBackward', from: 'Alt+ArrowLeft', to: 'ArrowLeft' },
+  { key: 'seekForward', from: 'Alt+ArrowRight', to: 'ArrowRight' },
 ];
 
 function migrateShortcutDefaults(settings) {
