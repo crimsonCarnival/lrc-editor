@@ -339,11 +339,11 @@ export function parseLrcSrtFile(content, filename) {
     if (timestampMap.has(key)) {
       const existingIndex = timestampMap.get(key);
       const existing = mergedLines[existingIndex];
-      if (!existing.translation) {
-        existing.translation = line.text;
-      } else if (!existing.secondary) {
-        existing.secondary = existing.text;
-        existing.text = existing.translation;
+      if (!existing.secondary && !existing.translation) {
+        // 2nd same-ts line: treat as secondary (romaji / furigana markup)
+        existing.secondary = line.text;
+      } else if (!existing.translation) {
+        // 3rd same-ts line: treat as translation; keep text+secondary intact
         existing.translation = line.text;
       }
     } else {
