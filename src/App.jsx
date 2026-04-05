@@ -79,6 +79,11 @@ function AppInner() {
   const focusMode = ['default', 'sync', 'playback'].includes(rawFocusMode) ? rawFocusMode : 'default';
   const [hideEditor, setHideEditor] = useState(false);
 
+  // Reset hideEditor when all lines are removed
+  useEffect(() => {
+    if (lines.length === 0) setHideEditor(false);
+  }, [lines.length]);
+
   // Mobile tab state: 'editor' | 'preview'
   const [mobileTab, setMobileTab] = useState('editor');
 
@@ -176,7 +181,7 @@ function AppInner() {
                 setHideEditor(h => !h);
               }
             }}
-            className={`hidden lg:flex px-2 py-1.5 h-auto text-[10px] font-bold border rounded-lg gap-1 flex-shrink-0 transition-colors ${
+            className={`${lines.length === 0 ? '!hidden' : 'hidden lg:flex'} px-2 py-1.5 h-auto text-[10px] font-bold border rounded-lg gap-1 flex-shrink-0 transition-colors ${
               (hideEditor || focusMode === 'playback')
                 ? 'bg-primary text-zinc-950 border-primary hover:bg-primary/90 hover:text-zinc-950'
                 : 'bg-zinc-800/80 border-zinc-700/60 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700'
