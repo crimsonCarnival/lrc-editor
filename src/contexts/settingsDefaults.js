@@ -53,7 +53,7 @@ export const DEFAULT_SETTINGS = {
     normalizeTimestamps: false
   },
   interface: {
-    theme: 'dark',
+    theme: 'system',
     defaultLanguage: 'en',
     fontSize: 'normal',
     spacing: 'normal',
@@ -89,6 +89,9 @@ export const DEFAULT_SETTINGS = {
     focusSync: ['Ctrl+1'],
     focusPreview: ['Ctrl+2'],
     focusPlayback: ['Ctrl+3'],
+  },
+  import: {
+    expandRepeats: true
   },
   advanced: {
     autoSave: { enabled: false, timeInterval: 30 },
