@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useSettings } from '../../contexts/useSettings';
 import { Button } from '@/components/ui/button';
 import { Volume2, VolumeX } from 'lucide-react';
+import { Tip } from '@/components/ui/tip';
 
 const VolumeControl = React.memo(function VolumeControl() {
   const { t } = useTranslation();
@@ -10,20 +11,21 @@ const VolumeControl = React.memo(function VolumeControl() {
 
   return (
     <div className="flex items-center gap-1 sm:gap-1.5 group/volume relative" role="group" aria-label={t('player.volume') || 'Volume'}>
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={() => updateSetting('playback.muted', !settings.playback.muted)}
-        className="rounded-full bg-zinc-800/80 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700 flex-shrink-0"
-        aria-label={settings.playback.muted ? t('player.unmute') || 'Unmute' : t('player.mute') || 'Mute'}
-        title={settings.playback.muted ? t('player.unmute') || 'Unmute' : t('player.mute') || 'Mute'}
-      >
+      <Tip content={settings.playback.muted ? t('player.unmute') || 'Unmute' : t('player.mute') || 'Mute'}>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => updateSetting('playback.muted', !settings.playback.muted)}
+          className="rounded-full bg-zinc-800/80 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700 flex-shrink-0"
+          aria-label={settings.playback.muted ? t('player.unmute') || 'Unmute' : t('player.mute') || 'Mute'}
+        >
         {settings.playback.muted || settings.playback.volume === 0 ? (
           <VolumeX className="w-4 h-4" />
         ) : (
           <Volume2 className="w-4 h-4" />
         )}
-      </Button>
+        </Button>
+      </Tip>
       <div className="overflow-hidden w-0 group-hover/volume:w-24 focus-within/volume:w-24 transition-all duration-300 flex items-center">
         <input
           type="range"

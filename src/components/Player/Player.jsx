@@ -11,6 +11,7 @@ import SpeedControl from './SpeedControl';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Music2, Trash2, AlertTriangle, Play, Pause, Headphones, FolderOpen, Upload, Repeat, ChevronLeft, ChevronRight, SkipBack, SkipForward } from 'lucide-react';
+import { Tip } from '@/components/ui/tip';
 
 const ALL_SPEED_PRESETS = [0.25, 0.5, 0.75, 1, 1.25, 1.5];
 
@@ -254,29 +255,31 @@ const Player = forwardRef(function Player(
           </h2>
           {hasMedia && (
             <div className="flex items-center gap-1 shrink-0">
-              <label
-                htmlFor="audio-file-input"
-                className="flex items-center gap-1 px-2 py-1.5 text-xs font-medium text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700/60 rounded-lg cursor-pointer transition-colors"
-                title={t('player.changeSong')}
-              >
-                <Upload className="w-3.5 h-3.5" />
-                <input
-                  id="audio-file-input"
-                  type="file"
-                  accept="audio/*"
-                  onChange={local.handleFileChange}
-                  className="hidden"
-                />
-              </label>
-              <Button
-                id="remove-media-btn"
-                variant="ghost"
-                onClick={removeMedia}
-                className="gap-1 px-2 py-1.5 text-xs font-medium text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg shrink-0 h-auto"
-                title={t('player.remove')}
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-              </Button>
+              <Tip content={t('player.changeSong')}>
+                <label
+                  htmlFor="audio-file-input"
+                  className="flex items-center gap-1 px-2 py-1.5 text-xs font-medium text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700/60 rounded-lg cursor-pointer transition-colors"
+                >
+                  <Upload className="w-3.5 h-3.5" />
+                  <input
+                    id="audio-file-input"
+                    type="file"
+                    accept="audio/*"
+                    onChange={local.handleFileChange}
+                    className="hidden"
+                  />
+                </label>
+              </Tip>
+              <Tip content={t('player.remove')}>
+                <Button
+                  id="remove-media-btn"
+                  variant="ghost"
+                  onClick={removeMedia}
+                  className="gap-1 px-2 py-1.5 text-xs font-medium text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg shrink-0 h-auto"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </Button>
+              </Tip>
             </div>
           )}
         </div>
@@ -335,15 +338,16 @@ const Player = forwardRef(function Player(
             <div className="px-1 py-2 space-y-2">
               <div className="flex gap-2 items-center">
                 {yt.ytUrl.trim() && (
-                  <Button
-                    variant="ghost"
-                    size="icon-xs"
-                    onClick={() => { yt.setYtUrl(''); yt.setYtError(''); }}
-                    className="w-7 h-8 text-zinc-500 hover:text-zinc-200 hover:bg-zinc-700/60 shrink-0"
-                    title={t('player.clearUrl')}
-                  >
-                    ←
-                  </Button>
+                  <Tip content={t('player.clearUrl')}>
+                    <Button
+                      variant="ghost"
+                      size="icon-xs"
+                      onClick={() => { yt.setYtUrl(''); yt.setYtError(''); }}
+                      className="w-7 h-8 text-zinc-500 hover:text-zinc-200 hover:bg-zinc-700/60 shrink-0"
+                    >
+                      ←
+                    </Button>
+                  </Tip>
                 )}
                 <div className="relative flex-1">
                   <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-red-500/70 shrink-0 pointer-events-none" viewBox="0 0 24 24" fill="currentColor">
@@ -414,13 +418,14 @@ const Player = forwardRef(function Player(
               </span>
 
               {/* Frame step back */}
-              <button
-                onClick={() => seek(Math.max(0, currentTime - 0.01))}
-                className="p-1 rounded text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/60 transition-colors flex-shrink-0 hidden sm:block"
-                title="-0.01s"
-              >
-                <ChevronLeft className="w-3 h-3" />
-              </button>
+              <Tip content="-0.01s">
+                <button
+                  onClick={() => seek(Math.max(0, currentTime - 0.01))}
+                  className="p-1 rounded text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/60 transition-colors flex-shrink-0 hidden sm:block"
+                >
+                  <ChevronLeft className="w-3 h-3" />
+                </button>
+              </Tip>
 
               <div className="flex-1 min-w-0 relative">
                 {/* A-B loop region overlay */}
@@ -462,13 +467,14 @@ const Player = forwardRef(function Player(
               </div>
 
               {/* Frame step forward */}
-              <button
-                onClick={() => seek(Math.min(duration, currentTime + 0.01))}
-                className="p-1 rounded text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/60 transition-colors flex-shrink-0 hidden sm:block"
-                title="+0.01s"
-              >
-                <ChevronRight className="w-3 h-3" />
-              </button>
+              <Tip content="+0.01s">
+                <button
+                  onClick={() => seek(Math.min(duration, currentTime + 0.01))}
+                  className="p-1 rounded text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/60 transition-colors flex-shrink-0 hidden sm:block"
+                >
+                  <ChevronRight className="w-3 h-3" />
+                </button>
+              </Tip>
 
               <span className="text-xs text-zinc-400 font-mono tabular-nums w-14 sm:w-[68px] text-left shrink-0">
                 {formatTime(duration)}
@@ -476,50 +482,49 @@ const Player = forwardRef(function Player(
 
               <VolumeControl />
 
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => {
-                  if (loopA != null && loopB != null) {
-                    clearLoop();
-                  } else {
-                    // Loop the currently active line (use live time for accuracy)
-                    const now = source === 'local'
-                      ? (audioRef.current?.currentTime ?? currentTime)
-                      : (yt.getCurrentTime?.() ?? currentTime);
-                    if (lines?.length) {
-                      let activeIdx = -1;
-                      for (let i = 0; i < lines.length; i++) {
-                        if (lines[i].timestamp != null && lines[i].timestamp <= now) activeIdx = i;
-                      }
-                      if (activeIdx >= 0) {
-                        const activeLine = lines[activeIdx];
-                        const a = activeLine.timestamp;
-                        // Prefer SRT endTime, fall back to next synced line's start
-                        let b = activeLine.endTime ?? null;
-                        if (b == null) {
-                          b = duration;
-                          for (let i = activeIdx + 1; i < lines.length; i++) {
-                            if (lines[i].timestamp != null) { b = lines[i].timestamp; break; }
-                          }
-                        }
-                        setLoop(a, b);
-                      }
-                    }
-                  }
-                }}
-                className={`rounded-full flex-shrink-0 ${
-                  loopA != null && loopB != null
-                    ? 'bg-accent-purple/20 text-accent-purple hover:bg-accent-purple/30'
-                    : 'bg-zinc-800/80 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700'
-                }`}
-                title={loopA != null && loopB != null
+              <Tip content={loopA != null && loopB != null
                   ? `${t('player.loopActive') || 'Loop active'}: ${formatTime(loopA)} – ${formatTime(loopB)} (click to clear)`
                   : t('player.setLoop') || 'Set A-B loop'
-                }
-              >
-                <Repeat className="w-4 h-4" />
-              </Button>
+                }>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => {
+                    if (loopA != null && loopB != null) {
+                      clearLoop();
+                    } else {
+                      const now = source === 'local'
+                        ? (audioRef.current?.currentTime ?? currentTime)
+                        : (yt.getCurrentTime?.() ?? currentTime);
+                      if (lines?.length) {
+                        let activeIdx = -1;
+                        for (let i = 0; i < lines.length; i++) {
+                          if (lines[i].timestamp != null && lines[i].timestamp <= now) activeIdx = i;
+                        }
+                        if (activeIdx >= 0) {
+                          const activeLine = lines[activeIdx];
+                          const a = activeLine.timestamp;
+                          let b = activeLine.endTime ?? null;
+                          if (b == null) {
+                            b = duration;
+                            for (let i = activeIdx + 1; i < lines.length; i++) {
+                              if (lines[i].timestamp != null) { b = lines[i].timestamp; break; }
+                            }
+                          }
+                          setLoop(a, b);
+                        }
+                      }
+                    }
+                  }}
+                  className={`rounded-full flex-shrink-0 ${
+                    loopA != null && loopB != null
+                      ? 'bg-accent-purple/20 text-accent-purple hover:bg-accent-purple/30'
+                      : 'bg-zinc-800/80 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700'
+                  }`}
+                >
+                  <Repeat className="w-4 h-4" />
+                </Button>
+              </Tip>
 
               <SpeedControl
                 playbackSpeed={playbackSpeed}

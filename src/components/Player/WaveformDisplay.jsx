@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useCallback, useMemo, useState } from 'react';
 import { formatTime } from '../../utils/formatTime';
 import { ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
+import { Tip } from '@/components/ui/tip';
 
 const ZOOM_LEVELS = [0, 50, 100, 200, 400]; // 0 = fit to container
 const MARKER_CLICK_THRESHOLD = 8; // px — how close a click must be to snap to a marker
@@ -385,30 +386,33 @@ const WaveformDisplay = React.memo(function WaveformDisplay({
       </div>
       {/* Zoom controls */}
       <div className="flex items-center justify-end gap-1">
-        <button
-          onClick={handleZoomOut}
-          disabled={zoomLevel === 0}
-          className="p-1 rounded text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/60 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-          title="Zoom out"
-        >
-          <ZoomOut className="w-3.5 h-3.5" />
-        </button>
-        <button
-          onClick={handleZoomFit}
-          disabled={zoomLevel === 0}
-          className="px-1.5 py-0.5 rounded text-[10px] font-mono text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/60 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-          title="Fit to view"
-        >
-          <Maximize2 className="w-3 h-3" />
-        </button>
-        <button
-          onClick={handleZoomIn}
-          disabled={zoomLevel === ZOOM_LEVELS[ZOOM_LEVELS.length - 1]}
-          className="p-1 rounded text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/60 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-          title="Zoom in"
-        >
-          <ZoomIn className="w-3.5 h-3.5" />
-        </button>
+        <Tip content="Zoom out">
+          <button
+            onClick={handleZoomOut}
+            disabled={zoomLevel === 0}
+            className="p-1 rounded text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/60 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          >
+            <ZoomOut className="w-3.5 h-3.5" />
+          </button>
+        </Tip>
+        <Tip content="Fit to view">
+          <button
+            onClick={handleZoomFit}
+            disabled={zoomLevel === 0}
+            className="px-1.5 py-0.5 rounded text-[10px] font-mono text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/60 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          >
+            <Maximize2 className="w-3 h-3" />
+          </button>
+        </Tip>
+        <Tip content="Zoom in">
+          <button
+            onClick={handleZoomIn}
+            disabled={zoomLevel === ZOOM_LEVELS[ZOOM_LEVELS.length - 1]}
+            className="p-1 rounded text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/60 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          >
+            <ZoomIn className="w-3.5 h-3.5" />
+          </button>
+        </Tip>
       </div>
     </div>
   );

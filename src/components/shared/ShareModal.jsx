@@ -2,6 +2,7 @@ import { useRef, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Copy, Check, AlertCircle } from 'lucide-react';
+import { Tip } from '@/components/ui/tip';
 
 export function SharePanel({ url, ytUrl, linesCount, hasSynced }) {
   const { t } = useTranslation();
@@ -73,22 +74,23 @@ export function SharePanel({ url, ytUrl, linesCount, hasSynced }) {
           onClick={() => inputRef.current?.select()}
           className="flex-1 min-w-0 bg-zinc-800 border border-zinc-700/60 rounded-xl px-3 py-2 text-xs font-mono text-zinc-300 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 cursor-text"
         />
-        <Button
-          onClick={handleCopy}
-          variant="outline"
-          size="icon"
-          title={copied ? t('share.copied', 'Copied!') : t('share.copy', 'Copy link')}
-          className={`flex-shrink-0 border transition-all duration-200 ${
-            copied
-              ? 'bg-primary/15 border-primary/40 text-primary hover:bg-primary/20 scale-110'
-              : 'bg-zinc-800 border-zinc-700/60 text-zinc-300 hover:bg-zinc-700 hover:text-zinc-100'
-          }`}
-        >
+        <Tip content={copied ? t('share.copied', 'Copied!') : t('share.copy', 'Copy link')}>
+          <Button
+            onClick={handleCopy}
+            variant="outline"
+            size="icon"
+            className={`flex-shrink-0 border transition-all duration-200 ${
+              copied
+                ? 'bg-primary/15 border-primary/40 text-primary hover:bg-primary/20 scale-110'
+                : 'bg-zinc-800 border-zinc-700/60 text-zinc-300 hover:bg-zinc-700 hover:text-zinc-100'
+            }`}
+          >
           {copied
             ? <Check className="w-4 h-4" />
             : <Copy className="w-4 h-4" />
           }
-        </Button>
+          </Button>
+        </Tip>
       </div>
     </div>
   );

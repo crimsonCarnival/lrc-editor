@@ -3,11 +3,12 @@ import { useTranslation } from 'react-i18next';
 import NumberInput from '../shared/NumberInput';
 import { Button } from '@/components/ui/button';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+  Popover,
+  PopoverContent,
+  PopoverItem,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { Tip } from '@/components/ui/tip';
 import { ChevronDown, Minus, Plus } from 'lucide-react';
 
 const SpeedControl = React.memo(function SpeedControl({
@@ -50,42 +51,43 @@ const SpeedControl = React.memo(function SpeedControl({
       </button>
 
       {/* Speed badge + dropdown */}
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            id="speed-btn"
-            title={t('player.speed') || 'Speed'}
-            aria-label={`${t('player.speed') || 'Speed'}: ${playbackSpeed}x`}
-            className={`h-8 sm:h-9 px-2 sm:px-2.5 font-mono font-semibold rounded-full gap-1 ${
-              playbackSpeed !== 1
-                ? 'bg-primary text-zinc-950 shadow-lg shadow-primary/30 hover:bg-primary-dim'
-                : 'bg-zinc-800 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700'
-            }`}
-          >
-            {playbackSpeed}x
-            <ChevronDown className="w-2.5 h-2.5 transition-transform duration-200 group-data-[state=open]:rotate-180" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent
-          className="w-44 bg-zinc-900 border-zinc-700/80 p-0 overflow-hidden"
+      <Popover>
+        <Tip content={t('player.speed') || 'Speed'}>
+          <PopoverTrigger asChild>
+            <Button
+              id="speed-btn"
+              aria-label={`${t('player.speed') || 'Speed'}: ${playbackSpeed}x`}
+              className={`h-8 sm:h-9 px-2 sm:px-2.5 font-mono font-semibold rounded-full gap-1 ${
+                playbackSpeed !== 1
+                  ? 'bg-primary text-zinc-950 shadow-lg shadow-primary/30 hover:bg-primary-dim'
+                  : 'bg-zinc-800 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700'
+              }`}
+            >
+              {playbackSpeed}x
+              <ChevronDown className="w-2.5 h-2.5 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+            </Button>
+          </PopoverTrigger>
+        </Tip>
+        <PopoverContent
+          className="w-44 p-0 overflow-hidden"
           align="end"
         >
           <div className="p-1.5 max-h-52 overflow-y-auto">
             {SPEED_PRESETS.map((speed) => (
-              <DropdownMenuItem
+              <PopoverItem
                 key={speed}
                 onClick={() => applySpeed(speed)}
-                className={`text-xs font-mono rounded-lg cursor-pointer ${
+                className={`font-mono rounded-lg ${
                   playbackSpeed === speed
-                    ? 'bg-primary/20 text-primary font-bold focus:bg-primary/30 focus:text-primary'
-                    : 'text-zinc-300 focus:bg-zinc-800 focus:text-zinc-100'
+                    ? 'bg-primary/20 text-primary font-bold hover:bg-primary/30'
+                    : ''
                 }`}
               >
                 {speed}x {speed === 1 && <span className="text-zinc-500 font-sans ml-1">(normal)</span>}
-              </DropdownMenuItem>
+              </PopoverItem>
             ))}
           </div>
-          <div className="border-t border-zinc-700/60 p-2" onPointerDown={(e) => e.stopPropagation()}>
+          <div className="border-t border-zinc-700/50 p-2" onPointerDown={(e) => e.stopPropagation()}>
             <label className="text-[10px] text-zinc-500 font-medium uppercase tracking-wider mb-1 block">
               {t('player.customSpeed') || 'Custom'} ({MIN_SPEED}–{MAX_SPEED}x)
             </label>
@@ -111,8 +113,8 @@ const SpeedControl = React.memo(function SpeedControl({
               </Button>
             </div>
           </div>
-        </DropdownMenuContent>
-      </DropdownMenu>
+        </PopoverContent>
+      </Popover>
 
       {/* Speed up */}
       <button
