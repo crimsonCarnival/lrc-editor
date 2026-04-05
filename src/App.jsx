@@ -69,6 +69,7 @@ function AppInner() {
     setSharedReadOnly,
     shareModal,
     setShareModal,
+    hasMedia,
   } = useAppState();
 
   useScrollLock(!!pendingSession);
