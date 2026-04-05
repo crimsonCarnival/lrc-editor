@@ -2,7 +2,7 @@
  * LRC / SRT utilities — format timestamps, compile, parse, download.
  */
 
-import { serializeToRubyMarkup } from './furigana';
+import { serializeToRubyMarkup, parseRubyMarkup } from './furigana';
 
 /**
  * Build the secondary (furigana/romaji) text for a line.
@@ -354,6 +354,25 @@ export function parseLrcSrtFile(content, filename) {
         if (secWords.length > 0) {
           existing.secondaryWords = secWords;
           existing.secondary = line.text.replace(/<\d{1,2}:\d{2}\.\d{2,3}>/g, '').trim();
+        } else if (/\{[^|{]+\|[^}]+\}/.test(line.text)) {
+          // Ruby markup like {持|も}ち{上|あ}げて — strip to plain text and merge readings into words
+          const { plainText, segments } = parseRubyMarkup(line.text);
+          existing.secondary = plainText;
+          if (existing.words?.length) {
+            // Build charPos → reading map from parsed segments
+            const readingAt = new Map();
+            let pos = 0;
+            for (const seg of segments) {
+              if (seg.reading) readingAt.set(pos, seg.reading);
+              pos += [...seg.text].length;
+            }
+            let c = 0;
+            existing.words = existing.words.map((w) => {
+              const reading = readingAt.get(c);
+              c += [...w.word].length;
+              return reading ? { ...w, reading } : w;
+            });
+          }
         } else {
           existing.secondary = line.text;
         }
