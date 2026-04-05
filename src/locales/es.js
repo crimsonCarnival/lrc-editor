@@ -148,7 +148,9 @@ export default {
       "metaLanguage": "Idioma",
       "continue": "Exportar",
       "success": "Archivo descargado",
-      "copyFailed": "Error al copiar al portapapeles"
+      "copyFailed": "Error al copiar al portapapeles",
+      "includeSecondaryLrc": "Letra secundaria",
+      "includeTranslationsLrc": "Traducciones"
     },
 
     "session": {

@@ -233,6 +233,7 @@ export default function Preview(props) {
           hasTranslations={hasTranslations}
           hasSecondary={hasSecondary}
           hasWords={hasWords}
+          hasFurigana={hasFurigana}
           wasCopied={wasCopied}
           handleExport={handleExport}
           handleCopy={handleCopy}

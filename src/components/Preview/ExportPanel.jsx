@@ -24,6 +24,7 @@ export default function ExportPanel({
   hasTranslations,
   hasSecondary,
   hasWords,
+  hasFurigana,
   wasCopied,
   handleExport,
   handleCopy
@@ -123,6 +124,41 @@ export default function ExportPanel({
                 </div>
               );
             })}
+
+            {/* Secondary & translation checkboxes — LRC-specific */}
+            {(hasSecondary || hasFurigana || hasTranslations) && (
+              <div className="space-y-1.5 pt-1 border-t border-zinc-700/30">
+                {(hasSecondary || hasFurigana) && (
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="include-secondary-lrc"
+                      checked={includeSecondary}
+                      onCheckedChange={setIncludeSecondary}
+                      className="border-zinc-600 bg-zinc-900 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                    />
+                    <Label htmlFor="include-secondary-lrc" className="text-xs text-zinc-400 cursor-pointer">
+                      {t('export.includeSecondaryLrc', 'Secondary lyrics')}
+                      {hasFurigana && (
+                        <span className="ml-1 text-[10px] text-zinc-600 font-mono">{'({kanji|furigana})'}</span>
+                      )}
+                    </Label>
+                  </div>
+                )}
+                {hasTranslations && (
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="include-translations-lrc"
+                      checked={includeTranslations}
+                      onCheckedChange={setIncludeTranslations}
+                      className="border-zinc-600 bg-zinc-900 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                    />
+                    <Label htmlFor="include-translations-lrc" className="text-xs text-zinc-400 cursor-pointer">
+                      {t('export.includeTranslationsLrc', 'Translations')}
+                    </Label>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -132,7 +168,7 @@ export default function ExportPanel({
             {t('export.includeOptions', 'Include in export')}
           </span>
 
-          {hasSecondary && (
+          {!isLrc && (hasSecondary || hasFurigana) && (
             <div className="flex items-center gap-2">
               <Checkbox
                 id="include-secondary"
@@ -141,12 +177,15 @@ export default function ExportPanel({
                 className="border-zinc-600 bg-zinc-900 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
               />
               <Label htmlFor="include-secondary" className="text-xs text-zinc-400 cursor-pointer">
-                {t('export.includeSecondary', 'Secondary text (romaji, etc.)')}
+                {t('export.includeSecondary', 'Secondary lyrics')}
+                {hasFurigana && (
+                  <span className="ml-1 text-[10px] text-zinc-600 font-mono">{'({kanji|furigana})'}</span>
+                )}
               </Label>
             </div>
           )}
 
-          {hasTranslations && (
+          {!isLrc && hasTranslations && (
             <div className="flex items-center gap-2">
               <Checkbox
                 id="include-translations"
@@ -174,7 +213,7 @@ export default function ExportPanel({
             </div>
           )}
 
-          {!hasSecondary && !hasTranslations && !hasWords && (
+          {!hasWords && (isLrc || (!hasSecondary && !hasFurigana && !hasTranslations)) && (
             <p className="text-xs text-zinc-600 italic">
               {t('export.noExtraContent', 'No secondary text, translations, or word timestamps to include.')}
             </p>

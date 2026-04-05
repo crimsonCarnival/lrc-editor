@@ -220,9 +220,6 @@ export function usePreview({ lines, setLines, playbackPosition, playerRef, durat
 
   const applyIncludeFlags = (inputLines) => {
     let result = inputLines;
-    if (!includeSecondary) {
-      result = result.map(l => ({ ...l, secondary: undefined }));
-    }
     if (!includeWordTimestamps) {
       result = result.map(l => ({ ...l, words: undefined }));
     }
@@ -235,13 +232,13 @@ export function usePreview({ lines, setLines, playbackPosition, playerRef, durat
     let content = '';
 
     if (settings.export?.downloadFormat === 'srt') {
-      content = compileSRT(exportLines, duration, includeTranslations, settings.export?.lineEndings, settings.editor?.srt);
+      content = compileSRT(exportLines, duration, includeTranslations, settings.export?.lineEndings, settings.editor?.srt, includeSecondary);
       downloadLRC(content, `${name}.srt`);
     } else {
       const filteredMetadata = includeMetadata
         ? Object.fromEntries(Object.entries(metadata).filter(([, v]) => v.trim() !== ''))
         : {};
-      content = compileLRC(exportLines, includeTranslations, settings.export?.timestampPrecision, filteredMetadata, settings.export?.lineEndings);
+      content = compileLRC(exportLines, includeTranslations, settings.export?.timestampPrecision, filteredMetadata, settings.export?.lineEndings, includeSecondary);
       downloadLRC(content, `${name}.lrc`);
     }
 
@@ -254,12 +251,12 @@ export function usePreview({ lines, setLines, playbackPosition, playerRef, durat
     let content = '';
 
     if (settings.export?.copyFormat === 'srt') {
-      content = compileSRT(exportLines, duration, includeTranslations, settings.export?.lineEndings, settings.editor?.srt);
+      content = compileSRT(exportLines, duration, includeTranslations, settings.export?.lineEndings, settings.editor?.srt, includeSecondary);
     } else {
       const filteredMetadata = includeMetadata
         ? Object.fromEntries(Object.entries(metadata).filter(([, v]) => v.trim() !== ''))
         : {};
-      content = compileLRC(exportLines, includeTranslations, settings.export?.timestampPrecision, filteredMetadata, settings.export?.lineEndings);
+      content = compileLRC(exportLines, includeTranslations, settings.export?.timestampPrecision, filteredMetadata, settings.export?.lineEndings, includeSecondary);
     }
     try {
       await navigator.clipboard.writeText(content);

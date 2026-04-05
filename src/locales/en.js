@@ -148,7 +148,9 @@ export default {
       "metaLanguage": "Language",
       "continue": "Export",
       "success": "File downloaded",
-      "copyFailed": "Failed to copy to clipboard"
+      "copyFailed": "Failed to copy to clipboard",
+      "includeSecondaryLrc": "Secondary lyrics",
+      "includeTranslationsLrc": "Translations"
     },
 
     "session": {

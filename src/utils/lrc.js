@@ -2,6 +2,22 @@
  * LRC / SRT utilities — format timestamps, compile, parse, download.
  */
 
+import { serializeToRubyMarkup } from './furigana';
+
+/**
+ * Build the secondary (furigana/romaji) text for a line.
+ * If the line has words with readings, serialize to {word|reading} markup.
+ * Otherwise fall back to line.secondary.
+ * @param {{ secondary?: string, words?: Array }} line
+ * @returns {string|null}
+ */
+function buildSecondaryText(line) {
+  if (line.words?.some(w => w.reading)) {
+    return serializeToRubyMarkup(line.words);
+  }
+  return line.secondary || null;
+}
+
 /**
  * Formats a number of seconds into LRC timestamp format [mm:ss.xx] or [mm:ss.xxx]
  * @param {number} seconds
@@ -50,7 +66,7 @@ function sanitizeLrcTag(s) {
  * @param {'lf'|'crlf'} lineEndings
  * @returns {string}
  */
-export function compileLRC(lines, includeTranslations = false, precision = 'hundredths', metadata = {}, lineEndings = 'lf') {
+export function compileLRC(lines, includeTranslations = false, precision = 'hundredths', metadata = {}, lineEndings = 'lf', includeSecondary = false) {
   let header = '';
   if (metadata.ti) header += `[ti:${sanitizeLrcTag(metadata.ti)}]\n`;
   if (metadata.ar) header += `[ar:${sanitizeLrcTag(metadata.ar)}]\n`;
@@ -75,6 +91,10 @@ export function compileLRC(lines, includeTranslations = false, precision = 'hund
               }).join('')
             : line.text;
           let out = `${formatTimestamp(ts, precision)} ${wordText}`;
+          if (includeSecondary) {
+            const sec = buildSecondaryText(line);
+            if (sec) out += `\n${formatTimestamp(ts, precision)} ${sec}`;
+          }
           if (includeTranslations && line.translation) {
             out += `\n${formatTimestamp(ts, precision)} ${line.translation}`;
           }
@@ -204,7 +224,7 @@ export function formatSrtTimestamp(seconds) {
  * @param {object} srtConfig
  * @returns {string}
  */
-export function compileSRT(lines, duration, includeTranslations = false, lineEndings = 'lf', srtConfig = {}) {
+export function compileSRT(lines, duration, includeTranslations = false, lineEndings = 'lf', srtConfig = {}, includeSecondary = false) {
   const minGap = srtConfig.minSubtitleGap || 0.05;
   const defaultDur = srtConfig.defaultSubtitleDuration || 5;
 
@@ -229,7 +249,7 @@ export function compileSRT(lines, duration, includeTranslations = false, lineEnd
     }
 
     return `${i + 1}\n${formatSrtTimestamp(start)} --> ${formatSrtTimestamp(end)}\n${
-      (includeTranslations && line.secondary) ? line.secondary + '\n' : ''
+      (includeSecondary && buildSecondaryText(line)) ? buildSecondaryText(line) + '\n' : ''
     }${line.text}${
       (includeTranslations && line.translation) ? '\n' + line.translation : ''
     }\n`;
