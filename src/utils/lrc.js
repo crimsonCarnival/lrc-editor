@@ -26,7 +26,7 @@ function buildSecondaryText(line) {
  */
 export function formatTimestamp(seconds, precision = 'hundredths') {
   if (seconds == null || isNaN(seconds) || seconds < 0) {
-    return precision === 'thousandths' ? '[00:00.000]' : '[00:00.00]';
+    return precision === 'thousandths' ? '00:00.000' : '00:00.00';
   }
   const mins = Math.floor(seconds / 60);
   const secs = seconds % 60;
@@ -34,7 +34,7 @@ export function formatTimestamp(seconds, precision = 'hundredths') {
   const decimals = precision === 'thousandths' ? 3 : 2;
   const padLen = decimals + 3; // "ss." + decimals
   const ss = secs.toFixed(decimals).padStart(padLen, '0');
-  return `[${mm}:${ss}]`;
+  return `${mm}:${ss}`;
 }
 
 /**
@@ -90,13 +90,13 @@ export function compileLRC(lines, includeTranslations = false, precision = 'hund
                 return cjk(lastChar) || cjk(firstChar) ? token : token + ' ';
               }).join('')
             : line.text;
-          let out = `${formatTimestamp(ts, precision)} ${wordText}`;
+          let out = `[${formatTimestamp(ts, precision)}] ${wordText}`;
           if (includeSecondary) {
             const sec = buildSecondaryText(line);
-            if (sec) out += `\n${formatTimestamp(ts, precision)} ${sec}`;
+            if (sec) out += `\n[${formatTimestamp(ts, precision)}] ${sec}`;
           }
           if (includeTranslations && line.translation) {
-            out += `\n${formatTimestamp(ts, precision)} ${line.translation}`;
+            out += `\n[${formatTimestamp(ts, precision)}] ${line.translation}`;
           }
           return out;
         });
