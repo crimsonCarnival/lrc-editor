@@ -274,6 +274,7 @@ export default function Preview(props) {
           settings={settings}
           editorMode={editorMode}
           t={t}
+          hasMedia={hasMedia}
         />
       )}
     </div>
@@ -321,6 +322,7 @@ function PreviewViewport({
   settings,
   editorMode,
   t,
+  hasMedia,
 }) {
   const isDualLine = settings.editor?.display?.dualLine;
   const showNextLine = settings.editor?.display?.showNextLine !== false;
