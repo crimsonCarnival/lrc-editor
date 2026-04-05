@@ -87,6 +87,8 @@ export default function Editor({
     handleSetTimestamp,
     handleSetWordReading,
     handleConvertReadings,
+    stampTarget,
+    handleStampTargetToggle,
     overlappingLines,
   } = useEditor({
     lines,
@@ -200,6 +202,8 @@ export default function Editor({
           handleSetActiveWordIndex={handleSetActiveWordIndex}
           handleSetTimestamp={handleSetTimestamp}
           handleSetWordReading={handleSetWordReading}
+          stampTarget={stampTarget}
+          handleStampTargetToggle={handleStampTargetToggle}
           playbackPosition={playbackPosition}
           overlappingLines={overlappingLines}
         />
@@ -264,6 +268,8 @@ function VirtualizedLineList({
   handleSetActiveWordIndex,
   handleSetTimestamp,
   handleSetWordReading,
+  stampTarget,
+  handleStampTargetToggle,
   playbackPosition,
   overlappingLines,
 }) {
@@ -390,6 +396,8 @@ function VirtualizedLineList({
                   handleSetActiveWordIndex={handleSetActiveWordIndex}
                   handleSetTimestamp={handleSetTimestamp}
                   handleSetWordReading={handleSetWordReading}
+                  stampTarget={i === activeLineIndex ? stampTarget : 'main'}
+                  handleStampTargetToggle={handleStampTargetToggle}
                   playbackPosition={isActive ? playbackPosition : null}
                   isOverlapping={overlappingLines.has(i)}
                   upcomingDepth={upcomingDepth}

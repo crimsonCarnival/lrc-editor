@@ -101,16 +101,9 @@ export default function PreviewLine({
             activeFontSizes, inactiveFontSizes, sizeOption, spacingOption, settings, showFuriganaInPreview
             })}
             {/* Secondary/Romaji Track — below main */}
-            {line.secondary && (
-              <p
-                className={`transition-all duration-300 w-full break-words overflow-wrap-anywhere hyphens-auto ${isActive
-                  ? `${activeSecondarySizes[sizeOption]} text-zinc-400 font-medium`
-                  : `${inactiveSecondarySizes[sizeOption]} text-zinc-600`
-                }`}
-              >
-                {line.secondary}
-              </p>
-            )}
+            {line.secondary && renderSecondaryTrack({
+              line, isActive, playbackPosition, activeSecondarySizes, inactiveSecondarySizes, sizeOption, settings,
+            })}
           </div>
           {/* Right column: translation */}
           <div className="flex-1 min-w-0 border-l border-zinc-700/40 pl-3 sm:pl-6">
@@ -133,16 +126,9 @@ export default function PreviewLine({
           })}
 
           {/* Secondary/Romaji Track — below main */}
-          {line.secondary && (
-            <p
-              className={`transition-all duration-300 w-full break-words overflow-wrap-anywhere hyphens-auto ${isActive
-                ? `${activeSecondarySizes[sizeOption]} text-zinc-400 font-medium`
-                : `${inactiveSecondarySizes[sizeOption]} text-zinc-600`
-              }`}
-            >
-              {line.secondary}
-            </p>
-          )}
+          {line.secondary && renderSecondaryTrack({
+            line, isActive, playbackPosition, activeSecondarySizes, inactiveSecondarySizes, sizeOption, settings,
+          })}
 
           {/* Translation Track — below secondary */}
           {(line.translation && showTranslationsInPreview) && (
@@ -183,6 +169,9 @@ function needsSpaceAfter(currentWord, nextWord) {
 // ——— Render main text track with karaoke fill ———
 // Fill effect is ONLY applied when word-level timestamps exist.
 function renderMainTrack({ line, isActive, isPast, hasWordTimestamps, playbackPosition, activeFontSizes, inactiveFontSizes, sizeOption, spacingOption, settings, showFuriganaInPreview = true }) {
+  const fillTrack = settings.editor?.display?.karaokeFillTrack ?? 'main';
+  const skipMainFill = isActive && fillTrack === 'secondary';
+  const effectiveHasWordTimestamps = hasWordTimestamps && !skipMainFill;
   const highlightMode = settings.editor?.display?.activeHighlight;
   // Active = white (fill effect provides green); past/completed = green; future = dim
   const activeClass = `${activeFontSizes[sizeOption]} font-bold text-zinc-100 ${highlightMode === 'glow' ? 'glow-line' : ''} ${spacingOption === 'compact' ? 'my-0' : 'my-0.5 sm:my-1'}`;
@@ -198,7 +187,7 @@ function renderMainTrack({ line, isActive, isPast, hasWordTimestamps, playbackPo
 
   return (
     <p className={`transition-all duration-500 ease-out w-full break-words overflow-wrap-anywhere hyphens-auto ${isActive ? activeClass : isPast ? pastClass : futureClass}`} style={{ lineHeight: hasReadings ? '2' : undefined }}>
-      {hasWordTimestamps
+      {effectiveHasWordTimestamps
         ? line.words.map((w, wi) => {
             const nextT = line.words.slice(wi + 1).find((w2) => w2.time != null)?.time;
             let fillPct = 0;
@@ -249,6 +238,52 @@ function renderMainTrack({ line, isActive, isPast, hasWordTimestamps, playbackPo
   );
 }
 
+function renderSecondaryTrack({ line, isActive, playbackPosition, activeSecondarySizes, inactiveSecondarySizes, sizeOption, settings }) {
+  const fillTrack = settings?.editor?.display?.karaokeFillTrack ?? 'main';
+  const hasSecondaryStamps = line.secondaryWords?.some((w) => w.time != null);
+  const doFill = isActive && hasSecondaryStamps && (fillTrack === 'secondary' || fillTrack === 'both');
+  // secondary stays dim (inactive style) when fillTrack is 'main' — no active styling applied
+  const treatAsActive = isActive && fillTrack !== 'main';
+  const baseClass = `transition-all duration-300 w-full break-words overflow-wrap-anywhere hyphens-auto ${
+    treatAsActive
+      ? `${activeSecondarySizes[sizeOption]} text-zinc-400 font-medium`
+      : `${inactiveSecondarySizes[sizeOption]} text-zinc-600`
+  }`;
+
+  if (!doFill) {
+    return <p className={baseClass}>{line.secondary}</p>;
+  }
+
+  return (
+    <p className={baseClass}>
+      {line.secondaryWords.map((w, wi) => {
+        const nextT = line.secondaryWords.slice(wi + 1).find((w2) => w2.time != null)?.time;
+        let fillPct = 0;
+        if (w.time != null && w.time <= playbackPosition) {
+          fillPct = nextT != null && nextT > playbackPosition
+            ? Math.min(100, ((playbackPosition - w.time) / (nextT - w.time)) * 100)
+            : 100;
+        }
+        const addSpace = wi < line.secondaryWords.length - 1;
+        return (
+          <React.Fragment key={wi}>
+            <span className="relative inline-block">
+              <span className="text-zinc-600">{w.word}</span>
+              <span
+                className="absolute left-0 top-0 h-full overflow-hidden text-zinc-200 whitespace-nowrap"
+                style={{ width: `${fillPct}%`, transition: 'width 80ms linear' }}
+              >
+                {w.word}
+              </span>
+            </span>
+            {addSpace ? ' ' : null}
+          </React.Fragment>
+        );
+      })}
+    </p>
+  );
+}
+
 // ——— Kanji detection: only kanji get ruby annotations, not hiragana/katakana ———
 const KANJI_RE = /[\u4E00-\u9FFF\u3400-\u4DBF\uF900-\uFAFF]/;
 function isKanjiWord(word) {
@@ -273,9 +308,16 @@ function renderWordUnit(w, filled, fmtReading, showFurigana = true) {
 function renderLineWithReadings(line, fmtReading, showFurigana = true) {
   const words = line.words || [];
   if (words.length === 0) return line.text || '♪';
-  return words.map((w, i) =>
-    w.reading && isKanjiWord(w.word) && showFurigana
-      ? <ruby key={i}>{w.word}<rp>(</rp><rt style={{ paddingBottom: '2px' }}>{fmtReading(w.reading)}</rt><rp>)</rp></ruby>
-      : <React.Fragment key={i}>{w.word}</React.Fragment>
-  );
+  return words.map((w, i) => {
+    const addSpace = needsSpaceAfter(w.word, words[i + 1]?.word);
+    if (w.reading && isKanjiWord(w.word) && showFurigana) {
+      return (
+        <React.Fragment key={i}>
+          <ruby>{w.word}<rp>(</rp><rt style={{ paddingBottom: '2px' }}>{fmtReading(w.reading)}</rt><rp>)</rp></ruby>
+          {addSpace ? ' ' : null}
+        </React.Fragment>
+      );
+    }
+    return <React.Fragment key={i}>{w.word}{addSpace ? ' ' : null}</React.Fragment>;
+  });
 }

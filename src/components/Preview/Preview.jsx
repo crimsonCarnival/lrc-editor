@@ -13,7 +13,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { SharePanel } from '../shared/ShareModal';
-import { Eye, Share2, X, Lock, LockOpen, BookOpen } from 'lucide-react';
+import { Eye, Share2, X, Lock, LockOpen, BookOpen, Plus } from 'lucide-react';
 
 export default function Preview(props) {
   const {
@@ -191,11 +191,7 @@ export default function Preview(props) {
                   size="icon-sm"
                   className="text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 flex-shrink-0"
                 >
-                  <svg className="w-4 sm:w-5 h-4 sm:h-5" fill="currentColor" viewBox="0 0 24 24">
-                    <circle cx="5" cy="12" r="2" />
-                    <circle cx="12" cy="12" r="2" />
-                    <circle cx="19" cy="12" r="2" />
-                  </svg>
+                  <Plus className="w-4 sm:w-5 h-4 sm:h-5" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-36 sm:w-48 bg-zinc-900 border-zinc-700/80" align="end">

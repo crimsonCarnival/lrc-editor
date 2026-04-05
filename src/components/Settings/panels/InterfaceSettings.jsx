@@ -172,6 +172,21 @@ export default function InterfaceSettings({ settings, updateSetting, searchTerm 
           </SelectContent>
         </Select>
       </SettingRow>
+      <SettingRow icon={Sparkles} label={t('settings.interface.karaokeFillTrack')} description={t('settings.interface.karaokeFillTrackDesc')}>
+        <Select
+          value={settings.editor?.display?.karaokeFillTrack ?? 'main'}
+          onValueChange={(val) => updateSetting('editor.display.karaokeFillTrack', val)}
+        >
+          <SelectTrigger className="bg-zinc-900 border-zinc-700 text-xs text-zinc-200 focus:border-primary/50 h-8 w-auto">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="bg-zinc-900 border-zinc-700">
+            <SelectItem value="main">{t('settings.interface.fillTrackMain')}</SelectItem>
+            <SelectItem value="secondary">{t('settings.interface.fillTrackSecondary')}</SelectItem>
+            <SelectItem value="both">{t('settings.interface.fillTrackBoth')}</SelectItem>
+          </SelectContent>
+        </Select>
+      </SettingRow>
       <SettingRow icon={BookOpen} label={t('settings.interface.readingFormat')} description={t('settings.interface.readingFormatDesc')}>
         <Select
           value={settings.editor?.display?.readingFormat ?? 'hiragana'}

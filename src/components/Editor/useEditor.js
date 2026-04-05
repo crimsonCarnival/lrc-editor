@@ -48,6 +48,7 @@ export function useEditor({
   const [hoveredLineIndex, setHoveredLineIndex] = useState(null);
   const [isActiveLineLocked, setIsActiveLineLocked] = useState(false);
   const [activeWordIndex, setActiveWordIndex] = useState(0);
+  const [stampTarget, setStampTarget] = useState('main'); // 'main' | 'secondary'
 
   const [requestConfirm, confirmModal] = useConfirm();
 
@@ -62,6 +63,7 @@ export function useEditor({
   const focusedTimestampRef = useRef(focusedTimestamp);
   const selectedLinesRef = useRef(selectedLines);
   const activeWordIndexRef = useRef(0);
+  const stampTargetRef = useRef('main');
   useEffect(() => {
     linesRef.current = lines;
     playbackPositionRef.current = playbackPosition;
@@ -69,6 +71,7 @@ export function useEditor({
     focusedTimestampRef.current = focusedTimestamp;
     selectedLinesRef.current = selectedLines;
     activeWordIndexRef.current = activeWordIndex;
+    stampTargetRef.current = stampTarget;
   });
 
   // Sync active word cursor with lines (covers undo/redo restoring a previous stamp state)
@@ -78,7 +81,9 @@ export function useEditor({
       activeWordIndexRef.current = 0;
       return;
     }
-    const words = lines[activeLineIndex]?.words;
+    const words = stampTarget === 'secondary'
+      ? lines[activeLineIndex]?.secondaryWords
+      : lines[activeLineIndex]?.words;
     if (!words?.length) {
       setActiveWordIndex(0);
       activeWordIndexRef.current = 0;
@@ -88,7 +93,13 @@ export function useEditor({
     const newIdx = idx === -1 ? words.length : idx;
     setActiveWordIndex(newIdx);
     activeWordIndexRef.current = newIdx;
-  }, [activeLineIndex, lines, editorMode]);
+  }, [activeLineIndex, lines, editorMode, stampTarget]);
+
+  // Reset stampTarget when the active line changes
+  useEffect(() => {
+    setStampTarget('main');
+    stampTargetRef.current = 'main';
+  }, [activeLineIndex]);
 
   // When switching to words mode, ensure every line has a words array
   useEffect(() => {
@@ -381,6 +392,7 @@ export function useEditor({
       time,
       editorMode,
       activeWordIndex: activeWordIndexRef.current,
+      stampTarget: stampTargetRef.current,
       awaitingEndMark,
       focusedTimestamp: focusedTimestampRef.current,
       settings: settings.editor || {},
@@ -827,6 +839,32 @@ export function useEditor({
     activeWordIndexRef.current = wordIndex;
   }, []);
 
+  const handleStampTargetToggle = useCallback(() => {
+    const line = linesRef.current[activeLineIndexRef.current];
+    if (!line) return;
+    const newTarget = stampTargetRef.current === 'main' ? 'secondary' : 'main';
+    if (newTarget === 'secondary' && line.secondary) {
+      if (!line.secondaryWords?.length) {
+        const tokens = line.secondary.trim().split(/\s+/).filter(Boolean);
+        if (tokens.length) {
+          const secondaryWords = tokens.map((word) => ({ word, time: null }));
+          // Eagerly update linesRef so the next keypress sees secondaryWords immediately
+          linesRef.current = linesRef.current.map((l, idx) =>
+            idx !== activeLineIndexRef.current ? l : { ...l, secondaryWords },
+          );
+          setLines((prev) => prev.map((l, idx) =>
+            idx !== activeLineIndexRef.current ? l : { ...l, secondaryWords },
+          ));
+        }
+      }
+    }
+    // Reset word cursor to 0 for the new layer
+    setActiveWordIndex(0);
+    activeWordIndexRef.current = 0;
+    setStampTarget(newTarget);
+    stampTargetRef.current = newTarget;
+  }, [setLines]);
+
   // ——— Global keybinds ———
   useEffect(() => {
     const handler = (e) => {
@@ -956,6 +994,8 @@ export function useEditor({
     handleSetTimestamp,
     handleSetWordReading,
     handleConvertReadings,
+    stampTarget,
+    handleStampTargetToggle,
     activeWordIndex,
     overlappingLines,
     // extras

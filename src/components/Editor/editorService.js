@@ -144,7 +144,7 @@ function stampBlanks(lines, fromIndex, time, isSrt) {
  *   nextActiveLineIndex is null if unchanged, nextAwaitingEndMark is null to clear or an object to set.
  *   nextActiveWordIndex is only present in 'words' mode.
  */
-export function applyMark({ lines, activeLineIndex, time, editorMode, activeWordIndex = 0, awaitingEndMark, focusedTimestamp, settings }) {
+export function applyMark({ lines, activeLineIndex, time, editorMode, activeWordIndex = 0, stampTarget = 'main', awaitingEndMark, focusedTimestamp, settings }) {
   if (activeLineIndex >= lines.length) {
     return { nextLines: lines, nextActiveLineIndex: null, nextAwaitingEndMark: undefined };
   }
@@ -173,7 +173,8 @@ export function applyMark({ lines, activeLineIndex, time, editorMode, activeWord
   if (isWords) {
     const updated = [...lines];
     const line = updated[activeLineIndex];
-    const words = line.words || [];
+    const wordField = stampTarget === 'secondary' ? 'secondaryWords' : 'words';
+    const words = line[wordField] || [];
 
     // First press on this line: stamp the line-level timestamp
     if (line.timestamp == null) {
@@ -191,7 +192,7 @@ export function applyMark({ lines, activeLineIndex, time, editorMode, activeWord
     if (clampedIdx >= 0) {
       const newWords = [...words];
       newWords[clampedIdx] = { ...newWords[clampedIdx], time };
-      updated[activeLineIndex] = { ...line, words: newWords };
+      updated[activeLineIndex] = { ...line, [wordField]: newWords };
       const nextWordIdx = clampedIdx + 1;
       if (nextWordIdx >= words.length) {
         // All words stamped — advance line

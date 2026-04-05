@@ -1,6 +1,6 @@
 ﻿import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { serializeToRubyMarkup, isKanji, toHiragana, toKatakana } from '../../../utils/furigana';
+import { serializeToRubyMarkup, isKanji, toHiragana, toKatakana, hasCJK } from '../../../utils/furigana';
 import { formatTimestamp } from '../../../utils/lrc';
 import { formatTime } from '../../../utils/formatTime';
 import { Button } from '@/components/ui/button';
@@ -191,6 +191,8 @@ const EditorLineItem = React.memo(({
   handleSetActiveWordIndex,
   handleSetTimestamp,
   handleSetWordReading,
+  stampTarget = 'main',
+  handleStampTargetToggle,
   playbackPosition,
   isOverlapping,
   upcomingDepth,
@@ -354,28 +356,56 @@ const EditorLineItem = React.memo(({
       >
         {editorMode === 'words' ? (
           <div className="flex flex-col gap-1">
-            {/* Line-level timestamp badge */}
-            {editingTimestamp === 'start' && isSynced ? (
-              <InlineTimestampEdit
-                value={line.timestamp}
-                precision={settings.editor?.timestampPrecision || 'hundredths'}
-                onChange={(val) => { handleSetTimestamp(i, 'start', val); setEditingTimestamp(null); }}
-                onCancel={() => setEditingTimestamp(null)}
-              />
-            ) : (
-              <TimestampBadge
-                value={line.timestamp}
-                isSynced={isSynced}
-                isFocused={focusedTimestamp?.lineIndex === i && focusedTimestamp?.type === 'start'}
-                isActive={isActive}
-                precision={settings.editor?.timestampPrecision || 'hundredths'}
-                onClick={() => setFocusedTimestamp(focusedTimestamp?.lineIndex === i && focusedTimestamp?.type === 'start' ? null : { lineIndex: i, type: 'start' })}
-                onDoubleClick={(e) => { e.stopPropagation(); if (isSynced) setEditingTimestamp('start'); }}
-                onWheel={(e) => { if (isSynced) handleTimestampWheel(e, i, 'start'); }}
-                nudgeIndicator={isSynced ? nudgeIndicator : null}
-              />
-            )}
-            {/* Word chips — always rendered to keep consistent row height */}
+            {/* Line-level timestamp + layer toggle */}
+            <div className="flex items-center gap-1">
+              {editingTimestamp === 'start' && isSynced ? (
+                <InlineTimestampEdit
+                  value={line.timestamp}
+                  precision={settings.editor?.timestampPrecision || 'hundredths'}
+                  onChange={(val) => { handleSetTimestamp(i, 'start', val); setEditingTimestamp(null); }}
+                  onCancel={() => setEditingTimestamp(null)}
+                />
+              ) : (
+                <TimestampBadge
+                  value={line.timestamp}
+                  isSynced={isSynced}
+                  isFocused={focusedTimestamp?.lineIndex === i && focusedTimestamp?.type === 'start'}
+                  isActive={isActive}
+                  precision={settings.editor?.timestampPrecision || 'hundredths'}
+                  onClick={() => setFocusedTimestamp(focusedTimestamp?.lineIndex === i && focusedTimestamp?.type === 'start' ? null : { lineIndex: i, type: 'start' })}
+                  onDoubleClick={(e) => { e.stopPropagation(); if (isSynced) setEditingTimestamp('start'); }}
+                  onWheel={(e) => { if (isSynced) handleTimestampWheel(e, i, 'start'); }}
+                  nudgeIndicator={isSynced ? nudgeIndicator : null}
+                />
+              )}
+              {/* Layer toggle buttons — only for CJK lines with secondary text */}
+              {hasCJK(line.text || '') && line.secondary && (
+                <div className="flex items-center gap-0.5 bg-zinc-900 rounded-md p-0.5 shrink-0">
+                  <button
+                    type="button"
+                    title={t('editor.stampLayerMain')}
+                    onClick={(e) => { e.stopPropagation(); if (stampTarget !== 'main') handleStampTargetToggle?.(); }}
+                    className={`text-[9px] px-1.5 py-0.5 rounded leading-none font-bold transition-all ${
+                      stampTarget === 'main'
+                        ? 'bg-primary text-zinc-900 shadow-sm'
+                        : 'text-zinc-600 hover:text-zinc-300'
+                    }`}
+                  >主</button>
+                  <button
+                    type="button"
+                    title={t('editor.stampLayerSecondary')}
+                    onClick={(e) => { e.stopPropagation(); if (stampTarget !== 'secondary') handleStampTargetToggle?.(); }}
+                    className={`text-[9px] px-1.5 py-0.5 rounded leading-none font-bold transition-all ${
+                      stampTarget === 'secondary'
+                        ? 'bg-accent-blue text-zinc-900 shadow-sm'
+                        : 'text-zinc-600 hover:text-zinc-300'
+                    }`}
+                  >ロ</button>
+                </div>
+              )}
+            </div>
+            {/* Word chips */}
+            {stampTarget !== 'secondary' && (
             <div className="flex flex-wrap gap-x-1 gap-y-1 max-w-[200px] min-h-[22px] items-end content-start">
                 {line.words?.map((w, wi) => {
                   const displayWord = w.word.replace(/^[()'"]+|[,;.!?()'"]+$/g, '');
@@ -462,6 +492,32 @@ const EditorLineItem = React.memo(({
                   );
                 })}
             </div>
+            )}
+            {/* Secondary word chips — shown only when stampTarget is 'secondary' */}
+            {stampTarget === 'secondary' && hasCJK(line.text || '') && line.secondary && (
+              <div className="flex flex-wrap gap-x-1 gap-y-1 max-w-[200px] min-h-[22px] items-end content-start">
+                {(line.secondaryWords?.length
+                  ? line.secondaryWords
+                  : line.secondary.trim().split(/\s+/).filter(Boolean).map((word) => ({ word, time: null }))
+                ).map((w, wi) => {
+                  const isActiveSecondaryWord = wi === activeWordIndex;
+                  return (
+                    <span
+                      key={wi}
+                      className={`text-[11px] px-1.5 py-0.5 rounded border leading-none transition-colors ${
+                        isActiveSecondaryWord
+                          ? 'bg-accent-blue/20 border-accent-blue/60 text-accent-blue animate-pulse-glow'
+                          : w.time != null
+                            ? 'bg-accent-blue/10 border-accent-blue/30 text-accent-blue/70'
+                            : 'bg-zinc-800/50 border-zinc-700/30 text-zinc-500'
+                      }`}
+                    >
+                      {w.word}
+                    </span>
+                  );
+                })}
+              </div>
+            )}
           </div>
         ) : editorMode === 'srt' ? (
           <div className="flex flex-col gap-1">
@@ -787,16 +843,26 @@ const EditorLineItem = React.memo(({
           onClick={(e) => { e.stopPropagation(); handleMark(); }}
           title={
             editorMode === 'words' && line.timestamp != null
-              ? `Stamp "${line.words?.[activeWordIndex]?.word || 'word'}" (${activeWordIndex + 1}/${line.words?.length ?? 0})`
+              ? stampTarget === 'secondary'
+                ? `Stamp "${(line.secondaryWords ?? line.secondary?.trim().split(/\s+/).filter(Boolean).map(w => ({ word: w })))?.[activeWordIndex]?.word || 'word'}" (${activeWordIndex + 1}/${(line.secondaryWords ?? line.secondary?.trim().split(/\s+/).filter(Boolean))?.length ?? 0})`
+                : `Stamp "${line.words?.[activeWordIndex]?.word || 'word'}" (${activeWordIndex + 1}/${line.words?.length ?? 0})`
               : t('editor.mark')
           }
           className={`h-7 px-2 gap-1.5 border font-semibold rounded-lg flex-shrink-0 text-xs ${
             editorMode === 'words' && line.timestamp != null
-              ? 'bg-sky-500/15 hover:bg-sky-500/25 border-sky-500/40 text-sky-400'
+              ? stampTarget === 'secondary'
+                ? 'bg-accent-blue/15 hover:bg-accent-blue/25 border-accent-blue/40 text-accent-blue'
+                : 'bg-sky-500/15 hover:bg-sky-500/25 border-sky-500/40 text-sky-400'
               : 'bg-primary/20 hover:bg-primary/30 border-primary/40 text-primary'
           }`}
         >
-          {editorMode === 'words' && line.timestamp != null && line.words?.[activeWordIndex] ? (
+          {editorMode === 'words' && line.timestamp != null && stampTarget === 'secondary'
+            ? (() => {
+                const secWords = line.secondaryWords ?? line.secondary?.trim().split(/\s+/).filter(Boolean).map(w => ({ word: w }));
+                const w = secWords?.[activeWordIndex];
+                return w ? <span className="font-mono text-[10px] max-w-[48px] truncate">{w.word}</span> : null;
+              })()
+            : editorMode === 'words' && line.timestamp != null && line.words?.[activeWordIndex] ? (
             <span className="font-mono text-[10px] max-w-[48px] truncate">{line.words[activeWordIndex].word.replace(/^[()'"]+|[,;.!?()'"]+$/g, '')}</span>
           ) : (
             <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>

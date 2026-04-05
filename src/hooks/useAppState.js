@@ -288,6 +288,10 @@ export function useAppState() {
             time: typeof w.time === 'number' && isFinite(w.time) ? w.time : null,
             ...(typeof w.reading === 'string' && w.reading ? { reading: w.reading } : {}),
           })).filter((w) => w.word) : undefined,
+          secondaryWords: Array.isArray(l.secondaryWords) ? l.secondaryWords.map((w) => ({
+            word: typeof w.word === 'string' ? w.word : '',
+            time: typeof w.time === 'number' && isFinite(w.time) ? w.time : null,
+          })).filter((w) => w.word) : undefined,
         }));
         if (validLines.length === 0) return;
         setLines(validLines);
@@ -419,6 +423,10 @@ export function useAppState() {
           word: typeof w.word === 'string' ? w.word : '',
           time: typeof w.time === 'number' && isFinite(w.time) ? w.time : null,
           ...(typeof w.reading === 'string' && w.reading ? { reading: w.reading } : {}),
+        })).filter((w) => w.word) : undefined,
+        secondaryWords: Array.isArray(l.secondaryWords) ? l.secondaryWords.map((w) => ({
+          word: typeof w.word === 'string' ? w.word : '',
+          time: typeof w.time === 'number' && isFinite(w.time) ? w.time : null,
         })).filter((w) => w.word) : undefined,
       }));
       if (validLines.length === 0) {
