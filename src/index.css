@@ -159,6 +159,22 @@ body,
   text-shadow: 0 0 20px rgba(29, 185, 84, 0.5);
 }
 
+/* Imperative karaoke CJK fill — driven by data-filled attribute via rAF */
+[data-slot="karaoke-cjk"] {
+  color: var(--color-zinc-500);
+  transition: color 75ms;
+}
+[data-slot="karaoke-cjk"][data-filled] {
+  color: var(--color-primary);
+}
+[data-slot="karaoke-cjk-rt"] {
+  color: var(--color-zinc-600);
+  transition: color 75ms;
+}
+[data-slot="karaoke-cjk"][data-filled] [data-slot="karaoke-cjk-rt"] {
+  color: var(--color-primary);
+}
+
 /* Edge blur mask */
 .mask-edges {
   mask-image: linear-gradient(to bottom, transparent, black 24px, black calc(100% - 24px), transparent);
