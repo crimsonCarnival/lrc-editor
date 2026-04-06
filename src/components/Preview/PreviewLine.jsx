@@ -1,7 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSettings } from '../../contexts/useSettings';
-import { toHiragana, toKatakana } from '../../utils/furigana';
+import { toHiragana, toKatakana, parseRubyMarkup } from '../../utils/furigana';
 import { Tip } from '@/components/ui/tip';
 
 export default function PreviewLine({
@@ -274,7 +274,7 @@ function renderSecondaryTrack({ line, isActive, playbackPosition, activeSecondar
   }`;
 
   if (!doFill) {
-    return <p className={baseClass}>{line.secondary}</p>;
+    return <p className={baseClass}>{renderParsedSecondary(line.secondary)}</p>;
   }
 
   // Estimate fill end time for the last timed secondary word
@@ -318,6 +318,19 @@ function renderSecondaryTrack({ line, isActive, playbackPosition, activeSecondar
         );
       })}
     </p>
+  );
+}
+
+// ——— Parse {word|reading} markup in secondary text into rendered ruby elements ———
+function renderParsedSecondary(text) {
+  if (!text) return null;
+  const { segments } = parseRubyMarkup(text);
+  return segments.map((seg, i) =>
+    seg.reading ? (
+      <ruby key={i}>{seg.text}<rp>(</rp><rt style={{ paddingBottom: '2px' }}>{seg.reading}</rt><rp>)</rp></ruby>
+    ) : (
+      <React.Fragment key={i}>{seg.text}</React.Fragment>
+    )
   );
 }
 
