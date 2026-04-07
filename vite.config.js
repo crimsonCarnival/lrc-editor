@@ -1,9 +1,12 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
-import { resolve } from 'node:path'
+import { resolve, dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 import { cloudflare } from "@cloudflare/vite-plugin";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   plugins: [react(), tailwindcss(), cloudflare()],
@@ -12,6 +15,7 @@ export default defineConfig({
       '@': resolve(__dirname, 'src'),
     },
   },
+  envPrefix: 'VITE_',
   build: {
     chunkSizeWarningLimit: 600,
     rollupOptions: {
