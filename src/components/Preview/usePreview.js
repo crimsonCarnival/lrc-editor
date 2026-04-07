@@ -2,7 +2,8 @@ import { useEffect, useRef, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { useSettings } from '../../contexts/useSettings';
-import { compileLRC, compileSRT, downloadLRC } from '../../utils/lrc';
+import { downloadLRC } from '../../utils/lrc';
+import { lyrics } from '../../api';
 import { matchKey } from '../../utils/keyboard';
 
 export function usePreview({ lines, setLines, playbackPosition, playerRef, duration, mediaTitle, editorMode }) {
@@ -195,39 +196,77 @@ export function usePreview({ lines, setLines, playbackPosition, playerRef, durat
     return result;
   };
 
-  const handleExport = () => {
+  const handleExport = async () => {
     const name = exportFilename.trim() || 'lyrics';
     const exportLines = applyIncludeFlags(prepareExportLines(lines));
-    let content = '';
 
-    if (settings.export?.downloadFormat === 'srt') {
-      content = compileSRT(exportLines, duration, includeTranslations, settings.export?.lineEndings, settings.editor?.srt, includeSecondary);
-      downloadLRC(content, `${name}.srt`);
-    } else {
-      const filteredMetadata = includeMetadata
-        ? Object.fromEntries(Object.entries(metadata).filter(([, v]) => v.trim() !== ''))
-        : {};
-      content = compileLRC(exportLines, includeTranslations, settings.export?.timestampPrecision, filteredMetadata, settings.export?.lineEndings, includeSecondary);
-      downloadLRC(content, `${name}.lrc`);
+    try {
+      let content = '';
+      if (settings.export?.downloadFormat === 'srt') {
+        const result = await lyrics.compileSrt({
+          lines: exportLines,
+          duration,
+          includeTranslations,
+          lineEndings: settings.export?.lineEndings,
+          srtConfig: settings.editor?.srt,
+          includeSecondary,
+        });
+        content = result.output;
+        downloadLRC(content, `${name}.srt`);
+      } else {
+        const filteredMetadata = includeMetadata
+          ? Object.fromEntries(Object.entries(metadata).filter(([, v]) => v.trim() !== ''))
+          : {};
+        const result = await lyrics.compileLrc({
+          lines: exportLines,
+          includeTranslations,
+          precision: settings.export?.timestampPrecision,
+          metadata: filteredMetadata,
+          lineEndings: settings.export?.lineEndings,
+          includeSecondary,
+        });
+        content = result.output;
+        downloadLRC(content, `${name}.lrc`);
+      }
+
+      setShowExportPanel(false);
+      toast.success(t('export.success') || 'File downloaded');
+    } catch (err) {
+      console.error('Export failed', err);
+      toast.error(t('export.failed') || 'Export failed');
     }
-
-    setShowExportPanel(false);
-    toast.success(t('export.success') || 'File downloaded');
   };
 
   const handleCopy = async () => {
     const exportLines = applyIncludeFlags(prepareExportLines(lines));
-    let content = '';
 
-    if (settings.export?.copyFormat === 'srt') {
-      content = compileSRT(exportLines, duration, includeTranslations, settings.export?.lineEndings, settings.editor?.srt, includeSecondary);
-    } else {
-      const filteredMetadata = includeMetadata
-        ? Object.fromEntries(Object.entries(metadata).filter(([, v]) => v.trim() !== ''))
-        : {};
-      content = compileLRC(exportLines, includeTranslations, settings.export?.timestampPrecision, filteredMetadata, settings.export?.lineEndings, includeSecondary);
-    }
     try {
+      let content = '';
+      if (settings.export?.copyFormat === 'srt') {
+        const result = await lyrics.compileSrt({
+          lines: exportLines,
+          duration,
+          includeTranslations,
+          lineEndings: settings.export?.lineEndings,
+          srtConfig: settings.editor?.srt,
+          includeSecondary,
+        });
+        content = result.output;
+      } else {
+        const filteredMetadata = includeMetadata
+          ? Object.fromEntries(Object.entries(metadata).filter(([, v]) => v.trim() !== ''))
+          : {};
+        const result = await lyrics.compileLrc({
+          lines: exportLines,
+          includeTranslations,
+          precision: settings.export?.timestampPrecision,
+          metadata: filteredMetadata,
+          lineEndings: settings.export?.lineEndings,
+          includeSecondary,
+        });
+        content = result.output;
+      }
+
       await navigator.clipboard.writeText(content);
       setWasCopied(true);
       setTimeout(() => setWasCopied(false), 2000);
