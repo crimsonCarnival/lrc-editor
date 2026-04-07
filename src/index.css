@@ -57,9 +57,9 @@
   --z-base: 0;
   --z-raised: 10;
   --z-sticky: 50;
-  --z-modal-backdrop: 100;
-  --z-modal: 101;
-  --z-popover: 200;
+  --z-modal-backdrop: 9990;
+  --z-modal: 9991;
+  --z-popover: 9995;
   --z-overlay: 9999;
 
   /* ── Transition durations ── */
