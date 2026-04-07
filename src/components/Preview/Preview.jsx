@@ -1,4 +1,5 @@
-﻿import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
+import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
+import { projects } from '../../api';
 import { createPortal } from 'react-dom';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { usePreview } from './usePreview';
@@ -17,6 +18,30 @@ import { SharePanel } from '../shared/ShareModal';
 import { Eye, Share2, X, Lock, LockOpen, BookOpen, Plus } from 'lucide-react';
 
 export default function Preview(props) {
+  // Accept activeProjectId and project as props
+  const { activeProjectId, project } = props;
+  // Privacy state for sharing (default public)
+  const [isPublic, setIsPublic] = useState(project?.public ?? true);
+  // Sync privacy state with project prop
+  useEffect(() => {
+    if (project && typeof project.public === 'boolean') {
+      setIsPublic(project.public);
+    }
+  }, [project]);
+
+  // Handler for privacy toggle in SharePanel
+  const handlePrivacyChange = async (newPrivacy) => {
+    const newIsPublic = newPrivacy === 'public';
+    setIsPublic(newIsPublic);
+    // Persist to server if projectId present
+    if (activeProjectId) {
+      try {
+        await projects.patch(activeProjectId, { public: newIsPublic });
+      } catch (err) {
+        // Optionally show error/toast
+      }
+    }
+  };
   const {
     t,
     settings,
@@ -65,7 +90,7 @@ export default function Preview(props) {
     handleCopy,
   } = usePreview(props);
 
-  const { lines, playbackPosition, exportToUrl, isSharedSession, sharedReadOnly, setSharedReadOnly, editorMode, shareModal, setShareModal, hasMedia } = props;
+  const { lines, playbackPosition, exportToUrl, isSharedProject, sharedReadOnly, setSharedReadOnly, editorMode, shareModal, setShareModal, hasMedia } = props;
 
   const shareTriggerRef = useRef(null);
   const sharePanelRef = useRef(null);
@@ -119,14 +144,14 @@ export default function Preview(props) {
               </Tip>
             )}
             {/* Share button */}
-            <Tip content={shareModal ? t('share.close') : (isSharedSession ? t('share.viewingShared') : t('app.shareSession'))}>
+            <Tip content={shareModal ? t('share.close') : (isSharedProject ? t('share.viewingShared') : t('app.shareProject'))}>
               <Button
                 ref={shareTriggerRef}
                 variant="ghost"
                 size="icon-sm"
                 onClick={handleShareToggle}
                 className={`flex-shrink-0 transition-colors ${
-                  isSharedSession
+                  isSharedProject
                     ? 'text-primary bg-primary/10 hover:bg-primary/20'
                     : shareModal
                       ? 'bg-zinc-800 text-zinc-100 hover:bg-zinc-700'
@@ -139,8 +164,8 @@ export default function Preview(props) {
               }
               </Button>
             </Tip>
-            {/* Lock/unlock toggle for shared sessions */}
-            {isSharedSession && (
+            {/* Lock/unlock toggle for shared projects */}
+            {isSharedProject && (
               <Tip content={sharedReadOnly ? t('share.readOnlyTitle') : t('share.editingTitle')}>
                 <Button
                   variant="ghost"
@@ -288,9 +313,13 @@ export default function Preview(props) {
             <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-primary to-accent-purple flex items-center justify-center flex-shrink-0">
               <Share2 className="w-3 h-3 text-white" strokeWidth={2} />
             </div>
-            <span className="text-xs font-bold text-zinc-100">{t('share.title', 'Share Session')}</span>
+            <span className="text-xs font-bold text-zinc-100">{t('share.title', 'Share Project')}</span>
           </div>
-          <SharePanel {...shareModal} />
+          <SharePanel
+            {...shareModal}
+            isPublic={isPublic}
+            onPrivacyChange={handlePrivacyChange}
+          />
         </div>,
         document.body
       )}
