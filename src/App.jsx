@@ -1,14 +1,21 @@
 import { lazy, Suspense, useEffect, useCallback, useState } from 'react';
 import Player from './components/Player';
 import { SettingsProvider } from './contexts/SettingsContext';
+import { SkeletonList, SkeletonEditor, SkeletonPreview, SkeletonSetup } from './components/ui/skeleton';
 
 const Editor = lazy(() => import('./components/Editor'));
 const Preview = lazy(() => import('./components/Preview'));
+const Library = lazy(() => import('./components/Library/Library'));
+const UploadsLibrary = lazy(() => import('./components/Library/UploadsLibrary'));
+const SetupScreen = lazy(() => import('./components/Setup/SetupScreen'));
+import ProjectSetupModal from './components/Setup/ProjectSetupModal';
 import { useAppState } from './hooks/useAppState';
 import { useSettings } from './contexts/useSettings';
+import { useAuthContext } from './contexts/useAuthContext';
 import { matchKey } from './utils/keyboard';
 import { Kbd } from './components/shared/Kbd';
 import { Button } from './components/ui/button';
+import { Input } from './components/ui/input';
 import {
   Popover,
   PopoverContent,
@@ -16,7 +23,7 @@ import {
   PopoverTrigger,
 } from './components/ui/popover';
 import { Tip } from './components/ui/tip';
-import { Music2, UploadCloud, Globe, Settings as SettingsIcon, Eye, EyeOff, Lock, LockOpen, LayoutList } from 'lucide-react';
+import { Music2, UploadCloud, Globe, Settings as SettingsIcon, Eye, EyeOff, Lock, LockOpen, LayoutList, User, LogOut, BookOpen, Pencil, Share2 } from 'lucide-react';
 import { useScrollLock } from './hooks/useScrollLock';
 import { useNetworkStatus } from './hooks/useNetworkStatus';
 
@@ -45,15 +52,15 @@ function AppInner() {
     setShowKeyboardHelp,
     showSettings,
     setShowSettings,
-    pendingSession,
+    pendingProject,
     editorMode,
     setEditorMode,
     isDraggingFile,
     playerRef,
     handleManualSave,
     triggerImportSave,
-    handleRestoreSession,
-    handleDiscardSession,
+    handleRestoreProject,
+    handleDiscardProject,
     handleMediaChange,
     handleTimeUpdate,
     handleDurationChange,
@@ -64,27 +71,86 @@ function AppInner() {
     confirmModal,
     isAutosaving,
     exportToUrl,
-    isSharedSession,
+    isSharedProject,
     sharedReadOnly,
     setSharedReadOnly,
     shareModal,
     setShareModal,
     hasMedia,
+    loadProject,
+    activeProjectId,
+    handleCloudinaryUpload,
   } = useAppState();
 
-  useScrollLock(!!pendingSession);
+  useScrollLock(!!pendingProject);
   useNetworkStatus();
 
-  const { settings, updateSetting } = useSettings();
+  const { settings, updateSetting, syncFromServer } = useSettings();
+  const { user, logout } = useAuthContext();
+
+  // Sync settings from server when user logs in
+  useEffect(() => {
+    if (user) syncFromServer();
+  }, [user, syncFromServer]);
   const rawFocusMode = settings.interface?.focusMode || 'default';
   // Normalize: if old 'preview' mode was saved, fall back to 'default'
   const focusMode = ['default', 'sync', 'playback'].includes(rawFocusMode) ? rawFocusMode : 'default';
   const [hideEditor, setHideEditor] = useState(false);
+  const [showLibrary, setShowLibrary] = useState(false);
+  const [showUploads, setShowUploads] = useState(false);
+
+  // ── Setup flow state ──
+  // 'setup' = initial screen (upload audio + paste lyrics)
+  // 'naming' = project details modal open
+  // 'ready' = full editor layout
+  const [setupPhase, setSetupPhase] = useState(() => {
+    // Skip setup if we have an existing project or lines
+    if (activeProjectId) return 'ready';
+    return 'setup';
+  });
+  const [projectName, setProjectName] = useState('');
+  const [_projectDescription, setProjectDescription] = useState('');
+  const [_projectTags, setProjectTags] = useState([]);
+  const [projectCoverUrl, setProjectCoverUrl] = useState('');
+  const [_projectCoverPublicId, setProjectCoverPublicId] = useState('');
+  const [pendingSetupData, setPendingSetupData] = useState(null);
+  const [editingProjectName, setEditingProjectName] = useState(false);
+
+  // Auto-transition to ready when restoring a project (reload, library, shared URL)
+  // NOTE: hasMedia intentionally excluded — uploading audio during setup should NOT skip the flow
+  if (setupPhase !== 'ready' && (lines.length > 0 || activeProjectId)) {
+    setSetupPhase('ready');
+  }
+
+  // Reset to setup if project was invalidated (e.g. stale ID after DB drop)
+  if (setupPhase === 'ready' && !activeProjectId && lines.length === 0 && !hasMedia) {
+    setSetupPhase('setup');
+  }
+
+  const handleSetupComplete = useCallback(({ lines: newLines, editorMode: newMode }) => {
+    setPendingSetupData({ lines: newLines, editorMode: newMode });
+    setSetupPhase('naming');
+  }, []);
+
+  const handleProjectConfirm = useCallback(({ name, description, tags, coverUrl, coverPublicId }) => {
+    if (pendingSetupData) {
+      setLines(pendingSetupData.lines);
+      setEditorMode(pendingSetupData.editorMode);
+      setSyncMode(true);
+    }
+    setProjectName(name || mediaTitle || '');
+    setProjectDescription(description || '');
+    setProjectTags(tags || []);
+    setProjectCoverUrl(coverUrl || '');
+    setProjectCoverPublicId(coverPublicId || '');
+    setSetupPhase('ready');
+    setPendingSetupData(null);
+  }, [pendingSetupData, setLines, setEditorMode, setSyncMode, mediaTitle]);
 
   // Reset hideEditor when all lines are removed
-  useEffect(() => {
-    if (lines.length === 0) setHideEditor(false);
-  }, [lines.length]);
+  if (lines.length === 0 && hideEditor) {
+    setHideEditor(false);
+  }
 
   // Mobile tab state: 'editor' | 'preview'
   const [mobileTab, setMobileTab] = useState('editor');
@@ -92,13 +158,6 @@ function AppInner() {
   const setFocusMode = useCallback((mode) => {
     updateSetting('interface.focusMode', mode);
   }, [updateSetting]);
-
-  // Cycle: default → sync → playback → default
-  const cycleFocusMode = useCallback(() => {
-    const modes = ['default', 'sync', 'playback'];
-    const idx = modes.indexOf(focusMode);
-    setFocusMode(modes[(idx + 1) % modes.length]);
-  }, [focusMode, setFocusMode]);
 
   // Focus mode keyboard shortcuts (Ctrl+1/2/3, Ctrl+0 = default)
   useEffect(() => {
@@ -164,18 +223,54 @@ function AppInner() {
           <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-primary to-accent-purple flex items-center justify-center shadow-lg shadow-primary/20 flex-shrink-0">
             <Music2 className="w-4 sm:w-5 h-4 sm:h-5 text-white" strokeWidth={2} />
           </div>
-          <div className="overflow-hidden">
-            <h1 className="text-base sm:text-lg font-bold text-zinc-100 tracking-tight truncate">
+          <div className="overflow-hidden flex items-center gap-2 min-w-0">
+            <h1 className="text-base sm:text-lg font-bold text-zinc-100 tracking-tight truncate shrink-0">
               {t('app.name')}
             </h1>
+            {setupPhase === 'ready' && (
+              <>
+                <span className="text-zinc-600 shrink-0">/</span>
+                {projectCoverUrl && (
+                  <img 
+                    src={projectCoverUrl} 
+                    alt="Cover" 
+                    className="w-6 h-6 sm:w-7 sm:h-7 rounded object-cover border border-zinc-700 shrink-0"
+                  />
+                )}
+                {editingProjectName ? (
+                  <Input
+                    type="text"
+                    value={projectName}
+                    onChange={(e) => setProjectName(e.target.value)}
+                    onBlur={() => setEditingProjectName(false)}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === 'Escape') setEditingProjectName(false); }}
+                    autoFocus
+                    maxLength={200}
+                    className="h-7 text-sm bg-zinc-800/60 border-zinc-700/60 text-zinc-200 min-w-[100px] max-w-[200px]"
+                  />
+                ) : (
+                  <button
+                    onClick={() => setEditingProjectName(true)}
+                    className="flex items-center gap-1 min-w-0 group"
+                  >
+                    <span className="text-sm font-medium text-zinc-400 group-hover:text-zinc-200 truncate transition-colors">
+                      {projectName || t('setup.projectNamePlaceholder')}
+                    </span>
+                    <Pencil className="w-3 h-3 text-zinc-600 group-hover:text-zinc-400 transition-colors shrink-0" />
+                  </button>
+                )}
+              </>
+            )}
           </div>
         </div>
 
         <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
-          {/* Hide Editor Toggle — desktop only */}
+          {/* Hide Editor Toggle — desktop only, hidden during setup */}
+          {setupPhase === 'ready' && (
           <Tip content={`${t('app.hideEditor')} (Ctrl+2)`}>
           <Button
             variant="outline"
+            aria-label={t('app.hideEditor')}
             onClick={() => {
               if (focusMode === 'playback') {
                 setFocusMode('default');
@@ -191,6 +286,41 @@ function AppInner() {
             }`}
           >
             {(hideEditor || focusMode === 'playback') ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+          </Button>
+          </Tip>
+          )}
+
+          {/* Library button */}
+          {setupPhase === 'ready' && (
+          <Tip content={t('library.title')}>
+          <Button
+            variant="outline"
+            aria-label={t('library.title')}
+            onClick={() => { setShowLibrary(prev => !prev); setShowUploads(false); }}
+            className={`px-2 sm:px-3 h-8 sm:h-9 rounded-lg sm:rounded-xl flex-shrink-0 transition-colors ${
+              showLibrary
+                ? 'bg-primary text-zinc-950 border-primary hover:bg-primary/90 hover:text-zinc-950'
+                : 'bg-zinc-800/80 border-zinc-700/60 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700'
+            }`}
+          >
+            <BookOpen className="w-4 sm:w-[18px] h-4 sm:h-[18px]" strokeWidth={1.8} />
+          </Button>
+          </Tip>
+          )}
+
+          {/* Uploads button — always visible so users can manage files before/during setup */}
+          <Tip content={t('uploads.title')}>
+          <Button
+            variant="outline"
+            aria-label={t('uploads.title')}
+            onClick={() => { setShowUploads(prev => !prev); setShowLibrary(false); }}
+            className={`px-2 sm:px-3 h-8 sm:h-9 rounded-lg sm:rounded-xl flex-shrink-0 transition-colors ${
+              showUploads
+                ? 'bg-primary text-zinc-950 border-primary hover:bg-primary/90 hover:text-zinc-950'
+                : 'bg-zinc-800/80 border-zinc-700/60 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700'
+            }`}
+          >
+            <UploadCloud className="w-4 sm:w-[18px] h-4 sm:h-[18px]" strokeWidth={1.8} />
           </Button>
           </Tip>
 
@@ -224,11 +354,40 @@ function AppInner() {
             </PopoverContent>
           </Popover>
 
+          {/* Auth button / User menu */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className="flex items-center gap-1.5 px-2.5 sm:px-3 h-8 sm:h-9 bg-zinc-800/80 hover:bg-zinc-700 border-zinc-700/60 rounded-lg sm:rounded-xl text-zinc-200 flex-shrink-0"
+              >
+                {user?.avatarUrl ? (
+                  <img 
+                    src={user.avatarUrl} 
+                    alt={user?.username || user?.email} 
+                    className="w-5 h-5 rounded-full object-cover border border-zinc-600"
+                  />
+                ) : (
+                  <User className="w-4 h-4 text-zinc-400" strokeWidth={2} />
+                )}
+                <span className="text-xs font-semibold truncate max-w-[80px] hidden sm:inline">{user?.username || user?.email}</span>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-40" align="end">
+              <div className="px-2 py-1.5 text-xs text-zinc-400 truncate">{t('auth.loggedInAs', { name: user?.username || user?.email })}</div>
+              <PopoverItem onClick={logout} className="text-red-400 hover:text-red-300">
+                <LogOut className="w-3.5 h-3.5 mr-1.5" />
+                {t('auth.logout')}
+              </PopoverItem>
+            </PopoverContent>
+          </Popover>
+
           {/* Settings button */}
           <Tip content={t('settings.title')}>
           <Button
             variant="outline"
             onClick={() => setShowSettings(true)}
+            aria-label={t('settings.title')}
             className="px-2 sm:px-3 h-8 sm:h-9 bg-zinc-800/80 border-zinc-700/60 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700 rounded-lg sm:rounded-xl flex-shrink-0"
           >
             <SettingsIcon className="w-4 sm:w-[18px] h-4 sm:h-[18px]" strokeWidth={1.8} />
@@ -240,6 +399,7 @@ function AppInner() {
           <Button
             variant="outline"
             onClick={() => setShowKeyboardHelp(prev => !prev)}
+            aria-label={t('shortcuts.title') || 'Shortcuts'}
             className="px-2 sm:px-3 h-8 sm:h-9 bg-zinc-800/80 border-zinc-700/60 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700 rounded-lg sm:rounded-xl flex-shrink-0"
           >
             <Kbd>?</Kbd>
@@ -250,19 +410,67 @@ function AppInner() {
         </div>
       </header>
 
-      <div className="relative z-raised max-w-7xl mx-auto w-full flex-1 min-h-0 px-2 sm:px-4 lg:px-6 max-lg:pb-[144px] lg:pb-4 flex flex-col">
-        {/* Main content grid */}
+      <div className={`relative z-raised max-w-7xl mx-auto w-full flex-1 min-h-0 px-2 sm:px-4 lg:px-6 lg:pb-4 flex flex-col ${setupPhase === 'ready' ? 'max-lg:pb-[144px]' : ''}`}>
+        {showUploads ? (
+          <Suspense fallback={
+            <div className="glass rounded-xl sm:rounded-2xl p-5 flex-1">
+              <SkeletonList count={3} />
+            </div>
+          }>
+            <UploadsLibrary
+              onSelect={(upload) => {
+                // Load selected upload into the player
+                if (upload.source === 'youtube' && upload.youtubeUrl) {
+                  playerRef.current?.loadYouTube?.(upload.youtubeUrl);
+                } else if (upload.source === 'cloudinary' && upload.cloudinaryUrl) {
+                  fetch(upload.cloudinaryUrl)
+                    .then((res) => res.blob())
+                    .then((blob) => {
+                      const file = new File([blob], upload.fileName || 'audio.mp3', { type: blob.type || 'audio/mpeg' });
+                      playerRef.current?.loadLocalAudio?.(file);
+                    })
+                    .catch(() => {});
+                }
+                setShowUploads(false);
+              }}
+              onBack={() => setShowUploads(false)}
+            />
+          </Suspense>
+        ) : setupPhase === 'setup' ? (
+          <Suspense fallback={<SkeletonSetup />}>
+            <SetupScreen 
+              onComplete={handleSetupComplete} 
+              playerRef={playerRef} 
+              onShowAllUploads={() => setShowUploads(true)}
+            />
+          </Suspense>
+        ) : showLibrary ? (
+          <Suspense fallback={
+            <div className="glass rounded-xl sm:rounded-2xl p-5 flex-1">
+              <SkeletonList count={3} />
+            </div>
+          }>
+            <Library
+              onOpenProject={(projectId) => {
+                loadProject(projectId);
+                setShowLibrary(false);
+              }}
+              onBack={() => setShowLibrary(false)}
+            />
+          </Suspense>
+        ) : (
+        /* Main content grid */
         <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-2 sm:gap-3 lg:gap-4 min-h-0 lg:overflow-hidden max-lg:overflow-visible transition-all duration-300">
           {/* Left: Editor */}
           {showEditor && (
             <div className={`${editorColClass} relative flex flex-col gap-2 sm:gap-3 lg:gap-4 min-h-0 max-lg:h-full transition-all duration-300 ${mobileTab !== 'editor' ? 'max-lg:hidden' : ''}`}>
-              {isSharedSession && sharedReadOnly && (
+              {isSharedProject && sharedReadOnly && (
                 <div className="absolute inset-0 z-10 rounded-xl sm:rounded-2xl backdrop-blur-[3px] bg-zinc-950/60 flex flex-col items-center justify-center gap-3">
                   <div className="flex items-center gap-2 px-4 py-2.5 bg-zinc-900/95 border border-zinc-700/80 rounded-xl shadow-lg">
                     <Lock className="w-4 h-4 text-amber-400" />
-                    <span className="text-sm font-semibold text-zinc-100">{t('session.readOnly')}</span>
+                    <span className="text-sm font-semibold text-zinc-100">{t('project.readOnly')}</span>
                   </div>
-                  <p className="text-xs text-zinc-400 text-center px-8 max-w-xs">{t('session.readOnlyDesc')}</p>
+                  <p className="text-xs text-zinc-400 text-center px-8 max-w-xs">{t('project.readOnlyDesc')}</p>
                   <Button
                     size="sm"
                     variant="outline"
@@ -270,20 +478,12 @@ function AppInner() {
                     className="mt-1 bg-zinc-800 border-zinc-600 text-zinc-100 hover:bg-zinc-700 gap-1.5 text-xs font-semibold"
                   >
                     <LockOpen className="w-3.5 h-3.5" />
-                    {t('session.editCopy')}
+                    {t('project.editCopy')}
                   </Button>
                 </div>
               )}
               <div className="flex-1 min-h-0 flex flex-col">
-                <Suspense fallback={
-                  <div className="glass rounded-xl sm:rounded-2xl p-3 sm:p-5 flex flex-col gap-3 h-full animate-fade-in">
-                    <div className="skeleton h-8 rounded-lg w-3/4" />
-                    <div className="skeleton h-8 rounded-lg w-full" />
-                    <div className="skeleton h-8 rounded-lg w-5/6" />
-                    <div className="skeleton h-8 rounded-lg w-2/3" />
-                    <div className="skeleton h-8 rounded-lg w-4/5" />
-                  </div>
-                }>
+                <Suspense fallback={<SkeletonEditor />}>
                 <Editor
                   lines={lines}
                   setLines={setLines}
@@ -313,15 +513,7 @@ function AppInner() {
           {/* Right: Preview */}
           {showPreview && (
             <div className={`flex ${previewColClass} min-h-0 flex-col max-lg:h-full max-lg:mt-0 lg:mt-0 transition-all duration-300 ${mobileTab !== 'preview' ? 'max-lg:hidden' : ''}`}>
-              <Suspense fallback={
-                <div className="glass rounded-xl sm:rounded-2xl p-3 sm:p-5 flex flex-col gap-3 h-full animate-fade-in">
-                  <div className="skeleton h-6 rounded-lg w-1/4 mb-2" />
-                  <div className="skeleton h-10 rounded-lg w-full" />
-                  <div className="skeleton h-8 rounded-lg w-3/4" />
-                  <div className="skeleton h-10 rounded-lg w-5/6" />
-                  <div className="skeleton h-7 rounded-lg w-2/3" />
-                </div>
-              }>
+              <Suspense fallback={<SkeletonPreview />}>
               <Preview
                 lines={lines}
                 setLines={setLines}
@@ -331,24 +523,28 @@ function AppInner() {
                 duration={duration}
                 editorMode={editorMode}
                 exportToUrl={exportToUrl}
-                isSharedSession={isSharedSession}
+                isSharedProject={isSharedProject}
                 sharedReadOnly={sharedReadOnly}
                 setSharedReadOnly={setSharedReadOnly}
                 shareModal={shareModal}
                 setShareModal={setShareModal}
                 hasMedia={hasMedia}
+                activeProjectId={activeProjectId}
+                project={pendingProject || null}
               />
               </Suspense>
             </div>
           )}
         </div>
+        )}
       </div>
 
       {/* ── Player (one instance) ──
           Desktop: docked bottom bar.
           Mobile:  fixed compact bar above the tab bar — compact layout
-                   shows seekbar + finger-friendly action row. ── */}
-      <div className="lg:relative lg:z-raised lg:w-full lg:border-t lg:border-zinc-700/50 lg:bg-zinc-900/80 lg:backdrop-blur-md lg:shadow-[0_-4px_24px_rgba(0,0,0,0.3)] max-lg:fixed max-lg:inset-x-0 max-lg:bottom-14 max-lg:z-30">
+                   shows seekbar + finger-friendly action row.
+          Hidden during setup phase but kept mounted for playerRef. ── */}
+      <div className={`lg:relative lg:z-raised lg:w-full lg:border-t lg:border-zinc-700/50 lg:bg-zinc-900/80 lg:backdrop-blur-md lg:shadow-[0_-4px_24px_rgba(0,0,0,0.3)] max-lg:fixed max-lg:inset-x-0 max-lg:bottom-14 max-lg:z-30 ${setupPhase !== 'ready' ? 'hidden' : ''}`}>
         <div className="max-w-7xl mx-auto max-lg:p-0 lg:px-6 lg:py-3">
           <Player
             ref={playerRef}
@@ -358,6 +554,7 @@ function AppInner() {
             onDurationChange={handleDurationChange}
             onMediaChange={handleMediaChange}
             onYtUrlChange={handleYtUrlChange}
+            onCloudinaryUpload={handleCloudinaryUpload}
             initialYtUrl={restoredYtUrl}
             initialSeek={restoredPosition}
             initialSpeed={restoredSpeed}
@@ -369,16 +566,31 @@ function AppInner() {
       </div>
 
       {/* ── Mobile: Bottom tab bar ── */}
+      {setupPhase === 'ready' && (
       <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 h-14 bg-zinc-900/95 backdrop-blur-md border-t border-zinc-700/50 flex items-stretch pb-safe">
         {[
           { id: 'editor',  label: t('app.tab.editor', 'Editor'),  Icon: LayoutList },
           { id: 'preview', label: t('app.tab.preview', 'Preview'), Icon: Eye },
+          { id: 'library', label: t('library.title'), Icon: BookOpen },
+          { id: 'uploads', label: t('uploads.title'), Icon: UploadCloud },
         ].map(({ id, label, Icon }) => (
           <button
             key={id}
-            onClick={() => setMobileTab(id)}
+            onClick={() => {
+              if (id === 'library') {
+                setShowLibrary(prev => !prev);
+                setShowUploads(false);
+              } else if (id === 'uploads') {
+                setShowUploads(prev => !prev);
+                setShowLibrary(false);
+              } else {
+                setShowLibrary(false);
+                setShowUploads(false);
+                setMobileTab(id);
+              }
+            }}
             className={`flex-1 flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold transition-colors ${
-              mobileTab === id
+              (id === 'library' ? showLibrary : id === 'uploads' ? showUploads : (!showLibrary && !showUploads && mobileTab === id))
                 ? 'text-primary'
                 : 'text-zinc-500 hover:text-zinc-300'
             }`}
@@ -390,6 +602,7 @@ function AppInner() {
           </button>
         ))}
       </nav>
+      )}
 
       <Suspense fallback={null}>
         {showKeyboardHelp && <KeyboardHelp isOpen={showKeyboardHelp} onClose={() => setShowKeyboardHelp(false)} />}
@@ -398,11 +611,18 @@ function AppInner() {
         {showSettings && <Settings isOpen={showSettings} onClose={() => setShowSettings(false)} onManualSave={handleManualSave} />}
       </Suspense>
 
+      {/* Project Setup Modal */}
+      <ProjectSetupModal
+        isOpen={setupPhase === 'naming'}
+        onClose={() => setSetupPhase('setup')}
+        onConfirm={handleProjectConfirm}
+      />
 
-      {/* Session Restore Modal */}
-      {pendingSession && (
+
+      {/* Project Restore Modal */}
+      {pendingProject && (
         <div className="fixed inset-0 z-popover flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={handleDiscardSession} />
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={handleDiscardProject} />
           <div className="relative bg-zinc-900 border border-zinc-700/80 rounded-2xl p-6 max-w-sm w-full mx-4 shadow-elevated animate-fade-in">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent-purple flex items-center justify-center shadow-lg shadow-primary/20 flex-shrink-0">
@@ -410,31 +630,31 @@ function AppInner() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
               </div>
-              <h3 className="text-lg font-bold text-zinc-100">{t('session.restoreTitle')}</h3>
+              <h3 className="text-lg font-bold text-zinc-100">{t('project.restoreTitle')}</h3>
             </div>
-            {pendingSession.isUrlSession && (
+            {pendingProject.isUrlProject && (
               <div className="mb-3 flex items-center gap-2 px-3 py-2 bg-primary/10 border border-primary/30 rounded-xl">
                 <Share2 className="w-3.5 h-3.5 text-primary flex-shrink-0" strokeWidth={2} />
-                <span className="text-xs text-primary font-medium">{t('session.sharedSession') || 'Shared session from link'}</span>
+                <span className="text-xs text-primary font-medium">{t('project.sharedProject') || 'Shared project from link'}</span>
               </div>
             )}
-            <p className="text-sm text-zinc-400 mb-2 leading-relaxed">{t('session.restoreMessage')}</p>
+            <p className="text-sm text-zinc-400 mb-2 leading-relaxed">{t('project.restoreMessage')}</p>
             <p className="text-xs text-zinc-500 mb-5">
-              {pendingSession.lines?.length || 0} {t('session.restoreLines')}
+              {pendingProject.lines?.length || 0} {t('project.restoreLines')}
             </p>
             <div className="flex gap-3">
               <Button
                 variant="outline"
-                onClick={handleDiscardSession}
+                onClick={handleDiscardProject}
                 className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border-zinc-700 font-semibold text-sm rounded-xl h-10"
               >
-                {t('session.discard')}
+                {t('project.discard')}
               </Button>
               <Button
-                onClick={handleRestoreSession}
+                onClick={handleRestoreProject}
                 className="flex-1 bg-primary hover:bg-primary-dim text-zinc-950 font-semibold text-sm rounded-xl h-10"
               >
-                {t('session.restore')}
+                {t('project.restore')}
               </Button>
             </div>
           </div>
