@@ -1,4 +1,4 @@
-﻿import { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -272,7 +272,7 @@ export default function EditorToolbar({
               {syncProgress.synced}/{syncProgress.total}
             </span>
             {handleManualSave && !settings.advanced?.autoSave?.enabled && (
-              <Tip content={isAutosaving ? (t('session.saved') || 'Saved') : (t('session.save') || 'Save')}>
+              <Tip content={isAutosaving ? (t('project.saved') || 'Saved') : (t('project.save') || 'Save')}>
               <Button
                 variant="ghost"
                 size="icon-sm"
@@ -370,7 +370,7 @@ export default function EditorToolbar({
           </Badge>
         )}
         {syncMode && handleManualSave && !settings.advanced?.autoSave?.enabled && (
-          <Tip content={isAutosaving ? (t('session.saved') || 'Saved') : (t('session.save') || 'Save')}>
+          <Tip content={isAutosaving ? (t('project.saved') || 'Saved') : (t('project.save') || 'Save')}>
           <Button
             variant="ghost"
             size="icon-sm"

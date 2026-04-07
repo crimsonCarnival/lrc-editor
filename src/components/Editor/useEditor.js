@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import toast from 'react-hot-toast';
-import { parseLrcSrtFile } from '../../utils/lrc';
+import { lyrics } from '../../api';
 import { matchKey } from '../../utils/keyboard';
 import { toHiragana, toKatakana, parseRubyMarkup, hasCJK } from '../../utils/furigana';
 import { useTranslation } from 'react-i18next';
@@ -182,20 +182,26 @@ export function useEditor({
 
   // ——— Paste-area handlers ———
 
-  const handleConfirmLyrics = () => {
+  const handleConfirmLyrics = async () => {
     const looksLikeLrc = /^\[(\d{1,2}):(\d{2}\.\d{2,3})\]/m.test(rawText);
     const looksLikeSrt = /^\d+\r?\n\d{2}:\d{2}:\d{2},\d{3}\s*-->/m.test(rawText);
     const looksLikeWordLrc = looksLikeLrc && /<\d{1,2}:\d{2}\.\d{2,3}>/.test(rawText);
     if (looksLikeLrc || looksLikeSrt) {
       const filename = looksLikeSrt ? 'lyrics.srt' : 'lyrics.lrc';
-      const parsed = parseLrcSrtFile(rawText, filename);
-      if (parsed.length > 0) {
-        setLines(parsed);
-        if (looksLikeSrt) setEditorMode('srt');
-        else if (looksLikeWordLrc) setEditorMode('words');
-        else setEditorMode('lrc');
-        setActiveLineIndex(Math.max(0, parsed.findIndex((l) => l.timestamp == null)));
-        setSyncMode(true);
+      try {
+        const { lines: parsed } = await lyrics.parse(rawText, filename);
+        if (parsed.length > 0) {
+          setLines(parsed);
+          if (looksLikeSrt) setEditorMode('srt');
+          else if (looksLikeWordLrc) setEditorMode('words');
+          else setEditorMode('lrc');
+          setActiveLineIndex(Math.max(0, parsed.findIndex((l) => l.timestamp == null)));
+          setSyncMode(true);
+          return;
+        }
+      } catch (err) {
+        console.error('Failed to parse lyrics via API', err);
+        toast.error(t('import.failed') || 'Failed to parse lyrics');
         return;
       }
     }
@@ -225,9 +231,9 @@ export function useEditor({
     }
 
     const reader = new FileReader();
-    reader.onload = (evt) => {
+    reader.onload = async (evt) => {
       try {
-        const parsed = parseLrcSrtFile(evt.target.result, file.name);
+        const { lines: parsed } = await lyrics.parse(evt.target.result, file.name);
         if (parsed.length > 0) {
           setLines(parsed);
           {
@@ -264,7 +270,7 @@ export function useEditor({
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const text = await resp.text();
       const filename = parsedUrl.pathname.split('/').pop() || 'lyrics.lrc';
-      const parsed = parseLrcSrtFile(text, filename);
+      const { lines: parsed } = await lyrics.parse(text, filename);
       if (parsed.length === 0) {
         return { error: t('import.noLines') || 'No lyrics found in file' };
       }
