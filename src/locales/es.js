@@ -3,7 +3,7 @@ export default {
     "app": {
       "name": "LRC Syncer",
       "footer": "Lyrics Syncer — Se ejecuta íntegramente en el navegador. Ningún dato sale de tu dispositivo.",
-      "shareSession": "Compartir",
+      "shareProject": "Compartir",
       "focusMode": {
         "default": "Normal",
         "sync": "Sincronizar",
@@ -158,14 +158,14 @@ export default {
       "includeTranslationsLrc": "Traducciones"
     },
 
-    "session": {
+    "project": {
       "restored": "Sesión anterior restaurada",
       "restoreTitle": "Sesión encontrada",
       "restoreMessage": "Se encontraron datos de sincronización de una sesión anterior. Vuelve a cargar tu archivo de audio para continuar editando.",
       "restoreLines": "líneas sincronizadas guardadas",
       "restore": "Restaurar",
       "discard": "Descartar",
-      "sharedSession": "Sesión compartida desde enlace",
+      "sharedProject": "Sesión compartida desde enlace",
       "sharecopied": "¡Enlace copiado al portapapeles!",
       "shareFailed": "No se pudo copiar el enlace. Intenta guardar manualmente.",
       "save": "Guardar",
@@ -173,6 +173,35 @@ export default {
       "readOnly": "Solo lectura",
       "readOnlyDesc": "Esta es una sesión de solo lectura. No se guardarán cambios.",
       "editCopy": "Editar tu copia"
+    },
+
+    "auth": {
+      "login": "Iniciar sesión",
+      "register": "Registrarse",
+      "logout": "Cerrar sesión",
+      "username": "Usuario",
+      "email": "Correo electrónico",
+      "password": "Contraseña",
+      "usernameOrEmail": "Usuario o correo",
+      "loginAction": "Iniciar sesión",
+      "registerAction": "Crear cuenta",
+      "noAccount": "¿No tienes cuenta?",
+      "hasAccount": "¿Ya tienes cuenta?",
+      "loginError": "Credenciales inválidas",
+      "registerError": "Error al registrarse. Intenta de nuevo.",
+      "validationError": "Revisa tu información e intenta de nuevo.",
+      "tooManyAttempts": "Demasiados intentos. Intenta más tarde.",
+      "usernameTaken": "El usuario o correo ya está en uso",
+      "loggedInAs": "Conectado como {{name}}",
+      "account": "Cuenta",
+      "tagline": "Sincroniza letras con música, a tu manera",
+      "validation": {
+        "passwordMinLength": "La contraseña debe tener al menos 8 caracteres",
+        "usernameMinLength": "El nombre de usuario debe tener al menos 3 caracteres",
+        "usernamePattern": "Solo letras, números, guiones y guiones bajos",
+        "emailInvalid": "Ingresa un correo electrónico válido",
+        "fieldRequired": "Este campo es obligatorio"
+      }
     },
 
     "confirm": {
@@ -204,7 +233,7 @@ export default {
       "title": "Compartir sesión",
       "close": "Cerrar",
       "viewingShared": "Viendo sesión compartida",
-      "shareSession": "Compartir sesión",
+      "shareProject": "Compartir sesión",
       "readOnlyTitle": "Solo lectura — clic para editar tu copia",
       "editingTitle": "Editando tu copia personal",
       "youtubeIncluded": "YouTube incluido",
@@ -223,6 +252,19 @@ export default {
     "network": {
       "offline": "Sin conexión a internet",
       "online": "Conexión restaurada"
+    },
+
+    "library": {
+      "title": "Biblioteca",
+      "count": "{{count}} sesiones",
+      "empty": "No hay sesiones guardadas",
+      "emptyHint": "Tus letras sincronizadas aparecerán aquí después de guardar.",
+      "untitled": "Sin título",
+      "lines": "{{count}} líneas",
+      "justNow": "Ahora mismo",
+      "minutesAgo": "hace {{count}}m",
+      "hoursAgo": "hace {{count}}h",
+      "daysAgo": "hace {{count}}d"
     },
 
     "common": {
@@ -278,6 +320,23 @@ export default {
       "reset": "Restablecer valores predeterminados",
       "manualSave": "Guardar sesión",
       "applyChanges": "Aplicar Cambios",
+
+      "profile": {
+        "label": "Perfil",
+        "avatar": "Avatar",
+        "uploadAvatar": "Subir avatar",
+        "changeAvatar": "Cambiar avatar",
+        "removeAvatar": "Eliminar",
+        "avatarHint": "JPG, PNG o GIF. Máx 5MB.",
+        "username": "Nombre de usuario",
+        "email": "Correo electrónico",
+        "avatarUpdated": "Avatar actualizado",
+        "avatarRemoved": "Avatar eliminado",
+        "avatarUploadFailed": "Error al subir el avatar",
+        "avatarRemoveFailed": "Error al eliminar el avatar",
+        "invalidImageType": "Por favor selecciona un archivo de imagen",
+        "imageTooLarge": "La imagen debe ser menor de 5MB"
+      },
 
       "playback": {
         "label": "Reproducción",
@@ -508,6 +567,55 @@ export default {
           "crlf": "Windows (CRLF)"
         }
       }
+    },
+
+    "setup": {
+      "title": "Nuevo proyecto",
+      "uploadAudio": "Subir audio",
+      "uploadAudioDesc": "Arrastra o haz clic para cargar un archivo de audio",
+      "audioFormats": "MP3, WAV, FLAC, OGG y más",
+      "orPasteUrl": "o pega una URL de YouTube",
+      "pasteLyrics": "Pegar letras",
+      "pasteLyricsDesc": "Escribe o pega la letra aquí, una línea por línea...",
+      "importFile": "Importar archivo",
+      "importFileDesc": "Importar desde archivo .lrc, .srt o .txt",
+      "next": "Siguiente",
+      "back": "Volver",
+      "projectName": "Nombre del proyecto",
+      "projectNamePlaceholder": "ej. Mi Canción — Artista",
+      "projectDescription": "Descripción",
+      "projectDescriptionPlaceholder": "Notas opcionales sobre este proyecto...",
+      "projectTags": "Etiquetas",
+      "projectTagsPlaceholder": "Añade etiquetas separadas por comas...",
+      "projectCover": "Imagen de portada",
+      "uploadCover": "Subir portada",
+      "changeCover": "Cambiar",
+      "coverHint": "JPG, PNG o GIF. Máx 5MB.",
+      "coverUploaded": "Portada subida",
+      "coverUploadFailed": "Error al subir la portada",
+      "invalidImageType": "Por favor selecciona un archivo de imagen",
+      "imageTooLarge": "La imagen debe ser menor de 5MB",
+      "startProject": "Empezar a sincronizar",
+      "lyricsReady": "Letras cargadas",
+      "audioReady": "Audio cargado",
+      "linesCount": "{{count}} líneas",
+      "changeAudio": "Cambiar",
+      "changeLyrics": "Cambiar",
+      "yourMedia": "Tu multimedia",
+      "yourMediaEmpty": "Los archivos subidos y vinculados aparecerán aquí",
+      "selectMedia": "Seleccionar",
+      "deleteMedia": "Eliminar",
+      "uploadNew": "Subir nuevo",
+      "viewAll": "Ver todo"
+    },
+
+    "uploads": {
+      "title": "Subidas",
+      "count": "{{count}} archivos",
+      "empty": "No hay subidas aún",
+      "emptyHint": "Sube archivos de audio o enlaza URLs de YouTube para verlos aquí",
+      "untitled": "Sin título",
+      "selectFromUploads": "Seleccionar de subidas"
     }
   }
 };

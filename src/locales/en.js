@@ -3,7 +3,7 @@ export default {
     "app": {
       "name": "LRC Syncer",
       "footer": "Lyrics Syncer — Runs entirely in your browser. No data leaves your device.",
-      "shareSession": "Share",
+      "shareProject": "Share",
       "focusMode": {
         "default": "Default",
         "sync": "Sync",
@@ -158,21 +158,50 @@ export default {
       "includeTranslationsLrc": "Translations"
     },
 
-    "session": {
-      "restored": "Previous session restored",
-      "restoreTitle": "Session Found",
-      "restoreMessage": "Your sync data from a previous session was saved. Please re-load your audio file to continue editing.",
+    "project": {
+      "restored": "Previous project restored",
+      "restoreTitle": "Project Found",
+      "restoreMessage": "Your sync data from a previous project was saved. Please re-load your audio file to continue editing.",
       "restoreLines": "synced lines saved",
       "restore": "Restore",
       "discard": "Discard",
-      "sharedSession": "Shared session from link",
+      "sharedProject": "Shared project from link",
       "sharecopied": "Link copied to clipboard!",
       "shareFailed": "Could not copy link. Try saving manually.",
       "save": "Save",
       "saved": "Saved",
       "readOnly": "Read only",
-      "readOnlyDesc": "This is a view-only session. No edits will be saved.",
+      "readOnlyDesc": "This is a view-only project. No edits will be saved.",
       "editCopy": "Edit your copy"
+    },
+
+    "auth": {
+      "login": "Log in",
+      "register": "Sign up",
+      "logout": "Log out",
+      "username": "Username",
+      "email": "Email",
+      "password": "Password",
+      "usernameOrEmail": "Username or email",
+      "loginAction": "Log in",
+      "registerAction": "Create account",
+      "noAccount": "Don't have an account?",
+      "hasAccount": "Already have an account?",
+      "loginError": "Invalid credentials",
+      "registerError": "Registration failed. Please try again.",
+      "validationError": "Please check your information and try again.",
+      "tooManyAttempts": "Too many attempts. Please try again later.",
+      "usernameTaken": "Username or email already taken",
+      "loggedInAs": "Logged in as {{name}}",
+      "account": "Account",
+      "tagline": "Sync lyrics to music, your way",
+      "validation": {
+        "passwordMinLength": "Password must be at least 8 characters",
+        "usernameMinLength": "Username must be at least 3 characters",
+        "usernamePattern": "Only letters, numbers, hyphens and underscores",
+        "emailInvalid": "Please enter a valid email address",
+        "fieldRequired": "This field is required"
+      }
     },
 
     "confirm": {
@@ -201,10 +230,10 @@ export default {
     },
 
     "share": {
-      "title": "Share Session",
+      "title": "Share Project",
       "close": "Close",
-      "viewingShared": "Viewing shared session",
-      "shareSession": "Share session",
+      "viewingShared": "Viewing shared project",
+      "shareProject": "Share project",
       "readOnlyTitle": "Read-only — click to edit your copy",
       "editingTitle": "Editing your personal copy",
       "youtubeIncluded": "YouTube included",
@@ -223,6 +252,19 @@ export default {
     "network": {
       "offline": "No internet connection",
       "online": "Back online"
+    },
+
+    "library": {
+      "title": "Library",
+      "count": "{{count}} projects",
+      "empty": "No saved projects yet",
+      "emptyHint": "Your synced lyrics will appear here after saving.",
+      "untitled": "Untitled",
+      "lines": "{{count}} lines",
+      "justNow": "Just now",
+      "minutesAgo": "{{count}}m ago",
+      "hoursAgo": "{{count}}h ago",
+      "daysAgo": "{{count}}d ago"
     },
 
     "common": {
@@ -276,8 +318,25 @@ export default {
       "search": "Search settings...",
       "searchTitle": "Search settings by name or description...",
       "reset": "Reset defaults",
-      "manualSave": "Save Session",
+      "manualSave": "Save Project",
       "applyChanges": "Apply Changes",
+
+      "profile": {
+        "label": "Profile",
+        "avatar": "Avatar",
+        "uploadAvatar": "Upload avatar",
+        "changeAvatar": "Change avatar",
+        "removeAvatar": "Remove",
+        "avatarHint": "JPG, PNG, or GIF. Max 5MB.",
+        "username": "Username",
+        "email": "Email",
+        "avatarUpdated": "Avatar updated",
+        "avatarRemoved": "Avatar removed",
+        "avatarUploadFailed": "Failed to upload avatar",
+        "avatarRemoveFailed": "Failed to remove avatar",
+        "invalidImageType": "Please select an image file",
+        "imageTooLarge": "Image must be less than 5MB"
+      },
 
       "playback": {
         "label": "Playback",
@@ -401,7 +460,7 @@ export default {
       "advanced": {
         "label": "Advanced",
         "autoSave": "Auto-save",
-        "autoSaveDesc": "Automatically save session data in the background",
+        "autoSaveDesc": "Automatically save project data in the background",
         "autoSaveInterval": "Save every",
         "autoSaveIntervalDesc": "Time between auto-saves",
         "autoSaveSeconds": "{{count}}s",
@@ -508,6 +567,55 @@ export default {
           "crlf": "Windows (CRLF)"
         }
       }
+    },
+
+    "setup": {
+      "title": "New Project",
+      "uploadAudio": "Upload audio",
+      "uploadAudioDesc": "Drop or click to load an audio file",
+      "audioFormats": "MP3, WAV, FLAC, OGG and more",
+      "orPasteUrl": "or paste a YouTube URL",
+      "pasteLyrics": "Paste lyrics",
+      "pasteLyricsDesc": "Type or paste your lyrics here, one line per line...",
+      "importFile": "Import file",
+      "importFileDesc": "Import from .lrc, .srt, or .txt file",
+      "next": "Next",
+      "back": "Back",
+      "projectName": "Project name",
+      "projectNamePlaceholder": "e.g. My Song — Artist",
+      "projectDescription": "Description",
+      "projectDescriptionPlaceholder": "Optional notes about this project...",
+      "projectTags": "Tags",
+      "projectTagsPlaceholder": "Add tags separated by commas...",
+      "projectCover": "Cover image",
+      "uploadCover": "Upload cover",
+      "changeCover": "Change",
+      "coverHint": "JPG, PNG, or GIF. Max 5MB.",
+      "coverUploaded": "Cover uploaded",
+      "coverUploadFailed": "Failed to upload cover",
+      "invalidImageType": "Please select an image file",
+      "imageTooLarge": "Image must be less than 5MB",
+      "startProject": "Start syncing",
+      "lyricsReady": "Lyrics loaded",
+      "audioReady": "Audio loaded",
+      "linesCount": "{{count}} lines",
+      "changeAudio": "Change",
+      "changeLyrics": "Change",
+      "yourMedia": "Your media",
+      "yourMediaEmpty": "Uploaded and linked media will appear here",
+      "selectMedia": "Select",
+      "deleteMedia": "Remove",
+      "uploadNew": "Upload new",
+      "viewAll": "View all"
+    },
+
+    "uploads": {
+      "title": "Uploads",
+      "count": "{{count}} files",
+      "empty": "No uploads yet",
+      "emptyHint": "Upload audio files or link YouTube URLs to see them here",
+      "untitled": "Untitled",
+      "selectFromUploads": "Select from uploads"
     }
   }
 };
