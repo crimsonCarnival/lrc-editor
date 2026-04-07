@@ -9,12 +9,14 @@ import ExportSettings from './panels/ExportSettings';
 import InterfaceSettings from './panels/InterfaceSettings';
 import ShortcutsSettings from './panels/ShortcutsSettings';
 import AdvancedSettings from './panels/AdvancedSettings';
+import ProfileSettings from './panels/ProfileSettings';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { X, Headphones, FileText, Download, Monitor, Keyboard, SlidersHorizontal } from 'lucide-react';
+import { X, Headphones, FileText, Download, Monitor, Keyboard, SlidersHorizontal, User } from 'lucide-react';
 import { Tip } from '@/components/ui/tip';
 
 const TABS = [
+  { id: 'profile', labelKey: 'settings.profile.label', icon: User },
   { id: 'playback', labelKey: 'settings.playback.label', icon: Headphones },
   { id: 'editor', labelKey: 'settings.editor.label', icon: FileText },
   { id: 'export', labelKey: 'settings.export.label', icon: Download },
@@ -56,7 +58,7 @@ export default function SettingsModal({ isOpen, onClose }) {
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/60 z-modal-backdrop animate-fade-in"
+        className="fixed inset-0 bg-black/70 z-modal-backdrop animate-fade-in"
         onClick={onClose}
       />
       {/* Modal */}
@@ -128,6 +130,9 @@ export default function SettingsModal({ isOpen, onClose }) {
                 searchTerm ? 'overflow-y-auto settings-scroll flex flex-col p-6' : 'grid'
               }`}
             >
+              <div className={tabPanelClass('profile', activeTab, searchTerm)}>
+                <ProfileSettings />
+              </div>
               <div className={tabPanelClass('playback', activeTab, searchTerm)}>
                 <PlaybackSettings
                   settings={settings}

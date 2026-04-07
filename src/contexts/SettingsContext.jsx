@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { DEFAULT_SETTINGS } from './settingsDefaults.js';
 import { SettingsContext } from './SettingsContextValue.js';
+import { settings as settingsApi, getAccessToken } from '../api.js';
 
 const STORAGE_KEY = 'lrc-syncer-settings';
 
@@ -122,13 +123,31 @@ export function SettingsProvider({ children }) {
     return structuredClone(DEFAULT_SETTINGS);
   });
 
-  // Debounced localStorage persistence to avoid excessive writes during rapid changes (e.g. volume slider)
+  const isSyncingRef = useRef(false);
+  const isFirstRender = useRef(true);
+
+  // Debounced localStorage + server persistence — skips the initial render
+  // and skips when changes came from a server fetch (isSyncingRef).
   useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    if (isSyncingRef.current) return;
+
     const timer = setTimeout(() => {
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
       } catch (e) {
         console.error('Failed to save settings', e);
+      }
+
+      // Push to server if authenticated
+      if (getAccessToken()) {
+        const { playback, editor, export: exp, interface: iface, shortcuts, import: imp, advanced } = settings;
+        settingsApi.save({ playback, editor, export: exp, interface: iface, shortcuts, import: imp, advanced }).catch(() => {
+          // Silently fail — localStorage is the source of truth
+        });
       }
     }, 300);
     return () => clearTimeout(timer);
@@ -156,8 +175,32 @@ export function SettingsProvider({ children }) {
     setSettings(structuredClone(DEFAULT_SETTINGS));
   }, []);
 
+  // Call after login or on mount to pull server settings (single entry point).
+  // Uses isSyncingRef to prevent the save effect from writing back unchanged data.
+  const syncInFlightRef = useRef(false);
+  const syncFromServer = useCallback(() => {
+    if (!getAccessToken() || syncInFlightRef.current) return;
+    syncInFlightRef.current = true;
+
+    settingsApi.get().then((remote) => {
+      if (remote && Object.keys(remote).length > 0) {
+        isSyncingRef.current = true;
+        setSettings((local) => {
+          const merged = deepMerge(local, remote);
+          // Persist merge to localStorage immediately (save effect is suppressed)
+          try { localStorage.setItem(STORAGE_KEY, JSON.stringify(merged)); } catch {}
+          return merged;
+        });
+        // Clear the sync flag after React processes the state update
+        queueMicrotask(() => { isSyncingRef.current = false; });
+      }
+    }).catch(() => {}).finally(() => {
+      syncInFlightRef.current = false;
+    });
+  }, []);
+
   return (
-    <SettingsContext.Provider value={{ settings, updateSetting, updateAllSettings, resetSettings }}>
+    <SettingsContext.Provider value={{ settings, updateSetting, updateAllSettings, resetSettings, syncFromServer }}>
       {children}
     </SettingsContext.Provider>
   );
