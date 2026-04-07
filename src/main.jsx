@@ -1,4 +1,4 @@
-import { StrictMode } from 'react'
+import { StrictMode, lazy, Suspense } from 'react'
 import { createRoot } from 'react-dom/client'
 
 // Auto-reload when a new deployment invalidates lazy-loaded chunks
@@ -10,14 +10,49 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import './index.css'
 import App from './App.jsx'
 import ErrorBoundary from './components/shared/ErrorBoundary.jsx'
+import { AuthProvider } from './contexts/AuthContext.jsx'
+import { useAuthContext } from './contexts/useAuthContext.js'
+import { Spinner } from './components/ui/skeleton'
 import './i18n.js'
+
+const AuthPage = lazy(() => import('./components/Auth/AuthPage.jsx'));
+
+function Root() {
+  const { user, loading } = useAuthContext();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
+        <Spinner size={24} className="text-primary" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <Suspense fallback={
+        <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
+          <Spinner size={24} className="text-primary" />
+        </div>
+      }>
+        <AuthPage />
+      </Suspense>
+    );
+  }
+
+  return (
+    <TooltipProvider>
+      <App />
+    </TooltipProvider>
+  );
+}
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <ErrorBoundary>
-      <TooltipProvider>
-        <App />
-      </TooltipProvider>
+      <AuthProvider>
+        <Root />
+      </AuthProvider>
       <Toaster
         position="bottom-center"
         toastOptions={{
