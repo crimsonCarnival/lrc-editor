@@ -4,10 +4,19 @@ import { Button } from '@/components/ui/button';
 import { Copy, Check, AlertCircle } from 'lucide-react';
 import { Tip } from '@/components/ui/tip';
 
-export function SharePanel({ url, ytUrl, linesCount, hasSynced }) {
+export function SharePanel({ url, ytUrl, linesCount, hasSynced, isPublic = true, onPrivacyChange }) {
   const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
   const inputRef = useRef(null);
+
+  // Privacy state (public/private)
+  const [privacy, setPrivacy] = useState(isPublic ? 'public' : 'private');
+
+  const handlePrivacyToggle = () => {
+    const newPrivacy = privacy === 'public' ? 'private' : 'public';
+    setPrivacy(newPrivacy);
+    if (onPrivacyChange) onPrivacyChange(newPrivacy);
+  };
 
   useEffect(() => {
     setTimeout(() => { inputRef.current?.select(); }, 80);
@@ -25,6 +34,30 @@ export function SharePanel({ url, ytUrl, linesCount, hasSynced }) {
 
   return (
     <div className="flex flex-col gap-3 p-4">
+      {/* Privacy/visibility toggle */}
+      <div className="flex items-center gap-2 mb-1">
+        <span className="text-xs text-zinc-400 font-medium">
+          {t('share.privacy', 'Visibility:')}
+        </span>
+        <Button
+          variant={privacy === 'public' ? 'outline' : 'secondary'}
+          size="sm"
+          className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold ${privacy === 'public' ? 'text-emerald-400 border-emerald-400/60 bg-emerald-400/10' : 'text-zinc-400 border-zinc-700 bg-zinc-800'}`}
+          onClick={handlePrivacyToggle}
+        >
+          {privacy === 'public' ? (
+            <>
+              <svg className="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5c-7 0-9 7.5-9 7.5s2 7.5 9 7.5 9-7.5 9-7.5-2-7.5-9-7.5z" /><circle cx="12" cy="12" r="3" /></svg>
+              {t('share.public', 'Anyone with link')}
+            </>
+          ) : (
+            <>
+              <svg className="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 17a5 5 0 100-10 5 5 0 000 10zm0 0v2m0-2v-2" /></svg>
+              {t('share.private', 'Only me')}
+            </>
+          )}
+        </Button>
+      </div>
       {/* Badges */}
       <div className="flex flex-wrap gap-2">
         <span className={`inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded-full border ${
@@ -52,7 +85,9 @@ export function SharePanel({ url, ytUrl, linesCount, hasSynced }) {
 
       {/* Description */}
       <p className="text-xs text-zinc-400 leading-relaxed">
-        {t('share.description', 'Anyone with this link can open the app, watch the lyrics sync in real time, and listen to the YouTube video.')}
+        {privacy === 'public'
+          ? t('share.description', 'Anyone with this link can open the app, watch the lyrics sync in real time, and listen to the YouTube video.')
+          : t('share.privateDescription', 'Only you can access this project. Others will be denied.')}
       </p>
 
       {/* Warning: no YouTube */}
