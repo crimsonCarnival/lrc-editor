@@ -10,13 +10,15 @@ import VolumeControl from './VolumeControl';
 import SpeedControl from './SpeedControl';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Music2, Trash2, AlertTriangle, Play, Pause, Headphones, FolderOpen, Upload, Repeat, ChevronLeft, ChevronRight, SkipBack, SkipForward } from 'lucide-react';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+import { Music2, Trash2, AlertTriangle, Play, Pause, Headphones, FolderOpen, Upload, Repeat, ChevronLeft, ChevronRight, SkipBack, SkipForward, Cloud, Video, ChevronDown } from 'lucide-react';
 import { Tip } from '@/components/ui/tip';
+import { uploads as uploadsApi, getAccessToken } from '../../api';
 
 const ALL_SPEED_PRESETS = [0.25, 0.5, 0.75, 1, 1.25, 1.5];
 
 const Player = forwardRef(function Player(
-  { onTimeUpdate, onDurationChange, onMediaChange, playerRef: _legacyRef, mediaTitle, onTitleChange, initialYtUrl, onYtUrlChange, initialSeek, initialSpeed, lines, playbackPosition, syncMode = false },
+  { onTimeUpdate, onDurationChange, onMediaChange, playerRef: _legacyRef, mediaTitle, onTitleChange, initialYtUrl, onYtUrlChange, initialSeek, initialSpeed, lines, playbackPosition, syncMode = false, onCloudinaryUpload },
   ref,
 ) {
   const { t } = useTranslation();
@@ -42,6 +44,10 @@ const Player = forwardRef(function Player(
   });
   const [requestConfirm, confirmModal] = useConfirm();
 
+  // Uploads state
+  const [mediaUploads, setMediaUploads] = useState([]);
+  const [uploadsLoaded, setUploadsLoaded] = useState(false);
+
   // A-B Loop state
   const [loopA, setLoopA] = useState(null);
   const [loopB, setLoopB] = useState(null);
@@ -58,6 +64,16 @@ const Player = forwardRef(function Player(
   useEffect(() => { loopARef.current = loopA; }, [loopA]);
   useEffect(() => { loopBRef.current = loopB; }, [loopB]);
   useEffect(() => { sourceRef.current = source; }, [source]);
+
+  // Fetch uploads when opening the selector
+  const fetchUploads = useCallback(async () => {
+    if (!getAccessToken()) return;
+    try {
+      const { uploads } = await uploadsApi.listMedia();
+      setMediaUploads(uploads || []);
+    } catch { /* ignore */ }
+    setUploadsLoaded(true);
+  }, []);
 
   const updateTime = useCallback(
     (time) => {
@@ -99,6 +115,7 @@ const Player = forwardRef(function Player(
     setCurrentTime,
     onTitleChange,
     onMediaChange,
+    onCloudinaryUpload,
     initialSpeed,
   });
 
@@ -119,6 +136,21 @@ const Player = forwardRef(function Player(
   });
 
   const hasMedia = (source === 'local' && local.localUrl) || (source === 'youtube' && yt.ytReady);
+
+  const handleSelectUpload = useCallback((upload) => {
+    if (upload.source === 'youtube' && upload.youtubeUrl) {
+      yt.setYtUrl(upload.youtubeUrl);
+      setTimeout(() => yt.loadYouTube(), 0);
+    } else if (upload.source === 'cloudinary' && upload.cloudinaryUrl) {
+      fetch(upload.cloudinaryUrl)
+        .then((res) => res.blob())
+        .then((blob) => {
+          const file = new File([blob], upload.fileName || 'audio.mp3', { type: blob.type || 'audio/mpeg' });
+          local.handleFileChange({ target: { files: [file] } });
+        })
+        .catch(() => {});
+    }
+  }, [local, yt]);
 
   // ——— Unified controls ———
 
@@ -182,6 +214,7 @@ const Player = forwardRef(function Player(
       seek,
       getAudioBlob: () => localBlobRef.current || null,
       loadLocalAudio: (file) => local.handleFileChange(file),
+      loadYouTube: (url) => yt.loadYouTube(url),
       setLoop,
       clearLoop,
       getLoop: () => ({ a: loopA, b: loopB }),
@@ -244,7 +277,7 @@ const Player = forwardRef(function Player(
         <div className="flex flex-row items-center justify-between gap-2 sm:gap-4 mb-1">
           <h2 className="text-xs sm:text-sm font-semibold tracking-widest text-zinc-400 flex items-center gap-2 overflow-hidden flex-1 pb-0.5 min-w-0">
             <span className="uppercase shrink-0 text-xs sm:text-sm flex items-center gap-1.5"><Headphones className="w-3.5 h-3.5" />{t('player.title')}</span>
-            {mediaTitle && (
+            {hasMedia && mediaTitle && (
               <div className="flex items-center gap-1 px-1.5 py-0.5 rounded text-xs min-w-0 flex-1">
                 <Music2 className="w-2.5 h-2.5 text-primary shrink-0" strokeWidth={2.5} />
                 <div className="flex-1 min-w-0 overflow-hidden relative" style={{ maskImage: 'linear-gradient(to right, transparent, black 10px, black calc(100% - 10px), transparent)' }}>
@@ -378,6 +411,56 @@ const Player = forwardRef(function Player(
                 </p>
               )}
             </div>
+
+            {/* Uploads selector */}
+            {getAccessToken() && (
+              <div className="px-1 pb-1">
+                <div className="flex items-center gap-3 px-2 py-0.5 mb-1">
+                  <div className="flex-1 h-px bg-zinc-800" />
+                  <span className="text-[10px] text-zinc-600 uppercase tracking-widest">{t('player.or')}</span>
+                  <div className="flex-1 h-px bg-zinc-800" />
+                </div>
+                <Popover onOpenChange={(open) => { if (open && !uploadsLoaded) fetchUploads(); }}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-between bg-zinc-800/50 border-zinc-700/60 hover:bg-zinc-700/60 hover:border-zinc-600 text-zinc-300 text-sm h-9"
+                    >
+                      <span className="flex items-center gap-2">
+                        <Cloud className="w-3.5 h-3.5 text-zinc-500" />
+                        {t('uploads.selectFromUploads')}
+                      </span>
+                      <ChevronDown className="w-3.5 h-3.5 text-zinc-500" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[var(--radix-popover-trigger-width)] max-h-[200px] overflow-y-auto p-1" align="start">
+                    {mediaUploads.length === 0 ? (
+                      <p className="text-xs text-zinc-500 text-center py-3">{t('uploads.empty')}</p>
+                    ) : (
+                      mediaUploads.map((upload) => (
+                        <button
+                          key={upload.id}
+                          onClick={() => handleSelectUpload(upload)}
+                          className="w-full flex items-center gap-2 px-2.5 py-2 rounded-md text-left hover:bg-zinc-700/60 transition-colors"
+                        >
+                          {upload.source === 'youtube'
+                            ? <Video className="w-3.5 h-3.5 text-red-400 shrink-0" />
+                            : <Cloud className="w-3.5 h-3.5 text-blue-400 shrink-0" />}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium text-zinc-200 truncate">
+                              {upload.title || upload.fileName || upload.youtubeUrl || t('uploads.untitled')}
+                            </p>
+                            {upload.duration > 0 && (
+                              <p className="text-[10px] text-zinc-500">{formatTime(upload.duration)}</p>
+                            )}
+                          </div>
+                        </button>
+                      ))
+                    )}
+                  </PopoverContent>
+                </Popover>
+              </div>
+            )}
           </div>
         )}
 
@@ -542,9 +625,9 @@ const Player = forwardRef(function Player(
       <div className="lg:hidden border-t border-zinc-700/50 bg-zinc-900/90 backdrop-blur-md">
         {/* No media */}
         {!hasMedia && (
-          <div className="flex items-center gap-2 px-3 h-[88px]">
+          <div className="flex flex-col gap-1 px-3 py-2">
             {yt.ytLoading ? (
-              <div className="flex items-center gap-3 flex-1">
+              <div className="flex items-center gap-3 flex-1 py-2">
                 <svg className="w-5 h-5 text-primary animate-spin" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
@@ -552,29 +635,67 @@ const Player = forwardRef(function Player(
                 <span className="text-sm text-zinc-400">{t('player.loading') || 'Loading…'}</span>
               </div>
             ) : (
-              <div className="flex items-center gap-2 flex-1">
-                <label
-                  htmlFor="audio-file-compact"
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-zinc-800 border border-zinc-700/60 text-sm font-medium text-zinc-300 cursor-pointer active:scale-95 transition-transform shrink-0"
-                >
-                  <FolderOpen className="w-4 h-4" />
-                  {t('player.dropAudio') || 'Load audio'}
-                  <input id="audio-file-compact" type="file" accept="audio/*" onChange={local.handleFileChange} className="hidden" />
-                </label>
-                <div className="flex flex-1 gap-2">
-                  <Input
-                    type="text"
-                    value={yt.ytUrl}
-                    onChange={(e) => { yt.setYtUrl(e.target.value); yt.setYtError(''); }}
-                    onKeyDown={(e) => e.key === 'Enter' && yt.loadYouTube()}
-                    placeholder={t('player.pasteUrl') || 'YouTube URL'}
-                    className="flex-1 h-9 bg-zinc-800/60 text-zinc-100 placeholder-zinc-500 border-zinc-700 text-xs"
-                  />
-                  <Button onClick={yt.loadYouTube} className="px-3 h-9 bg-red-600 hover:bg-red-500 text-white text-xs font-medium rounded-lg shrink-0">
-                    {t('player.load') || 'Load'}
-                  </Button>
+              <>
+                <div className="flex items-center gap-2">
+                  <label
+                    htmlFor="audio-file-compact"
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-zinc-800 border border-zinc-700/60 text-sm font-medium text-zinc-300 cursor-pointer active:scale-95 transition-transform shrink-0"
+                  >
+                    <FolderOpen className="w-4 h-4" />
+                    {t('player.dropAudio') || 'Load audio'}
+                    <input id="audio-file-compact" type="file" accept="audio/*" onChange={local.handleFileChange} className="hidden" />
+                  </label>
+                  <div className="flex flex-1 gap-2">
+                    <Input
+                      type="text"
+                      value={yt.ytUrl}
+                      onChange={(e) => { yt.setYtUrl(e.target.value); yt.setYtError(''); }}
+                      onKeyDown={(e) => e.key === 'Enter' && yt.loadYouTube()}
+                      placeholder={t('player.pasteUrl') || 'YouTube URL'}
+                      className="flex-1 h-9 bg-zinc-800/60 text-zinc-100 placeholder-zinc-500 border-zinc-700 text-xs"
+                    />
+                    <Button onClick={yt.loadYouTube} className="px-3 h-9 bg-red-600 hover:bg-red-500 text-white text-xs font-medium rounded-lg shrink-0">
+                      {t('player.load') || 'Load'}
+                    </Button>
+                  </div>
                 </div>
-              </div>
+                {getAccessToken() && (
+                  <Popover onOpenChange={(open) => { if (open && !uploadsLoaded) fetchUploads(); }}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-between bg-zinc-800/50 border-zinc-700/60 hover:bg-zinc-700/60 text-zinc-300 text-xs h-8"
+                      >
+                        <span className="flex items-center gap-1.5">
+                          <Cloud className="w-3 h-3 text-zinc-500" />
+                          {t('uploads.selectFromUploads')}
+                        </span>
+                        <ChevronDown className="w-3 h-3 text-zinc-500" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[var(--radix-popover-trigger-width)] max-h-[180px] overflow-y-auto p-1" align="start">
+                      {mediaUploads.length === 0 ? (
+                        <p className="text-xs text-zinc-500 text-center py-3">{t('uploads.empty')}</p>
+                      ) : (
+                        mediaUploads.map((upload) => (
+                          <button
+                            key={upload.id}
+                            onClick={() => handleSelectUpload(upload)}
+                            className="w-full flex items-center gap-2 px-2.5 py-2 rounded-md text-left hover:bg-zinc-700/60 transition-colors"
+                          >
+                            {upload.source === 'youtube'
+                              ? <Video className="w-3.5 h-3.5 text-red-400 shrink-0" />
+                              : <Cloud className="w-3.5 h-3.5 text-blue-400 shrink-0" />}
+                            <span className="text-xs font-medium text-zinc-200 truncate">
+                              {upload.title || upload.fileName || upload.youtubeUrl || t('uploads.untitled')}
+                            </span>
+                          </button>
+                        ))
+                      )}
+                    </PopoverContent>
+                  </Popover>
+                )}
+              </>
             )}
           </div>
         )}

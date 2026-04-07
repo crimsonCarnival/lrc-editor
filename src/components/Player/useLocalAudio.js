@@ -1,5 +1,6 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
+import { uploads, getAccessToken } from '../../api';
 
 export default function useLocalAudio({
   audioRef,
@@ -13,9 +14,12 @@ export default function useLocalAudio({
   setCurrentTime,
   onTitleChange,
   onMediaChange,
+  onCloudinaryUpload,
   initialSpeed,
 }) {
   const [localUrl, setLocalUrl] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const uploadAbortRef = useRef(null);
 
   const handleFileChange = useCallback((e) => {
     const file = e.type === 'change' ? e.target.files?.[0] : e;
@@ -34,7 +38,30 @@ export default function useLocalAudio({
     setCurrentTime(0);
     onTitleChange?.(file.name.replace(/\.[^/.]+$/, ''));
     onMediaChange?.(true);
-  }, [blobRef, t, setSource, setIsPlaying, setCurrentTime, onTitleChange, onMediaChange]);
+
+    // Upload to Cloudinary in background if authenticated
+    if (getAccessToken() && file.size <= 50 * 1024 * 1024) {
+      uploadAbortRef.current = false;
+      setIsUploading(true);
+      uploads.uploadToCloudinary(file)
+        .then((result) => {
+          if (uploadAbortRef.current) return;
+          onCloudinaryUpload?.({
+            cloudinaryUrl: result.secure_url,
+            publicId: result.public_id,
+            fileName: file.name,
+            duration: result.duration,
+          });
+        })
+        .catch((err) => {
+          if (uploadAbortRef.current) return;
+          console.warn('Cloudinary upload failed:', err.message);
+        })
+        .finally(() => {
+          if (!uploadAbortRef.current) setIsUploading(false);
+        });
+    }
+  }, [blobRef, t, setSource, setIsPlaying, setCurrentTime, onTitleChange, onMediaChange, onCloudinaryUpload]);
 
   const handleTimeUpdate = useCallback(() => {
     if (audioRef.current) {
@@ -77,6 +104,8 @@ export default function useLocalAudio({
     if (localUrl) URL.revokeObjectURL(localUrl);
     setLocalUrl(null);
     blobRef.current = null;
+    uploadAbortRef.current = true;
+    setIsUploading(false);
   }, [audioRef, blobRef, localUrl]);
 
   const play = useCallback(() => { audioRef.current?.play(); }, [audioRef]);
@@ -104,6 +133,7 @@ export default function useLocalAudio({
 
   return {
     localUrl,
+    isUploading,
     handleFileChange,
     handleTimeUpdate,
     handleLoadedMetadata,

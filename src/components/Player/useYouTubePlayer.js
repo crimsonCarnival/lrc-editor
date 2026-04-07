@@ -190,7 +190,7 @@ export default function useYouTubePlayer({
     }
   }, [containerRef, ytUrl, t, settings.playback.volume, settings.playback.muted, settings.playback.autoRewindOnPause?.enabled, settings.playback.autoRewindOnPause?.seconds, updateDuration, updateTime, setIsPlaying, setCurrentTime, onTitleChange, onMediaChange, setSource]);
 
-  // Auto-load when initialYtUrl is provided (e.g., session restore)
+  // Auto-load when initialYtUrl is provided (e.g., project restore)
   const autoLoadedFromInitialRef = useRef(false);
   useEffect(() => {
     if (initialYtUrl && !autoLoadedFromInitialRef.current) {
