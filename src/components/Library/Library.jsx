@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { projects } from '../../api';
 import { Button } from '@/components/ui/button';
+import { Tip } from '@/components/ui/tip';
 import { Music, Video, Upload, FileText, Trash2, ExternalLink, Clock, ArrowLeft, Loader2 } from 'lucide-react';
 import { SkeletonCard } from '@/components/ui/skeleton';
 
@@ -103,14 +104,14 @@ export default function Library({ onOpenProject, onBack }) {
             >
               {/* Source icon */}
               <div className="w-9 h-9 rounded-lg bg-zinc-700/50 flex items-center justify-center flex-shrink-0 mt-0.5">
-                <SourceIcon source={project.audio?.source} />
+                <SourceIcon source={project.upload?.source} />
               </div>
 
               {/* Info */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-semibold text-zinc-100 truncate">
-                    {project.title || project.audio?.fileName || t('library.untitled')}
+                    {project.title || project.upload?.fileName || t('library.untitled')}
                   </span>
                   <span className="text-[10px] font-bold uppercase text-zinc-500 bg-zinc-700/50 px-1.5 py-0.5 rounded flex-shrink-0">
                     {project.editorMode}
@@ -122,13 +123,13 @@ export default function Library({ onOpenProject, onBack }) {
                     <FileText className="w-3 h-3" />
                     {t('library.lines', { count: project.lineCount })}
                   </span>
-                  {project.audio?.duration && (
+                  {project.upload?.duration && (
                     <span className="text-xs text-zinc-500 flex items-center gap-1">
                       <Clock className="w-3 h-3" />
-                      {Math.floor(project.audio.duration / 60)}:{String(Math.floor(project.audio.duration % 60)).padStart(2, '0')}
+                      {Math.floor(project.upload.duration / 60)}:{String(Math.floor(project.upload.duration % 60)).padStart(2, '0')}
                     </span>
                   )}
-                  {project.audio?.youtubeUrl && (
+                  {project.upload?.youtubeUrl && (
                     <span className="text-xs text-zinc-500 flex items-center gap-1">
                       <Video className="w-3 h-3" />
                       YouTube
@@ -136,9 +137,11 @@ export default function Library({ onOpenProject, onBack }) {
                   )}
                 </div>
 
-                <span className="text-[10px] text-zinc-600 mt-1 block">
-                  {formatRelativeTime(project.updatedAt, t)}
-                </span>
+                <Tip content={new Date(project.updatedAt).toLocaleString()}>
+                  <span className="text-[10px] text-zinc-600 mt-1 block">
+                    {formatRelativeTime(project.updatedAt, t)}
+                  </span>
+                </Tip>
               </div>
 
               {/* Actions */}
