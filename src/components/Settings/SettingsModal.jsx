@@ -28,9 +28,14 @@ const TABS = [
 function tabPanelClass(tabId, activeTab, searchTerm) {
   if (searchTerm) return 'flex flex-col';
   const isActive = activeTab === tabId;
-  return `col-start-1 row-start-1 px-6 py-4 overflow-y-auto settings-scroll flex flex-col transition-opacity duration-150 ${
-    isActive ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
+  return `col-start-1 row-start-1 px-6 pt-4 pb-0 flex flex-col min-h-0 transition-opacity duration-150 ${
+    isActive ? 'opacity-100 z-raised' : 'opacity-0 z-base pointer-events-none'
   }`;
+}
+
+function contentWrapperClass(searchTerm) {
+  if (searchTerm) return '';
+  return 'flex-1 min-h-0 overflow-y-auto settings-scroll pr-2 pb-4';
 }
 
 export default function SettingsModal({ isOpen, onClose }) {
@@ -131,50 +136,64 @@ export default function SettingsModal({ isOpen, onClose }) {
               }`}
             >
               <div className={tabPanelClass('profile', activeTab, searchTerm)}>
-                <ProfileSettings />
+                <div className={contentWrapperClass(searchTerm)}>
+                  <ProfileSettings searchTerm={searchTerm} />
+                </div>
               </div>
               <div className={tabPanelClass('playback', activeTab, searchTerm)}>
-                <PlaybackSettings
-                  settings={settings}
-                  updateSetting={updateSetting}
-                  searchTerm={searchTerm}
-                />
+                <div className={contentWrapperClass(searchTerm)}>
+                  <PlaybackSettings
+                    settings={settings}
+                    updateSetting={updateSetting}
+                    searchTerm={searchTerm}
+                  />
+                </div>
               </div>
               <div className={tabPanelClass('editor', activeTab, searchTerm)}>
-                <EditorSettings
-                  settings={settings}
-                  updateSetting={updateSetting}
-                  searchTerm={searchTerm}
-                />
+                <div className={contentWrapperClass(searchTerm)}>
+                  <EditorSettings
+                    settings={settings}
+                    updateSetting={updateSetting}
+                    searchTerm={searchTerm}
+                  />
+                </div>
               </div>
               <div className={tabPanelClass('export', activeTab, searchTerm)}>
-                <ExportSettings
-                  settings={settings}
-                  updateSetting={updateSetting}
-                  searchTerm={searchTerm}
-                />
+                <div className={contentWrapperClass(searchTerm)}>
+                  <ExportSettings
+                    settings={settings}
+                    updateSetting={updateSetting}
+                    searchTerm={searchTerm}
+                  />
+                </div>
               </div>
               <div className={tabPanelClass('interface', activeTab, searchTerm)}>
-                <InterfaceSettings
-                  settings={settings}
-                  updateSetting={updateSetting}
-                  searchTerm={searchTerm}
-                />
+                <div className={contentWrapperClass(searchTerm)}>
+                  <InterfaceSettings
+                    settings={settings}
+                    updateSetting={updateSetting}
+                    searchTerm={searchTerm}
+                  />
+                </div>
               </div>
               <div className={tabPanelClass('shortcuts', activeTab, searchTerm)}>
-                <ShortcutsSettings
-                  settings={settings}
-                  updateSetting={updateSetting}
-                  searchTerm={searchTerm}
-                  validateShortcut={validateShortcut}
-                />
+                <div className={contentWrapperClass(searchTerm)}>
+                  <ShortcutsSettings
+                    settings={settings}
+                    updateSetting={updateSetting}
+                    searchTerm={searchTerm}
+                    validateShortcut={validateShortcut}
+                  />
+                </div>
               </div>
               <div className={tabPanelClass('advanced', activeTab, searchTerm)}>
-                <AdvancedSettings
-                  settings={settings}
-                  updateSetting={updateSetting}
-                  searchTerm={searchTerm}
-                />
+                <div className={contentWrapperClass(searchTerm)}>
+                  <AdvancedSettings
+                    settings={settings}
+                    updateSetting={updateSetting}
+                    searchTerm={searchTerm}
+                  />
+                </div>
               </div>
             </div>
 
