@@ -12,9 +12,9 @@ import { serializeToRubyMarkup, parseRubyMarkup } from './furigana';
  * @param {{ secondary?: string, secondaryWords?: Array, words?: Array }} line
  * @returns {string|null}
  */
-function buildSecondaryText(line) {
+function buildSecondaryText(line, wordPrecision) {
   if (line.secondaryWords?.length && line.secondaryWords.some(w => w.time != null)) {
-    return formatWordsToLrc(line.secondaryWords);
+    return formatWordsToLrc(line.secondaryWords, wordPrecision);
   }
   if (line.words?.some(w => w.reading)) {
     return serializeToRubyMarkup(line.words);
@@ -26,10 +26,10 @@ function buildSecondaryText(line) {
  * Format an array of {word, time} into LRC inline word-timestamp text.
  * E.g. "<00:05.12>Hello <00:05.56>world"
  */
-function formatWordsToLrc(words) {
+function formatWordsToLrc(words, precision = 'hundredths') {
   const cjk = (ch) => { const c = ch?.codePointAt(0) ?? 0; return (c >= 0x3000 && c <= 0x9FFF) || (c >= 0xF900 && c <= 0xFAFF) || (c >= 0xFF00 && c <= 0xFFEF) || (c >= 0x20000 && c <= 0x2FA1F); };
   return words.map((w, i, arr) => {
-    const token = `${formatWordTimestamp(w.time)}${w.word}`;
+    const token = `${formatWordTimestamp(w.time, precision)}${w.word}`;
     const next = arr[i + 1];
     if (!next) return token;
     const lastChar = w.word.slice(-1);
@@ -86,7 +86,8 @@ function sanitizeLrcTag(s) {
  * @param {'lf'|'crlf'} lineEndings
  * @returns {string}
  */
-export function compileLRC(lines, includeTranslations = false, precision = 'hundredths', metadata = {}, lineEndings = 'lf', includeSecondary = false) {
+export function compileLRC(lines, includeTranslations = false, precision = 'hundredths', metadata = {}, lineEndings = 'lf', includeSecondary = false, wordPrecision) {
+  const wp = wordPrecision || precision;
   let header = '';
   if (metadata.ti) header += `[ti:${sanitizeLrcTag(metadata.ti)}]\n`;
   if (metadata.ar) header += `[ar:${sanitizeLrcTag(metadata.ar)}]\n`;
@@ -98,11 +99,11 @@ export function compileLRC(lines, includeTranslations = false, precision = 'hund
       if (line.timestamp != null) {
         const ts = line.timestamp;
         const wordText = line.words?.length
-          ? formatWordsToLrc(line.words)
+          ? formatWordsToLrc(line.words, wp)
           : line.text;
         let out = `[${formatTimestamp(ts, precision)}] ${wordText}`;
           if (includeSecondary) {
-            const sec = buildSecondaryText(line);
+            const sec = buildSecondaryText(line, wp);
             if (sec) out += `\n[${formatTimestamp(ts, precision)}] ${sec}`;
           }
           if (includeTranslations && line.translation) {
@@ -181,11 +182,13 @@ export function parseWordTimestamps(text) {
   return words;
 }
 
-function formatWordTimestamp(seconds) {
+function formatWordTimestamp(seconds, precision = 'hundredths') {
   const mins = Math.floor(seconds / 60);
   const secs = seconds % 60;
   const mm = String(mins).padStart(2, '0');
-  const ss = secs.toFixed(2).padStart(5, '0');
+  const decimals = precision === 'thousandths' ? 3 : 2;
+  const padLen = decimals + 3;
+  const ss = secs.toFixed(decimals).padStart(padLen, '0');
   return `<${mm}:${ss}>`;
 }
 

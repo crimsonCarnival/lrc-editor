@@ -105,10 +105,16 @@ export function parseRubyMarkup(input) {
 /**
  * Serialize a words array back to {word|reading} markup for use in the edit input.
  * Words that carry a reading are wrapped in {word|reading}; others are plain text.
+ * Adds spaces after Latin/alphanumeric words to preserve original formatting.
  */
 export function serializeToRubyMarkup(words) {
   if (!words?.length) return '';
-  return words.map(w => (w.reading ? `{${w.word}|${w.reading}}` : w.word)).join('');
+  return words.map((w, i) => {
+    const serialized = w.reading ? `{${w.word}|${w.reading}}` : w.word;
+    // Add space after Latin/alphanumeric words (but not after the last word)
+    const needsSpace = i < words.length - 1 && /[a-zA-Z0-9]/.test(w.word);
+    return needsSpace ? serialized + ' ' : serialized;
+  }).join('');
 }
 
 
