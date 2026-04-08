@@ -55,6 +55,7 @@ export default function EditorToolbar({
   setRawText,
   setSyncMode,
   handleManualSave,
+  handleRemoveAllLyrics,
   isAutosaving,
   compact,
   overlappingLines,
@@ -244,11 +245,7 @@ export default function EditorToolbar({
                 <PopoverSeparator />
                 <PopoverItem
                   onClick={() => {
-                    requestConfirm(t('confirm.removeAll'), () => {
-                      setLines([]);
-                      setRawText('');
-                      setSyncMode(false);
-                    });
+                    requestConfirm(t('confirm.removeAll'), handleRemoveAllLyrics);
                   }}
                   className="text-red-400 hover:bg-red-500/10 hover:text-red-300"
                 >
@@ -521,11 +518,7 @@ export default function EditorToolbar({
               <PopoverSeparator className="bg-zinc-700/50" />
               <PopoverItem
                 onClick={() => {
-                  requestConfirm(t('confirm.removeAll'), () => {
-                    setLines([]);
-                    setRawText('');
-                    setSyncMode(false);
-                  });
+                  requestConfirm(t('confirm.removeAll'), handleRemoveAllLyrics);
                 }}
                 className="text-xs text-red-400 hover:bg-red-500/10 hover:text-red-300 cursor-pointer gap-2"
               >

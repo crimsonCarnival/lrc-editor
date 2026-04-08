@@ -24,6 +24,7 @@ export default function Editor({
   setEditorMode,
   onImport,
   handleManualSave,
+  handleRemoveAllLyrics,
   isAutosaving,
   compact,
 }) {
@@ -131,6 +132,7 @@ export default function Editor({
         setRawText={setRawText}
         setSyncMode={setSyncMode}
         handleManualSave={handleManualSave}
+        handleRemoveAllLyrics={handleRemoveAllLyrics}
         isAutosaving={isAutosaving}
         compact={compact}
         overlappingLines={overlappingLines}

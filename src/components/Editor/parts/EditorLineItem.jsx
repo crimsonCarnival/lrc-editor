@@ -299,7 +299,7 @@ const EditorLineItem = React.memo(({
       onDragOver={(e) => handleDragOver(e, i)}
       onDragEnd={handleDragEnd}
       onDrop={(e) => handleDrop(e, i)}
-      className={`flex items-center gap-2 sm:gap-3 px-3 py-2 rounded-lg transition-all duration-200 cursor-pointer group relative overflow-hidden ${selectedLines.has(i)
+      className={`flex ${editorMode === 'words' ? 'items-start' : 'items-center'} gap-2 sm:gap-3 px-3 py-2 rounded-lg transition-all duration-200 cursor-pointer group relative overflow-hidden ${selectedLines.has(i)
         ? 'bg-primary/15 border border-primary/40 ring-1 ring-primary/20'
         : isActive
           ? isLocked
@@ -323,7 +323,7 @@ const EditorLineItem = React.memo(({
       {/* Line number / checkbox */}
       {(settings.editor?.showLineNumbers ?? true) && (
         <div
-          className="w-5 shrink-0 flex items-center justify-center"
+          className={`w-5 shrink-0 flex ${editorMode === 'words' ? 'items-start pt-1' : 'items-center'} justify-center`}
           onClick={(e) => e.stopPropagation()}
         >
           {selectedLines.size > 0 ? (
@@ -340,7 +340,7 @@ const EditorLineItem = React.memo(({
         </div>
       )}
       <span
-        className={`text-xs font-mono tabular-nums shrink-0 transition-colors ${isSynced
+        className={`text-xs font-mono tabular-nums shrink-0 transition-colors ${editorMode === 'words' ? 'self-start pt-0.5' : ''} ${isSynced
           ? 'text-primary'
           : isActive
             ? 'text-zinc-400 animate-pulse-glow'
@@ -684,7 +684,7 @@ const EditorLineItem = React.memo(({
             />
           </div>
         ) : (
-          <div className="flex flex-col gap-0.5 group/text min-w-0 w-full">
+          <div className={`flex flex-col gap-0.5 group/text min-w-0 w-full ${editorMode === 'words' ? 'pt-0.5' : ''}`}>
             <div className="flex items-center gap-2">
               <p
                 className={`text-xs transition-colors ${editorMode !== 'words' && (line.words?.some(w => w.reading) || editingReadingWordIndex != null || inlineEditCharIdx != null) ? 'overflow-hidden' : 'truncate'} ${isActive
