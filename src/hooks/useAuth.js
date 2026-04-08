@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { auth, setAccessToken, clearAccessToken } from '../api';
+import { auth, spotify as spotifyApi, setAccessToken, clearAccessToken } from '../api';
 
 const ACCESS_TOKEN_KEY = 'lrc-syncer-access-token';
 const REFRESH_TOKEN_KEY = 'lrc-syncer-refresh-token';
@@ -124,5 +124,47 @@ export function useAuth() {
     return result;
   }, [scheduleRefresh]);
 
-  return { user, loading, login, register, logout: doLogout };
+  // ——— Spotify connect / disconnect ———
+
+  const connectSpotify = useCallback(async () => {
+    const { url } = await spotifyApi.getAuthUrl();
+    // Open Spotify auth in a popup — backend callback returns HTML that posts message back
+    const width = 500, height = 700;
+    const left = window.screenX + (window.outerWidth - width) / 2;
+    const top = window.screenY + (window.outerHeight - height) / 2;
+    const popup = window.open(url, 'spotify-auth', `width=${width},height=${height},left=${left},top=${top}`);
+
+    return new Promise((resolve, reject) => {
+      const onMessage = async (event) => {
+        let data = event.data;
+        if (typeof data === 'string') try { data = JSON.parse(data); } catch { return; }
+        if (data?.type !== 'spotify-callback') return;
+        window.removeEventListener('message', onMessage);
+        clearInterval(interval);
+
+        if (!data.success) { reject(new Error(data.error || 'Spotify connection failed')); return; }
+
+        // Refresh user to get updated spotify status
+        const me = await auth.me();
+        setUser(me.user);
+        resolve(me.user);
+      };
+      window.addEventListener('message', onMessage);
+      // Fallback: poll for popup close
+      const interval = setInterval(() => {
+        if (popup?.closed) {
+          clearInterval(interval);
+          window.removeEventListener('message', onMessage);
+        }
+      }, 500);
+    });
+  }, []);
+
+  const disconnectSpotify = useCallback(async () => {
+    await spotifyApi.disconnect();
+    const me = await auth.me();
+    setUser(me.user);
+  }, []);
+
+  return { user, setUser, loading, login, register, logout: doLogout, connectSpotify, disconnectSpotify };
 }

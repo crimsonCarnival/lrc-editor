@@ -104,7 +104,7 @@ export default function AuthPage() {
         <div className="absolute -bottom-40 left-1/3 w-96 h-96 bg-accent-blue/5 rounded-full blur-3xl" />
       </div>
 
-      <div className="relative z-10 w-full max-w-sm mx-auto px-4">
+      <div className="relative z-raised w-full max-w-sm mx-auto px-4">
         {/* Logo + title */}
         <div className="flex flex-col items-center mb-8">
           <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-accent-purple flex items-center justify-center shadow-lg shadow-primary/20 mb-4">
