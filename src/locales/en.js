@@ -35,7 +35,10 @@ export default {
       "loading": "Loading song...",
       "setLoop": "Loop current line",
       "loopActive": "Loop active",
-      "clearLoop": "Clear loop"
+      "clearLoop": "Clear loop",
+      "pasteSpotifyUrl": "Paste Spotify track URL...",
+      "spotifyPremiumRequired": "Spotify Premium required for playback",
+      "spotifyNotConnected": "Connect Spotify in Settings to play tracks"
     },
 
     "editor": {
@@ -170,6 +173,9 @@ export default {
       "shareFailed": "Could not copy link. Try saving manually.",
       "save": "Save",
       "saved": "Saved",
+      "saveFailed": "Failed to save",
+      "created": "Project created",
+      "createFailed": "Failed to create project",
       "readOnly": "Read only",
       "readOnlyDesc": "This is a view-only project. No edits will be saved.",
       "editCopy": "Edit your copy"
@@ -338,6 +344,21 @@ export default {
         "imageTooLarge": "Image must be less than 5MB"
       },
 
+      "spotify": {
+        "label": "Spotify",
+        "connect": "Connect Spotify",
+        "disconnect": "Disconnect",
+        "connected": "Connected",
+        "notConnected": "Not connected",
+        "premium": "Premium",
+        "free": "Free account",
+        "premiumRequired": "Spotify Premium is required for in-app playback",
+        "connectDesc": "Link your Spotify account to play tracks directly in the app",
+        "disconnectConfirm": "Disconnect your Spotify account?",
+        "connectFailed": "Failed to connect Spotify",
+        "disconnected": "Spotify disconnected"
+      },
+
       "playback": {
         "label": "Playback",
         "autoRewind": "Auto-rewind on pause",
@@ -396,7 +417,9 @@ export default {
         "downloadFormat": "Download format",
         "downloadFormatDesc": "File format used when downloading",
         "timestampPrecision": "Timestamp precision",
-        "timestampPrecisionDesc": "Decimal places in exported timestamps",
+        "timestampPrecisionDesc": "Decimal places in exported line timestamps",
+        "wordTimestampPrecision": "Word timestamp precision",
+        "wordTimestampPrecisionDesc": "Decimal places in exported word-level timestamps",
         "filenamePattern": "Default filename",
         "filenamePatternDesc": "How the export filename is pre-filled",
         "filenameFixed": "Fixed (\"lyrics\")",
@@ -404,7 +427,7 @@ export default {
         "lineEndings": "Line endings",
         "lineEndingsDesc": "Format for newlines in exported files",
         "stripEmptyLines": "Strip empty lines",
-        "stripEmptyLinesDesc": "Exclude lines with no text from exported files",
+        "stripEmptyLinesDesc": "Exclude lines with no text from exported files. Note: empty lines often serve as silence or pause markers in LRC.",
         "normalizeTimestamps": "Normalize timestamps",
         "normalizeTimestampsDesc": "Sort lines by timestamp order before exporting",
         "includeMetadata": "Include LRC metadata",
@@ -575,6 +598,7 @@ export default {
       "uploadAudioDesc": "Drop or click to load an audio file",
       "audioFormats": "MP3, WAV, FLAC, OGG and more",
       "orPasteUrl": "or paste a YouTube URL",
+      "orSpotify": "or Spotify",
       "pasteLyrics": "Paste lyrics",
       "pasteLyricsDesc": "Type or paste your lyrics here, one line per line...",
       "importFile": "Import file",
@@ -606,7 +630,9 @@ export default {
       "selectMedia": "Select",
       "deleteMedia": "Remove",
       "uploadNew": "Upload new",
-      "viewAll": "View all"
+      "viewAll": "View all",
+      "local": "Local file",
+      "cloud": "Cloud"
     },
 
     "uploads": {
@@ -615,7 +641,54 @@ export default {
       "empty": "No uploads yet",
       "emptyHint": "Upload audio files or link YouTube URLs to see them here",
       "untitled": "Untitled",
-      "selectFromUploads": "Select from uploads"
+      "selectFromUploads": "Select from uploads",
+      "titleRequired": "Title is required",
+      "titleUpdated": "Title updated",
+      "updateFailed": "Failed to update title"
+    },
+
+    "spotify": {
+      "browse": "Browse Spotify",
+      "browseLibrary": "Browse your Spotify library…",
+      "pasteUrl": "Paste URL instead",
+      "search": "Search",
+      "searchPlaceholder": "Search for a song…",
+      "searchHint": "Type to search the Spotify catalog",
+      "recentlyPlayed": "Recent",
+      "topTracks": "Top Tracks",
+      "savedTracks": "Saved",
+      "playlists": "Playlists",
+      "devices": "Devices",
+      "noTracks": "No tracks found",
+      "noDevices": "No devices found. Open Spotify on a device first.",
+      "noPlaylists": "No playlists yet",
+      "useTrack": "Use this track",
+      "addToQueue": "Add to queue",
+      "saveToLibrary": "Save to library",
+      "removeFromLibrary": "Remove from library",
+      "activeDevice": "Active",
+      "transfer": "Transfer",
+      "createPlaylist": "Create playlist",
+      "playlistName": "Playlist name…",
+      "connectPrompt": "Connect Spotify in Settings to browse your library",
+      "scopeError": "Spotify permissions outdated. Please disconnect and reconnect Spotify in Settings to enable all features.",
+      "lastMonth": "Last month",
+      "last6Months": "Last 6 months",
+      "allTime": "All time",
+      "prev": "Prev",
+      "next": "Next",
+      "syncNowPlaying": "Sync what's playing",
+      "syncing": "Syncing…",
+      "nothingPlaying": "Nothing is currently playing on Spotify",
+      "syncFailed": "Could not fetch currently playing track",
+      "addedToQueue": "Added to queue",
+      "savedToLibrary": "Saved to library",
+      "removedFromLibrary": "Removed from library",
+      "playlistCreated": "Playlist created",
+      "exportToPlaylist": "Export to playlist",
+      "exportFailed": "Failed to create playlist",
+      "importAll": "Import all",
+      "bulkImported": "{{count}} tracks imported to library"
     }
   }
 };

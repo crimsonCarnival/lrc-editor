@@ -35,7 +35,10 @@ export default {
       "loading": "Cargando tu canción..",
       "setLoop": "Repetir línea actual",
       "loopActive": "Repetición activa",
-      "clearLoop": "Quitar repetición"
+      "clearLoop": "Quitar repetición",
+      "pasteSpotifyUrl": "Pega la URL de una pista de Spotify...",
+      "spotifyPremiumRequired": "Se necesita Spotify Premium para reproducir",
+      "spotifyNotConnected": "Conecta Spotify en Ajustes para reproducir pistas"
     },
 
     "editor": {
@@ -170,6 +173,9 @@ export default {
       "shareFailed": "No se pudo copiar el enlace. Intenta guardar manualmente.",
       "save": "Guardar",
       "saved": "Guardado",
+      "saveFailed": "Error al guardar",
+      "created": "Sesión creada",
+      "createFailed": "Error al crear la sesión",
       "readOnly": "Solo lectura",
       "readOnlyDesc": "Esta es una sesión de solo lectura. No se guardarán cambios.",
       "editCopy": "Editar tu copia"
@@ -338,6 +344,21 @@ export default {
         "imageTooLarge": "La imagen debe ser menor de 5MB"
       },
 
+      "spotify": {
+        "label": "Spotify",
+        "connect": "Conectar Spotify",
+        "disconnect": "Desconectar",
+        "connected": "Conectado",
+        "notConnected": "No conectado",
+        "premium": "Premium",
+        "free": "Cuenta gratuita",
+        "premiumRequired": "Se requiere Spotify Premium para reproducir en la app",
+        "connectDesc": "Vincula tu cuenta de Spotify para reproducir pistas directamente en la app",
+        "disconnectConfirm": "¿Desconectar tu cuenta de Spotify?",
+        "connectFailed": "Error al conectar Spotify",
+        "disconnected": "Spotify desconectado"
+      },
+
       "playback": {
         "label": "Reproducción",
         "autoRewind": "Rebobinar automáticamente",
@@ -396,7 +417,9 @@ export default {
         "downloadFormat": "Formato de descarga",
         "downloadFormatDesc": "Formato al descargar archivo",
         "timestampPrecision": "Precisión de tiempo",
-        "timestampPrecisionDesc": "Decimales en las marcas de tiempo exportadas",
+        "timestampPrecisionDesc": "Decimales en las marcas de tiempo de línea exportadas",
+        "wordTimestampPrecision": "Precisión de tiempo de palabras",
+        "wordTimestampPrecisionDesc": "Decimales en las marcas de tiempo de palabras exportadas",
         "filenamePattern": "Nombre de archivo",
         "filenamePatternDesc": "Cómo se completa el nombre de archivo",
         "filenameFixed": "Fijo (\"lyrics\")",
@@ -404,7 +427,7 @@ export default {
         "lineEndings": "Finales de línea",
         "lineEndingsDesc": "Formato para nuevas líneas en archivos exportados",
         "stripEmptyLines": "Eliminar líneas vacías",
-        "stripEmptyLinesDesc": "Excluir líneas sin texto de los archivos exportados",
+        "stripEmptyLinesDesc": "Excluir líneas sin texto de los archivos exportados. Nota: las líneas vacías suelen servir como marcadores de silencio o pausa en LRC.",
         "normalizeTimestamps": "Normalizar tiempos",
         "normalizeTimestampsDesc": "Ordenar las líneas por marca de tiempo antes de exportar",
         "includeMetadata": "Incluir metadatos LRC",
@@ -575,6 +598,7 @@ export default {
       "uploadAudioDesc": "Arrastra o haz clic para cargar un archivo de audio",
       "audioFormats": "MP3, WAV, FLAC, OGG y más",
       "orPasteUrl": "o pega una URL de YouTube",
+      "orSpotify": "o Spotify",
       "pasteLyrics": "Pegar letras",
       "pasteLyricsDesc": "Escribe o pega la letra aquí, una línea por línea...",
       "importFile": "Importar archivo",
@@ -606,7 +630,9 @@ export default {
       "selectMedia": "Seleccionar",
       "deleteMedia": "Eliminar",
       "uploadNew": "Subir nuevo",
-      "viewAll": "Ver todo"
+      "viewAll": "Ver todo",
+      "local": "Archivo local",
+      "cloud": "Nube"
     },
 
     "uploads": {
@@ -615,7 +641,54 @@ export default {
       "empty": "No hay subidas aún",
       "emptyHint": "Sube archivos de audio o enlaza URLs de YouTube para verlos aquí",
       "untitled": "Sin título",
-      "selectFromUploads": "Seleccionar de subidas"
+      "selectFromUploads": "Seleccionar de subidas",
+      "titleRequired": "El título es obligatorio",
+      "titleUpdated": "Título actualizado",
+      "updateFailed": "Error al actualizar el título"
+    },
+
+    "spotify": {
+      "browse": "Explorar Spotify",
+      "browseLibrary": "Explorar tu biblioteca de Spotify…",
+      "pasteUrl": "Pegar URL",
+      "search": "Buscar",
+      "searchPlaceholder": "Buscar una canción…",
+      "searchHint": "Escribe para buscar en el catálogo de Spotify",
+      "recentlyPlayed": "Recientes",
+      "topTracks": "Top",
+      "savedTracks": "Guardadas",
+      "playlists": "Playlists",
+      "devices": "Dispositivos",
+      "noTracks": "No se encontraron pistas",
+      "noDevices": "No se encontraron dispositivos. Abre Spotify en un dispositivo primero.",
+      "noPlaylists": "No hay playlists aún",
+      "useTrack": "Usar esta pista",
+      "addToQueue": "Añadir a la cola",
+      "saveToLibrary": "Guardar en biblioteca",
+      "removeFromLibrary": "Quitar de biblioteca",
+      "activeDevice": "Activo",
+      "transfer": "Transferir",
+      "createPlaylist": "Crear playlist",
+      "playlistName": "Nombre de la playlist…",
+      "connectPrompt": "Conecta Spotify en Ajustes para explorar tu biblioteca",
+      "scopeError": "Permisos de Spotify desactualizados. Desconecta y vuelve a conectar Spotify en Ajustes para habilitar todas las funciones.",
+      "lastMonth": "Último mes",
+      "last6Months": "Últimos 6 meses",
+      "allTime": "Todo el tiempo",
+      "prev": "Anterior",
+      "next": "Siguiente",
+      "syncNowPlaying": "Sincronizar lo que suena",
+      "syncing": "Sincronizando…",
+      "nothingPlaying": "No se está reproduciendo nada en Spotify",
+      "syncFailed": "No se pudo obtener la pista actual",
+      "addedToQueue": "Añadido a la cola",
+      "savedToLibrary": "Guardado en biblioteca",
+      "removedFromLibrary": "Quitado de biblioteca",
+      "playlistCreated": "Playlist creada",
+      "exportToPlaylist": "Exportar a playlist",
+      "exportFailed": "No se pudo crear la playlist",
+      "importAll": "Importar todo",
+      "bulkImported": "{{count}} pistas importadas a la biblioteca"
     }
   }
 };
