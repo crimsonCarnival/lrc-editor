@@ -55,8 +55,8 @@ export function Section({ title, icon: Icon, children, searchTerm }) {
   if (searchTerm && !filteredChildren?.some(Boolean)) return null;
 
   return (
-    <div className={`mb-5 ${searchTerm ? 'animate-fade-in' : ''}`}>
-      <h4 className="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-2 px-1 flex items-center gap-1.5">
+    <div className={`flex flex-col min-h-0 mb-5 ${searchTerm ? 'animate-fade-in' : ''}`}>
+      <h4 className="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-3 px-1 flex items-center gap-1.5 flex-shrink-0">
         {Icon && <Icon className="w-3.5 h-3.5" />}
         {title}
       </h4>
