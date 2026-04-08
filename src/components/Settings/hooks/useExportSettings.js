@@ -9,6 +9,9 @@ export function useExportSettings(updateSetting) {
   const handleTimestampPrecisionChange = (e) =>
     updateSetting('export.timestampPrecision', e.target.value);
 
+  const handleWordTimestampPrecisionChange = (e) =>
+    updateSetting('export.wordTimestampPrecision', e.target.value);
+
   const handleFilenamePatternChange = (e) =>
     updateSetting('export.defaultFilenamePattern', e.target.value);
 
@@ -17,6 +20,7 @@ export function useExportSettings(updateSetting) {
     handleCopyFormatChange,
     handleDownloadFormatChange,
     handleTimestampPrecisionChange,
+    handleWordTimestampPrecisionChange,
     handleFilenamePatternChange,
   };
 }

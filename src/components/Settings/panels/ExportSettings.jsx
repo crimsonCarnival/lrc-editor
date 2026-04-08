@@ -11,6 +11,7 @@ export default function ExportSettings({ settings, updateSetting, searchTerm }) 
     handleCopyFormatChange,
     handleDownloadFormatChange,
     handleTimestampPrecisionChange,
+    handleWordTimestampPrecisionChange,
     handleFilenamePatternChange,
   } = useExportSettings(updateSetting);
 
@@ -62,6 +63,20 @@ export default function ExportSettings({ settings, updateSetting, searchTerm }) 
         <Select
           value={settings.export?.timestampPrecision ?? 'hundredths'}
           onValueChange={(val) => handleTimestampPrecisionChange({ target: { value: val } })}
+        >
+          <SelectTrigger className="bg-zinc-900 border-zinc-700 text-xs text-zinc-200 focus:border-primary/50 h-8 w-auto">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="bg-zinc-900 border-zinc-700">
+            <SelectItem value="hundredths">{t('settings.options.precision.hundredths')}</SelectItem>
+            <SelectItem value="thousandths">{t('settings.options.precision.thousandths')}</SelectItem>
+          </SelectContent>
+        </Select>
+      </SettingRow>
+      <SettingRow icon={Clock} label={t('settings.export.wordTimestampPrecision')} description={t('settings.export.wordTimestampPrecisionDesc')}>
+        <Select
+          value={settings.export?.wordTimestampPrecision ?? 'hundredths'}
+          onValueChange={(val) => handleWordTimestampPrecisionChange({ target: { value: val } })}
         >
           <SelectTrigger className="bg-zinc-900 border-zinc-700 text-xs text-zinc-200 focus:border-primary/50 h-8 w-auto">
             <SelectValue />
