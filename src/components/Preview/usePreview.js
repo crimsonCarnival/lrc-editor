@@ -224,6 +224,7 @@ export function usePreview({ lines, setLines, playbackPosition, playerRef, durat
           metadata: filteredMetadata,
           lineEndings: settings.export?.lineEndings,
           includeSecondary,
+          wordPrecision: settings.export?.wordTimestampPrecision,
         });
         content = result.output;
         downloadLRC(content, `${name}.lrc`);
@@ -263,6 +264,7 @@ export function usePreview({ lines, setLines, playbackPosition, playerRef, durat
           metadata: filteredMetadata,
           lineEndings: settings.export?.lineEndings,
           includeSecondary,
+          wordPrecision: settings.export?.wordTimestampPrecision,
         });
         content = result.output;
       }
