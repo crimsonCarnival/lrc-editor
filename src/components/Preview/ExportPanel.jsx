@@ -1,10 +1,14 @@
-﻿import { useRef, useEffect } from 'react';
+﻿import { useRef, useEffect, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSettings } from '../../contexts/useSettings';
+import { useAuthContext } from '../../contexts/useAuthContext';
+import { spotify as spotifyApi, getAccessToken } from '../../api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import SpotifyIcon from '../shared/SpotifyIcon';
+import toast from 'react-hot-toast';
 
 export default function ExportPanel({
   showExportPanel,
@@ -31,7 +35,10 @@ export default function ExportPanel({
 }) {
   const { t } = useTranslation();
   const { settings } = useSettings();
+  const { user } = useAuthContext();
   const exportPanelRef = useRef(null);
+  const [playlistName, setPlaylistName] = useState('');
+  const [exportingPlaylist, setExportingPlaylist] = useState(false);
 
   useEffect(() => {
     if (!showExportPanel) return;
@@ -47,6 +54,23 @@ export default function ExportPanel({
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [showExportPanel, setShowExportPanel]);
+
+  const isSpotifyConnected = !!(getAccessToken() && user?.spotify?.spotifyId);
+
+  const handleExportToPlaylist = useCallback(async () => {
+    const name = playlistName.trim() || metadata?.ti || exportFilename || 'Lyrics Syncer';
+    setExportingPlaylist(true);
+    try {
+      const { id: playlistId } = await spotifyApi.createPlaylist(name);
+      toast.success(t('spotify.playlistCreated'));
+      setPlaylistName('');
+      return playlistId;
+    } catch {
+      toast.error(t('spotify.exportFailed') || 'Failed to create playlist');
+    } finally {
+      setExportingPlaylist(false);
+    }
+  }, [playlistName, metadata, exportFilename, t]);
 
   if (!showExportPanel) return null;
 
@@ -219,6 +243,32 @@ export default function ExportPanel({
             </p>
           )}
         </div>
+
+        {/* Spotify playlist export */}
+        {isSpotifyConnected && (
+          <div className="space-y-2 pt-2 border-t border-zinc-700/50">
+            <span className="text-xs text-green-400 font-medium flex items-center gap-1.5">
+              <SpotifyIcon className="w-3.5 h-3.5" />
+              {t('spotify.exportToPlaylist')}
+            </span>
+            <div className="flex gap-2">
+              <Input
+                type="text"
+                value={playlistName}
+                onChange={(e) => setPlaylistName(e.target.value)}
+                placeholder={metadata?.ti || exportFilename || t('spotify.playlistName')}
+                className="flex-1 bg-zinc-900 border-zinc-700 text-xs text-zinc-100 placeholder-zinc-600 h-8 focus-visible:border-green-500/50"
+              />
+              <Button
+                onClick={handleExportToPlaylist}
+                disabled={exportingPlaylist}
+                className="px-3 bg-green-600 hover:bg-green-500 text-white text-xs font-medium h-8 shrink-0 disabled:opacity-50"
+              >
+                {exportingPlaylist ? '…' : t('spotify.createPlaylist')}
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Sticky buttons at bottom */}
