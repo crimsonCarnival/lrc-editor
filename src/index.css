@@ -56,7 +56,10 @@
   /* ── Z-index scale ── */
   --z-base: 0;
   --z-raised: 10;
-  --z-sticky: 50;
+  --z-player: 40;
+  --z-nav: 50;
+  --z-mobile-overlay: 60;
+  --z-sticky: 100;
   --z-modal-backdrop: 9990;
   --z-modal: 9991;
   --z-popover: 9995;
@@ -388,6 +391,26 @@ audio::-webkit-media-controls-panel {
 }
 
 .speed-menu-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 9999px;
+}
+
+/* Thin scrollbar utility */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  display: block;
+  width: 4px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.15);
   border-radius: 9999px;
 }
