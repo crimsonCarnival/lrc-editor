@@ -61,6 +61,7 @@ function AppInner() {
     triggerImportSave,
     handleRestoreProject,
     handleDiscardProject,
+    handleRemoveAllLyrics,
     handleMediaChange,
     handleTimeUpdate,
     handleDurationChange,
@@ -79,6 +80,8 @@ function AppInner() {
     hasMedia,
     loadProject,
     activeProjectId,
+    projectMetadata,
+    setProjectMetadata,
     handleCloudinaryUpload,
   } = useAppState();
 
@@ -109,8 +112,6 @@ function AppInner() {
     return 'setup';
   });
   const [projectName, setProjectName] = useState('');
-  const [_projectDescription, setProjectDescription] = useState('');
-  const [_projectTags, setProjectTags] = useState([]);
   const [projectCoverUrl, setProjectCoverUrl] = useState('');
   const [_projectCoverPublicId, setProjectCoverPublicId] = useState('');
   const [pendingSetupData, setPendingSetupData] = useState(null);
@@ -139,13 +140,12 @@ function AppInner() {
       setSyncMode(true);
     }
     setProjectName(name || mediaTitle || '');
-    setProjectDescription(description || '');
-    setProjectTags(tags || []);
+    setProjectMetadata({ description: description || '', tags: tags || [] });
     setProjectCoverUrl(coverUrl || '');
     setProjectCoverPublicId(coverPublicId || '');
     setSetupPhase('ready');
     setPendingSetupData(null);
-  }, [pendingSetupData, setLines, setEditorMode, setSyncMode, mediaTitle]);
+  }, [pendingSetupData, setLines, setEditorMode, setSyncMode, mediaTitle, setProjectMetadata]);
 
   // Reset hideEditor when all lines are removed
   if (lines.length === 0 && hideEditor) {
@@ -410,7 +410,7 @@ function AppInner() {
         </div>
       </header>
 
-      <div className={`relative z-raised max-w-7xl mx-auto w-full flex-1 min-h-0 px-2 sm:px-4 lg:px-6 lg:pb-4 flex flex-col ${setupPhase === 'ready' ? 'max-lg:pb-[144px]' : ''}`}>
+      <div className={`relative z-base max-w-7xl mx-auto w-full flex-1 min-h-0 px-2 sm:px-4 lg:px-6 lg:pb-4 flex flex-col ${setupPhase === 'ready' ? 'max-lg:pb-[144px]' : ''}`}>
         {showUploads ? (
           <Suspense fallback={
             <div className="glass rounded-xl sm:rounded-2xl p-5 flex-1">
@@ -442,6 +442,7 @@ function AppInner() {
               onComplete={handleSetupComplete} 
               playerRef={playerRef} 
               onShowAllUploads={() => setShowUploads(true)}
+              onOpenSettings={() => setShowSettings(true)}
             />
           </Suspense>
         ) : showLibrary ? (
@@ -460,12 +461,12 @@ function AppInner() {
           </Suspense>
         ) : (
         /* Main content grid */
-        <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-2 sm:gap-3 lg:gap-4 min-h-0 lg:overflow-hidden max-lg:overflow-visible transition-all duration-300">
+        <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-2 sm:gap-3 lg:gap-4 min-h-0 overflow-visible transition-all duration-300">
           {/* Left: Editor */}
           {showEditor && (
             <div className={`${editorColClass} relative flex flex-col gap-2 sm:gap-3 lg:gap-4 min-h-0 max-lg:h-full transition-all duration-300 ${mobileTab !== 'editor' ? 'max-lg:hidden' : ''}`}>
               {isSharedProject && sharedReadOnly && (
-                <div className="absolute inset-0 z-10 rounded-xl sm:rounded-2xl backdrop-blur-[3px] bg-zinc-950/60 flex flex-col items-center justify-center gap-3">
+                <div className="absolute inset-0 z-raised rounded-xl sm:rounded-2xl backdrop-blur-[3px] bg-zinc-950/60 flex flex-col items-center justify-center gap-3">
                   <div className="flex items-center gap-2 px-4 py-2.5 bg-zinc-900/95 border border-zinc-700/80 rounded-xl shadow-lg">
                     <Lock className="w-4 h-4 text-amber-400" />
                     <span className="text-sm font-semibold text-zinc-100">{t('project.readOnly')}</span>
@@ -502,6 +503,7 @@ function AppInner() {
                   duration={duration}
                   onImport={triggerImportSave}
                   handleManualSave={handleManualSave}
+                  handleRemoveAllLyrics={handleRemoveAllLyrics}
                   isAutosaving={isAutosaving}
                   compact={false}
                 />
@@ -544,7 +546,7 @@ function AppInner() {
           Mobile:  fixed compact bar above the tab bar — compact layout
                    shows seekbar + finger-friendly action row.
           Hidden during setup phase but kept mounted for playerRef. ── */}
-      <div className={`lg:relative lg:z-raised lg:w-full lg:border-t lg:border-zinc-700/50 lg:bg-zinc-900/80 lg:backdrop-blur-md lg:shadow-[0_-4px_24px_rgba(0,0,0,0.3)] max-lg:fixed max-lg:inset-x-0 max-lg:bottom-14 max-lg:z-30 ${setupPhase !== 'ready' ? 'hidden' : ''}`}>
+      <div className={`lg:relative lg:z-raised lg:w-full lg:border-t lg:border-zinc-700/50 lg:bg-zinc-900/80 lg:backdrop-blur-md lg:shadow-[0_-4px_24px_rgba(0,0,0,0.3)] max-lg:fixed max-lg:inset-x-0 max-lg:bottom-14 max-lg:z-player ${setupPhase !== 'ready' ? 'hidden' : ''}`}>
         <div className="max-w-7xl mx-auto max-lg:p-0 lg:px-6 lg:py-3">
           <Player
             ref={playerRef}
@@ -567,7 +569,7 @@ function AppInner() {
 
       {/* ── Mobile: Bottom tab bar ── */}
       {setupPhase === 'ready' && (
-      <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 h-14 bg-zinc-900/95 backdrop-blur-md border-t border-zinc-700/50 flex items-stretch pb-safe">
+      <nav className="lg:hidden fixed bottom-0 inset-x-0 z-nav h-14 bg-zinc-900/95 backdrop-blur-md border-t border-zinc-700/50 flex items-stretch pb-safe">
         {[
           { id: 'editor',  label: t('app.tab.editor', 'Editor'),  Icon: LayoutList },
           { id: 'preview', label: t('app.tab.preview', 'Preview'), Icon: Eye },
@@ -665,7 +667,7 @@ function AppInner() {
 
       {/* Autosave indicator */}
       {isAutosaving && (
-        <div className="fixed bottom-4 right-4 z-50 flex items-center gap-2 px-3 py-1.5 rounded-lg shadow-lg animate-fade-in">
+        <div className="fixed bottom-4 right-4 z-sticky flex items-center gap-2 px-3 py-1.5 rounded-lg shadow-lg animate-fade-in">
           <svg className="w-3.5 h-3.5 text-primary animate-spin" fill="none" viewBox="0 0 24 24">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
