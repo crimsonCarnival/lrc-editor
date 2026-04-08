@@ -21,6 +21,9 @@ export default {
       zIndex: {
         'base': 'var(--z-base)',
         'raised': 'var(--z-raised)',
+        'player': 'var(--z-player)',
+        'nav': 'var(--z-nav)',
+        'mobile-overlay': 'var(--z-mobile-overlay)',
         'sticky': 'var(--z-sticky)',
         'modal-backdrop': 'var(--z-modal-backdrop)',
         'modal': 'var(--z-modal)',
