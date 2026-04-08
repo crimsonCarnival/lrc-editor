@@ -4,15 +4,19 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { FolderOpen, Music2, FileText, Upload, Check, ArrowRight, Trash2, Video, Cloud } from 'lucide-react';
-import { lyrics as lyricsApi, uploads as uploadsApi, getAccessToken } from '../../api';
+import { lyrics as lyricsApi, uploads as uploadsApi, spotify as spotifyApi, getAccessToken } from '../../api';
 import { formatTime } from '../../utils/formatTime';
 import { SkeletonMediaItem } from '@/components/ui/skeleton';
+import SpotifyBrowser from '../Player/SpotifyBrowser';
+import SpotifyIcon from '../shared/SpotifyIcon';
+import { useAuthContext } from '../../contexts/useAuthContext';
 import toast from 'react-hot-toast';
 
 const MAX_IMPORT_FILE_SIZE = 5 * 1024 * 1024;
 
-export default function SetupScreen({ onComplete, playerRef, onShowAllUploads }) {
+export default function SetupScreen({ onComplete, playerRef, onShowAllUploads, onOpenSettings }) {
   const { t } = useTranslation();
+  const { user } = useAuthContext();
   const audioInputRef = useRef(null);
   const lyricsInputRef = useRef(null);
 
@@ -22,6 +26,8 @@ export default function SetupScreen({ onComplete, playerRef, onShowAllUploads })
   const [ytUrl, setYtUrl] = useState('');
   const [ytLoading, setYtLoading] = useState(false);
   const [selectedUpload, setSelectedUpload] = useState(null);
+  const [showSpotifyBrowser, setShowSpotifyBrowser] = useState(false);
+  const [audioSource, setAudioSource] = useState(null); // 'local' | 'youtube' | 'spotify' | 'cloud'
 
   // Media library state
   const [mediaUploads, setMediaUploads] = useState([]);
@@ -65,6 +71,7 @@ export default function SetupScreen({ onComplete, playerRef, onShowAllUploads })
     }
     setAudioName(file.name);
     setAudioReady(true);
+    setAudioSource('local');
     setSelectedUpload(null);
     // Record will be saved after Cloudinary upload completes (via onCloudinaryUpload in Player)
   };
@@ -77,13 +84,13 @@ export default function SetupScreen({ onComplete, playerRef, onShowAllUploads })
     }
     setAudioName(ytUrl.trim());
     setAudioReady(true);
+    setAudioSource('youtube');
     setSelectedUpload(null);
     setYtLoading(false);
-    // Save YouTube URL as a media record
+    // Save YouTube URL as a media record (title will be auto-fetched by backend)
     saveUploadRecord({
       source: 'youtube',
       youtubeUrl: ytUrl.trim(),
-      title: ytUrl.trim(),
       fileName: '',
     });
   };
@@ -92,6 +99,7 @@ export default function SetupScreen({ onComplete, playerRef, onShowAllUploads })
     setSelectedUpload(upload);
     setAudioName(upload.title || upload.fileName || upload.youtubeUrl || 'Media');
     setAudioReady(true);
+    setAudioSource(upload.source === 'youtube' ? 'youtube' : upload.source === 'spotify' ? 'spotify' : 'cloud');
 
     if (upload.source === 'youtube' && upload.youtubeUrl) {
       setYtUrl(upload.youtubeUrl);
@@ -136,6 +144,32 @@ export default function SetupScreen({ onComplete, playerRef, onShowAllUploads })
       handleLoadYt();
     }
   };
+
+  const handleSpotifyBrowserSelect = useCallback(async (track) => {
+    setShowSpotifyBrowser(false);
+    if (playerRef.current?.loadSpotify) {
+      playerRef.current.loadSpotify(track.trackId, track.title || track.name || '', false);
+    } else if (playerRef.current?.playTrack) {
+      playerRef.current.playTrack(track.trackId, track.title || track.name || '', false);
+    }
+    setAudioName(track.title || track.name || 'Spotify track');
+    setAudioReady(true);
+    setAudioSource('spotify');
+    setSelectedUpload(null);
+
+    // Save to uploads library
+    if (getAccessToken()) {
+      try {
+        await spotifyApi.createUpload(`spotify:track:${track.trackId}`);
+        // Refresh uploads list
+        const { uploads } = await uploadsApi.listMedia();
+        setMediaUploads(uploads || []);
+      } catch (err) {
+        // Silent fail - don't interrupt the user flow
+        console.error('Failed to save Spotify track to uploads:', err);
+      }
+    }
+  }, [playerRef]);
 
   // ── Lyrics handlers ──
 
@@ -188,21 +222,21 @@ export default function SetupScreen({ onComplete, playerRef, onShowAllUploads })
   };
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center px-4 py-8 animate-fade-in">
-      <div className="w-full max-w-3xl">
+    <div className="flex-1 flex flex-col px-4 py-4 sm:py-6 animate-fade-in overflow-hidden">
+      <div className="w-full max-w-3xl mx-auto flex flex-col">
         {/* Title */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-accent-purple shadow-lg shadow-primary/20 mb-4">
-            <Music2 className="w-7 h-7 text-white" />
+        <div className="text-center mb-4 sm:mb-6">
+          <div className="inline-flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br from-primary to-accent-purple shadow-lg shadow-primary/20 mb-3">
+            <Music2 className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
           </div>
-          <h2 className="text-2xl font-bold text-zinc-100 tracking-tight">{t('setup.title')}</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-zinc-100 tracking-tight">{t('setup.title')}</h2>
         </div>
 
         {/* Two panels side by side */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 max-h-[calc(100vh-280px)] md:max-h-[calc(100vh-220px)]">
           {/* ── Audio Panel ── */}
-          <div className="glass rounded-2xl p-5 flex flex-col gap-4">
-            <div className="flex items-center gap-2 text-sm font-semibold text-zinc-200">
+          <div className="glass rounded-2xl p-4 sm:p-5 flex flex-col gap-3 min-h-0 overflow-hidden">
+            <div className="flex items-center gap-2 text-sm font-semibold text-zinc-200 flex-shrink-0">
               <Music2 className="w-4 h-4 text-primary" />
               {t('setup.uploadAudio')}
             </div>
@@ -214,17 +248,33 @@ export default function SetupScreen({ onComplete, playerRef, onShowAllUploads })
                 </div>
                 <p className="text-sm font-medium text-zinc-200">{t('setup.audioReady')}</p>
                 <p className="text-xs text-zinc-500 truncate max-w-full px-2">{audioName}</p>
+                {audioSource && (
+                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                    audioSource === 'spotify' ? 'bg-green-500/15 text-green-400'
+                    : audioSource === 'youtube' ? 'bg-red-500/15 text-red-400'
+                    : 'bg-zinc-700/50 text-zinc-400'
+                  }`}>
+                    {audioSource === 'spotify' && <SpotifyIcon className="w-3 h-3" />}
+                    {audioSource === 'youtube' && <Video className="w-3 h-3" />}
+                    {audioSource === 'local' && <FolderOpen className="w-3 h-3" />}
+                    {audioSource === 'cloud' && <Cloud className="w-3 h-3" />}
+                    {audioSource === 'spotify' ? 'Spotify'
+                      : audioSource === 'youtube' ? 'YouTube'
+                      : audioSource === 'local' ? t('setup.local') || 'Local'
+                      : t('setup.cloud') || 'Cloud'}
+                  </span>
+                )}
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => { setAudioReady(false); setAudioName(''); setYtUrl(''); setSelectedUpload(null); }}
+                  onClick={() => { setAudioReady(false); setAudioName(''); setYtUrl(''); setSelectedUpload(null); setAudioSource(null); }}
                   className="text-xs text-zinc-500 hover:text-zinc-300"
                 >
                   {t('setup.changeAudio')}
                 </Button>
               </div>
             ) : (
-              <div className="flex-1 flex flex-col gap-3">
+              <div className="flex-1 flex flex-col gap-2.5 min-h-0 overflow-y-auto pr-1 scrollbar-thin">
                 {/* Your media library */}
                 {mediaLoading ? (
                   <div className="flex flex-col gap-2">
@@ -240,7 +290,7 @@ export default function SetupScreen({ onComplete, playerRef, onShowAllUploads })
                   <div className="flex flex-col gap-2">
                     <div className="flex items-center justify-between">
                       <span className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">{t('setup.yourMedia')}</span>
-                      {mediaUploads.length > 3 && onShowAllUploads && (
+                      {mediaUploads.length > 2 && onShowAllUploads && (
                         <button
                           onClick={onShowAllUploads}
                           className="text-[10px] font-medium text-primary hover:text-primary/80 transition-colors uppercase tracking-wider"
@@ -249,8 +299,8 @@ export default function SetupScreen({ onComplete, playerRef, onShowAllUploads })
                         </button>
                       )}
                     </div>
-                    <div className="flex flex-col gap-1 max-h-[140px] overflow-y-auto pr-1 scrollbar-thin">
-                      {mediaUploads.slice(0, 3).map((upload) => (
+                    <div className="flex flex-col gap-1 max-h-[120px] overflow-y-auto pr-1 scrollbar-thin">
+                      {mediaUploads.slice(0, 2).map((upload) => (
                         <div
                           key={upload.id}
                           role="button"
@@ -259,12 +309,24 @@ export default function SetupScreen({ onComplete, playerRef, onShowAllUploads })
                           onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleSelectUpload(upload); } }}
                           className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg border border-zinc-700/40 hover:border-primary/40 hover:bg-zinc-800/60 transition-all group text-left w-full cursor-pointer"
                         >
-                          <div className="w-7 h-7 rounded-md bg-zinc-800 border border-zinc-700/60 flex items-center justify-center shrink-0 group-hover:border-primary/40 transition-colors">
-                            {upload.source === 'youtube' ? (
-                              <Video className="w-3.5 h-3.5 text-red-400" />
-                            ) : (
-                              <Cloud className="w-3.5 h-3.5 text-zinc-400 group-hover:text-primary transition-colors" />
-                            )}
+                          <div className="w-7 h-7 rounded-md bg-zinc-800 border border-zinc-700/60 flex items-center justify-center shrink-0 group-hover:border-primary/40 transition-colors overflow-hidden">
+                            {upload.thumbnailUrl ? (
+                              <img 
+                                src={upload.thumbnailUrl} 
+                                alt={upload.title || 'Thumbnail'} 
+                                className="w-full h-full object-cover"
+                                onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+                              />
+                            ) : null}
+                            <div className={upload.thumbnailUrl ? 'hidden' : 'flex'} style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
+                              {upload.source === 'youtube' ? (
+                                <Video className="w-3.5 h-3.5 text-red-400" />
+                              ) : upload.source === 'spotify' ? (
+                                <SpotifyIcon className="w-3.5 h-3.5 text-green-400" />
+                              ) : (
+                                <Cloud className="w-3.5 h-3.5 text-zinc-400 group-hover:text-primary transition-colors" />
+                              )}
+                            </div>
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-xs font-medium text-zinc-300 group-hover:text-zinc-100 truncate transition-colors">
@@ -295,7 +357,7 @@ export default function SetupScreen({ onComplete, playerRef, onShowAllUploads })
                 {/* File upload */}
                 <label
                   htmlFor="setup-audio-input"
-                  className="flex items-center gap-3 px-3 py-4 cursor-pointer group transition-colors rounded-xl border-2 border-dashed border-zinc-700/60 hover:border-primary/40 hover:bg-zinc-800/40"
+                  className="flex items-center gap-2.5 px-3 py-3 cursor-pointer group transition-colors rounded-xl border-2 border-dashed border-zinc-700/60 hover:border-primary/40 hover:bg-zinc-800/40"
                   onDragOver={(e) => e.preventDefault()}
                   onDrop={(e) => {
                     e.preventDefault();
@@ -305,8 +367,8 @@ export default function SetupScreen({ onComplete, playerRef, onShowAllUploads })
                     }
                   }}
                 >
-                  <div className="w-8 h-8 rounded-lg bg-zinc-800 border border-zinc-700/60 flex items-center justify-center group-hover:border-primary/40 transition-all flex-shrink-0">
-                    <FolderOpen className="w-4 h-4 text-zinc-500 group-hover:text-primary transition-colors" />
+                  <div className="w-7 h-7 rounded-lg bg-zinc-800 border border-zinc-700/60 flex items-center justify-center group-hover:border-primary/40 transition-all flex-shrink-0">
+                    <FolderOpen className="w-3.5 h-3.5 text-zinc-500 group-hover:text-primary transition-colors" />
                   </div>
                   <div>
                     <p className="text-sm font-medium text-zinc-300 group-hover:text-zinc-100 transition-colors">{t('setup.uploadAudioDesc')}</p>
@@ -352,13 +414,70 @@ export default function SetupScreen({ onComplete, playerRef, onShowAllUploads })
                     {t('player.load')}
                   </Button>
                 </div>
+
+                {/* Spotify Browser */}
+                <>
+                  <div className="flex items-center gap-3 px-1">
+                    <div className="flex-1 h-px bg-zinc-800" />
+                    <span className="text-[10px] text-zinc-500 uppercase tracking-widest">{t('setup.orSpotify') || 'or Spotify'}</span>
+                    <div className="flex-1 h-px bg-zinc-800" />
+                  </div>
+
+                  {user?.spotify?.spotifyId ? (
+                    showSpotifyBrowser ? (
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] font-semibold text-green-400 uppercase tracking-wider">{t('spotify.browse')}</span>
+                          <button onClick={() => setShowSpotifyBrowser(false)} className="text-[10px] text-zinc-500 hover:text-zinc-300">
+                            {t('setup.orPasteUrl')}
+                          </button>
+                        </div>
+                        <div className="max-h-[180px] overflow-y-auto rounded-lg border border-zinc-700/40">
+                          <SpotifyBrowser
+                            onSelectTrack={handleSpotifyBrowserSelect}
+                            onClose={() => setShowSpotifyBrowser(false)}
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setShowSpotifyBrowser(true)}
+                        className="flex items-center gap-3 px-3 py-3 rounded-xl border border-green-500/30 hover:border-green-500/50 hover:bg-green-500/5 transition-all group text-left"
+                      >
+                        <SpotifyIcon className="w-5 h-5 text-green-500 shrink-0" />
+                        <span className="text-sm font-medium text-green-400 group-hover:text-green-300 transition-colors">
+                          {t('spotify.browseLibrary')}
+                        </span>
+                      </button>
+                    )
+                  ) : (
+                    <button
+                      onClick={() => {
+                        if (onOpenSettings) {
+                          onOpenSettings();
+                        }
+                      }}
+                      className="flex items-center gap-3 px-3 py-3 rounded-xl border border-primary/30 hover:border-primary/50 hover:bg-primary/5 transition-all group text-left"
+                    >
+                      <SpotifyIcon className="w-5 h-5 text-primary shrink-0" />
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium text-primary group-hover:text-primary/80 transition-colors">
+                          {t('spotify.connectAccount') || 'Connect Spotify Account'}
+                        </span>
+                        <span className="text-[10px] text-zinc-500">
+                          {t('spotify.connectToAccess') || 'Connect to access your library'}
+                        </span>
+                      </div>
+                    </button>
+                  )}
+                </>
               </div>
             )}
           </div>
 
           {/* ── Lyrics Panel ── */}
-          <div className="glass rounded-2xl p-5 flex flex-col gap-4">
-            <div className="flex items-center gap-2 text-sm font-semibold text-zinc-200">
+          <div className="glass rounded-2xl p-4 sm:p-5 flex flex-col gap-3 min-h-0 overflow-hidden">
+            <div className="flex items-center gap-2 text-sm font-semibold text-zinc-200 flex-shrink-0">
               <FileText className="w-4 h-4 text-primary" />
               {t('setup.pasteLyrics')}
             </div>
@@ -381,12 +500,12 @@ export default function SetupScreen({ onComplete, playerRef, onShowAllUploads })
                 </Button>
               </div>
             ) : (
-              <div className="flex-1 flex flex-col gap-3 min-h-0">
+              <div className="flex-1 flex flex-col gap-2.5 min-h-0">
                 <Textarea
                   value={lyricsText}
                   onChange={(e) => setLyricsText(e.target.value)}
                   placeholder={t('setup.pasteLyricsDesc')}
-                  className="flex-1 min-h-[140px] max-h-[240px] bg-zinc-900/50 border-zinc-700/50 text-zinc-200 placeholder:text-zinc-500 resize-none font-mono text-sm leading-relaxed focus:border-primary/50"
+                  className="flex-1 min-h-[120px] bg-zinc-900/50 border-zinc-700/50 text-zinc-200 placeholder:text-zinc-500 resize-none font-mono text-sm leading-relaxed focus:border-primary/50"
                 />
 
                 {/* Import file button */}
@@ -413,10 +532,10 @@ export default function SetupScreen({ onComplete, playerRef, onShowAllUploads })
 
         {/* Next button */}
         {canProceed && (
-          <div className="flex justify-center mt-6 animate-fade-in">
+          <div className="flex justify-center mt-4 sm:mt-6 animate-fade-in">
             <Button
               onClick={handleProceed}
-              className="bg-primary hover:bg-primary-dim text-zinc-950 font-semibold text-sm rounded-xl h-11 px-8 gap-2 shadow-lg shadow-primary/20"
+              className="bg-primary hover:bg-primary-dim text-zinc-950 font-semibold text-sm rounded-xl h-10 sm:h-11 px-6 sm:px-8 gap-2 shadow-lg shadow-primary/20"
             >
               {t('setup.next')}
               <ArrowRight className="w-4 h-4" />
