@@ -3,11 +3,28 @@ import { useTranslation } from 'react-i18next';
 import { uploads as uploadsApi } from '../../api';
 import { formatTime } from '../../utils/formatTime';
 import { Button } from '@/components/ui/button';
-import { Cloud, Video, Trash2, ArrowLeft, Loader2, Music2, Clock } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Tip } from '@/components/ui/tip';
+import { Cloud, Video, Trash2, ArrowLeft, Loader2, Music2, Clock, Edit2, Check, X } from 'lucide-react';
 import { SkeletonCard } from '@/components/ui/skeleton';
+import SpotifyIcon from '../shared/SpotifyIcon';
+import toast from 'react-hot-toast';
+
+function formatRelativeTime(dateStr, t) {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return t('library.justNow') || 'Just now';
+  if (mins < 60) return t('library.minutesAgo', { count: mins }) || `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return t('library.hoursAgo', { count: hours }) || `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return t('library.daysAgo', { count: days }) || `${days}d ago`;
+  return new Date(dateStr).toLocaleDateString();
+}
 
 function SourceIcon({ source }) {
   if (source === 'youtube') return <Video className="w-4 h-4 text-red-400" />;
+  if (source === 'spotify') return <SpotifyIcon className="w-4 h-4 text-green-400" />;
   return <Cloud className="w-4 h-4 text-blue-400" />;
 }
 
@@ -23,6 +40,9 @@ export default function UploadsLibrary({ onSelect, onBack }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState(null);
+  const [editingId, setEditingId] = useState(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [savingTitle, setSavingTitle] = useState(false);
 
   const fetchUploads = useCallback(async () => {
     try {
@@ -47,6 +67,51 @@ export default function UploadsLibrary({ onSelect, onBack }) {
       // ignore
     } finally {
       setDeletingId(null);
+    }
+  };
+
+  const handleStartEdit = (e, upload) => {
+    e.stopPropagation();
+    setEditingId(upload.id);
+    setEditTitle(upload.title || upload.fileName || upload.youtubeUrl || '');
+  };
+
+  const handleCancelEdit = (e) => {
+    e.stopPropagation();
+    setEditingId(null);
+    setEditTitle('');
+  };
+
+  const handleSaveTitle = async (e, uploadId) => {
+    e.stopPropagation();
+    if (!editTitle.trim()) {
+      toast.error(t('uploads.titleRequired') || 'Title is required');
+      return;
+    }
+
+    setSavingTitle(true);
+    try {
+      const { upload } = await uploadsApi.updateMedia(uploadId, { title: editTitle.trim() });
+      setItems((prev) =>
+        prev.map((u) => (u.id === uploadId ? { ...u, title: upload.title } : u))
+      );
+      setEditingId(null);
+      setEditTitle('');
+      toast.success(t('uploads.titleUpdated') || 'Title updated');
+    } catch {
+      toast.error(t('uploads.updateFailed') || 'Failed to update title');
+    } finally {
+      setSavingTitle(false);
+    }
+  };
+
+  const handleTitleKeyDown = (e, uploadId) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSaveTitle(e, uploadId);
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      handleCancelEdit(e);
     }
   };
 
@@ -96,17 +161,39 @@ export default function UploadsLibrary({ onSelect, onBack }) {
               onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect?.(upload); } }}
               className="w-full group relative flex items-start gap-3 p-3 rounded-xl bg-zinc-800/40 hover:bg-zinc-800/80 border border-zinc-700/40 hover:border-zinc-600/60 transition-all duration-150 text-left cursor-pointer"
             >
-              {/* Source icon */}
-              <div className="w-9 h-9 rounded-lg bg-zinc-700/50 flex items-center justify-center flex-shrink-0 mt-0.5">
-                <SourceIcon source={upload.source} />
+              {/* Thumbnail or source icon */}
+              <div className="w-9 h-9 rounded-lg bg-zinc-700/50 flex items-center justify-center flex-shrink-0 mt-0.5 overflow-hidden">
+                {upload.thumbnailUrl ? (
+                  <img 
+                    src={upload.thumbnailUrl} 
+                    alt={upload.title || 'Thumbnail'} 
+                    className="w-full h-full object-cover"
+                    onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+                  />
+                ) : null}
+                <div className={upload.thumbnailUrl ? 'hidden' : 'flex'} style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
+                  <SourceIcon source={upload.source} />
+                </div>
               </div>
 
               {/* Info */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-semibold text-zinc-100 truncate">
-                    {upload.title || upload.fileName || upload.youtubeUrl || t('uploads.untitled')}
-                  </span>
+                  {editingId === upload.id ? (
+                    <Input
+                      value={editTitle}
+                      onChange={(e) => setEditTitle(e.target.value)}
+                      onKeyDown={(e) => handleTitleKeyDown(e, upload.id)}
+                      onClick={(e) => e.stopPropagation()}
+                      className="text-sm font-semibold h-7 px-2 bg-zinc-700 border-zinc-600"
+                      autoFocus
+                      disabled={savingTitle}
+                    />
+                  ) : (
+                    <span className="text-sm font-semibold text-zinc-100 truncate">
+                      {upload.title || upload.fileName || upload.youtubeUrl || t('uploads.untitled')}
+                    </span>
+                  )}
                   <span className="text-[10px] font-bold uppercase text-zinc-500 bg-zinc-700/50 px-1.5 py-0.5 rounded flex-shrink-0">
                     <SourceLabel source={upload.source} />
                   </span>
@@ -127,25 +214,64 @@ export default function UploadsLibrary({ onSelect, onBack }) {
                 </div>
 
                 {upload.createdAt && (
-                  <span className="text-[10px] text-zinc-600 mt-1 block">
-                    {new Date(upload.createdAt).toLocaleDateString()}
-                  </span>
+                  <Tip content={new Date(upload.createdAt).toLocaleString()}>
+                    <span className="text-[10px] text-zinc-600 mt-1 block">
+                      {formatRelativeTime(upload.createdAt, t)}
+                    </span>
+                  </Tip>
                 )}
               </div>
 
-              {/* Delete action */}
+              {/* Actions */}
               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  onClick={(e) => handleDelete(e, upload.id)}
-                  disabled={deletingId === upload.id}
-                  className="text-zinc-500 hover:text-red-400 hover:bg-red-500/10 w-7 h-7"
-                >
-                  {deletingId === upload.id
-                    ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    : <Trash2 className="w-3.5 h-3.5" />}
-                </Button>
+                {editingId === upload.id ? (
+                  <>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      onClick={(e) => handleSaveTitle(e, upload.id)}
+                      disabled={savingTitle}
+                      className="text-zinc-500 hover:text-green-400 hover:bg-green-500/10 w-7 h-7"
+                    >
+                      {savingTitle ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Check className="w-3.5 h-3.5" />
+                      )}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      onClick={handleCancelEdit}
+                      disabled={savingTitle}
+                      className="text-zinc-500 hover:text-zinc-300 hover:bg-zinc-700 w-7 h-7"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      onClick={(e) => handleStartEdit(e, upload)}
+                      className="text-zinc-500 hover:text-blue-400 hover:bg-blue-500/10 w-7 h-7"
+                    >
+                      <Edit2 className="w-3.5 h-3.5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      onClick={(e) => handleDelete(e, upload.id)}
+                      disabled={deletingId === upload.id}
+                      className="text-zinc-500 hover:text-red-400 hover:bg-red-500/10 w-7 h-7"
+                    >
+                      {deletingId === upload.id
+                        ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        : <Trash2 className="w-3.5 h-3.5" />}
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
           ))}
