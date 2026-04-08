@@ -372,14 +372,14 @@ const WaveformDisplay = React.memo(function WaveformDisplay({
       <div ref={wrapperRef} className="relative w-full rounded-lg overflow-hidden bg-zinc-900/40 border border-zinc-800/50 cursor-pointer">
         {/* Skeleton shimmer while WaveSurfer initializes */}
         {isLoading && (
-          <div className="skeleton-wave absolute inset-0 z-20 rounded-lg" style={{ height: 48 }} />
+          <div className="skeleton-wave absolute inset-0 z-raised rounded-lg" style={{ height: 48 }} />
         )}
         {/* WaveSurfer renders into this div */}
         <div ref={waveContainerRef} className="w-full" />
         {/* Overlay canvas — sibling to WaveSurfer container, not a child */}
         <canvas
           ref={overlayCanvasRef}
-          className="absolute inset-0 z-10"
+          className="absolute inset-0 z-base"
           style={{ cursor: 'pointer' }}
           onClick={handleOverlayClick}
         />
