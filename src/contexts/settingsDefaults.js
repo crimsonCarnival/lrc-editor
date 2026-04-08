@@ -12,20 +12,20 @@ export const DEFAULT_SETTINGS = {
     seekPlays: false,
   },
   editor: {
-    autoPauseOnMark: false,
+    autoPauseOnMark: true,
     nudge: { fine: 0.01, coarse: 0.1, default: 0.1 },
     autoAdvance: { enabled: true, skipBlank: false, mode: 'next' },
     showShiftAll: true,
     shiftAllAmount: 0.5,
     showLineNumbers: true,
-    timestampPrecision: 'hundredths',
+    timestampPrecision: 'thousandths',
     srt: {
       defaultSubtitleDuration: 5,
       minSubtitleGap: 0,
       snapToNextLine: false
     },
     history: {
-      limit: 50,
+      limit: 250,
       groupingThresholdMs: 1000
     },
     display: {
@@ -46,7 +46,8 @@ export const DEFAULT_SETTINGS = {
     lineEndings: 'lf',
     copyFormat: 'lrc',
     downloadFormat: 'lrc',
-    timestampPrecision: 'hundredths',
+    timestampPrecision: 'thousandths',
+    wordTimestampPrecision: 'hundredths',
     defaultFilenamePattern: 'fixed',
     includeMetadata: true,
     stripEmptyLines: false,
@@ -61,7 +62,7 @@ export const DEFAULT_SETTINGS = {
     focusMode: 'default'
   },
   shortcuts: {
-    mark: ['Space'],
+    mark: ['Enter'],
     nudgeLeft: ['Alt+ArrowLeft'],
     nudgeRight: ['Alt+ArrowRight'],
     nudgeLeftFine: ['Shift+ArrowLeft'],
@@ -75,7 +76,7 @@ export const DEFAULT_SETTINGS = {
     rangeSelect: ['Shift'],
     toggleSelect: ['Ctrl'],
     // Player
-    playPause: ['Enter'],
+    playPause: ['Space'],
     seekForward: ['ArrowRight'],
     seekBackward: ['ArrowLeft'],
     mute: ['m'],
@@ -94,7 +95,7 @@ export const DEFAULT_SETTINGS = {
     expandRepeats: true
   },
   advanced: {
-    autoSave: { enabled: false, timeInterval: 30 },
+    autoSave: { enabled: true, timeInterval: 60 },
     confirmDestructive: true,
     timezone: 'auto'
   }

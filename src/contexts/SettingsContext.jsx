@@ -123,8 +123,54 @@ export function SettingsProvider({ children }) {
     return structuredClone(DEFAULT_SETTINGS);
   });
 
+  // Track the last version saved to server to compute diffs
+  const lastSavedToServerRef = useRef(null);
   const isSyncingRef = useRef(false);
   const isFirstRender = useRef(true);
+
+  // Compute deep diff between two objects, returning only changed paths
+  const computeChanges = useCallback((original, current) => {
+    if (!original) return current;
+    
+    const changes = {};
+    
+    const findDiffs = (origObj, currObj, path = []) => {
+      if (typeof currObj !== 'object' || currObj === null) {
+        if (origObj !== currObj) {
+          // Leaf value changed
+          let target = changes;
+          for (let i = 0; i < path.length - 1; i++) {
+            if (!target[path[i]]) target[path[i]] = {};
+            target = target[path[i]];
+          }
+          target[path[path.length - 1]] = currObj;
+        }
+        return;
+      }
+      
+      // Handle arrays - send full array if changed
+      if (Array.isArray(currObj)) {
+        if (JSON.stringify(origObj) !== JSON.stringify(currObj)) {
+          let target = changes;
+          for (let i = 0; i < path.length - 1; i++) {
+            if (!target[path[i]]) target[path[i]] = {};
+            target = target[path[i]];
+          }
+          target[path[path.length - 1]] = currObj;
+        }
+        return;
+      }
+      
+      // Handle objects recursively
+      const allKeys = new Set([...Object.keys(origObj || {}), ...Object.keys(currObj)]);
+      for (const key of allKeys) {
+        findDiffs(origObj?.[key], currObj[key], [...path, key]);
+      }
+    };
+    
+    findDiffs(original, current, []);
+    return changes;
+  }, []);
 
   // Debounced localStorage + server persistence — skips the initial render
   // and skips when changes came from a server fetch (isSyncingRef).
@@ -142,16 +188,24 @@ export function SettingsProvider({ children }) {
         console.error('Failed to save settings', e);
       }
 
-      // Push to server if authenticated
+      // Push to server if authenticated (only changed fields)
       if (getAccessToken()) {
-        const { playback, editor, export: exp, interface: iface, shortcuts, import: imp, advanced } = settings;
-        settingsApi.save({ playback, editor, export: exp, interface: iface, shortcuts, import: imp, advanced }).catch(() => {
-          // Silently fail — localStorage is the source of truth
-        });
+        const changes = computeChanges(lastSavedToServerRef.current, settings);
+        
+        // Only send if there are actual changes
+        if (Object.keys(changes).length > 0) {
+          // Use PATCH for partial updates (changed fields only)
+          settingsApi.patch(changes).then(() => {
+            // Update the last saved snapshot on success
+            lastSavedToServerRef.current = structuredClone(settings);
+          }).catch(() => {
+            // Silently fail — localStorage is the source of truth
+          });
+        }
       }
     }, 300);
     return () => clearTimeout(timer);
-  }, [settings]);
+  }, [settings, computeChanges]);
 
   const updateSetting = useCallback((keyPath, value) => {
     setSettings((prev) => {
@@ -189,6 +243,8 @@ export function SettingsProvider({ children }) {
           const merged = deepMerge(local, remote);
           // Persist merge to localStorage immediately (save effect is suppressed)
           try { localStorage.setItem(STORAGE_KEY, JSON.stringify(merged)); } catch {}
+          // Update last saved snapshot since we just synced from server
+          lastSavedToServerRef.current = structuredClone(merged);
           return merged;
         });
         // Clear the sync flag after React processes the state update

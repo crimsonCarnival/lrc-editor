@@ -52,10 +52,9 @@ export default function ShortcutsSettings({ settings, updateSetting, searchTerm,
   }, [settings.shortcuts]);
 
   const SUB_TABS = [
-    { id: 'editor',    icon: Keyboard,          label: t('settings.shortcuts.label') || 'Editor' },
+    { id: 'editor',    icon: Keyboard,          label: t('settings.editor.label') || 'Editor' },
     { id: 'player',    icon: Headphones,         label: t('settings.shortcuts.playerSection') || 'Player' },
     { id: 'preview',   icon: Eye,               label: t('settings.shortcuts.previewSection') || 'Preview' },
-    { id: 'modifiers', icon: MousePointerClick,  label: t('settings.shortcuts.clickModifiersSection') || 'Modifiers' },
   ];
 
   // When searching, show all; otherwise show only the active sub-tab
@@ -214,6 +213,28 @@ export default function ShortcutsSettings({ settings, updateSetting, searchTerm,
               className="w-20"
             />
           </SettingRow>
+          <SettingRow
+            icon={MousePointer}
+            label={t('settings.shortcuts.rangeSelectLabel') || 'Select a range'}
+            description={t('settings.shortcuts.rangeSelectDesc') || 'Hold + Click to select a continuous block of lines'}
+          >
+            <ModifierInput
+              value={settings.shortcuts?.rangeSelect?.[0] || 'Shift'}
+              onChange={handleShortcutChange('rangeSelect')}
+              validateModifier={(v) => v !== (settings.shortcuts?.toggleSelect?.[0] || 'Ctrl')}
+            />
+          </SettingRow>
+          <SettingRow
+            icon={MousePointerClick}
+            label={t('settings.shortcuts.toggleSelectLabel') || 'Pick individual lines'}
+            description={t('settings.shortcuts.toggleSelectDesc') || 'Hold + Click to add/remove single lines from the selection'}
+          >
+            <ModifierInput
+              value={settings.shortcuts?.toggleSelect?.[0] || 'Ctrl'}
+              onChange={handleShortcutChange('toggleSelect')}
+              validateModifier={(v) => v !== (settings.shortcuts?.rangeSelect?.[0] || 'Shift')}
+            />
+          </SettingRow>
         </Section>
       )}
 
@@ -330,33 +351,6 @@ export default function ShortcutsSettings({ settings, updateSetting, searchTerm,
               onChange={handleShortcutChange('addTranslation')}
               onValidate={(v) => validateShortcut(v, 'addTranslation')}
               conflict={conflictMap['addTranslation']}
-            />
-          </SettingRow>
-        </Section>
-      )}
-
-      {show('modifiers') && (
-        <Section title={t('settings.shortcuts.clickModifiersSection') || 'Click Modifiers'} icon={MousePointerClick} searchTerm={searchTerm}>
-          <SettingRow
-            icon={MousePointer}
-            label={t('settings.shortcuts.rangeSelectLabel') || 'Select a range'}
-            description={t('settings.shortcuts.rangeSelectDesc') || 'Hold + Click to select a continuous block of lines'}
-          >
-            <ModifierInput
-              value={settings.shortcuts?.rangeSelect?.[0] || 'Shift'}
-              onChange={handleShortcutChange('rangeSelect')}
-              validateModifier={(v) => v !== (settings.shortcuts?.toggleSelect?.[0] || 'Ctrl')}
-            />
-          </SettingRow>
-          <SettingRow
-            icon={MousePointerClick}
-            label={t('settings.shortcuts.toggleSelectLabel') || 'Pick individual lines'}
-            description={t('settings.shortcuts.toggleSelectDesc') || 'Hold + Click to add/remove single lines from the selection'}
-          >
-            <ModifierInput
-              value={settings.shortcuts?.toggleSelect?.[0] || 'Ctrl'}
-              onChange={handleShortcutChange('toggleSelect')}
-              validateModifier={(v) => v !== (settings.shortcuts?.rangeSelect?.[0] || 'Shift')}
             />
           </SettingRow>
         </Section>
