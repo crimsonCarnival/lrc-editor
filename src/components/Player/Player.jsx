@@ -5,15 +5,19 @@ import useConfirm from '../../hooks/useConfirm';
 import { formatTime } from '../../utils/formatTime';
 import useLocalAudio from './useLocalAudio';
 import useYouTubePlayer from './useYouTubePlayer';
+import useSpotifyPlayer from './useSpotifyPlayer';
+import SpotifyBrowser from './SpotifyBrowser';
 import WaveformDisplay from './WaveformDisplay';
 import VolumeControl from './VolumeControl';
 import SpeedControl from './SpeedControl';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
-import { Music2, Trash2, AlertTriangle, Play, Pause, Headphones, FolderOpen, Upload, Repeat, ChevronLeft, ChevronRight, SkipBack, SkipForward, Cloud, Video, ChevronDown } from 'lucide-react';
+import { Music2, AlertTriangle, Play, Pause, Headphones, FolderOpen, Repeat, ChevronLeft, ChevronRight, SkipBack, SkipForward, Cloud, Video, ChevronDown } from 'lucide-react';
 import { Tip } from '@/components/ui/tip';
-import { uploads as uploadsApi, getAccessToken } from '../../api';
+import { uploads as uploadsApi, spotify as spotifyApi, getAccessToken } from '../../api';
+import SpotifyIcon from '../shared/SpotifyIcon';
+import toast from 'react-hot-toast';
 
 const ALL_SPEED_PRESETS = [0.25, 0.5, 0.75, 1, 1.25, 1.5];
 
@@ -135,12 +139,52 @@ const Player = forwardRef(function Player(
     onYtUrlChange,
   });
 
-  const hasMedia = (source === 'local' && local.localUrl) || (source === 'youtube' && yt.ytReady);
+  const sp = useSpotifyPlayer({
+    updateTime,
+    updateDuration,
+    setIsPlaying,
+    setCurrentTime,
+    setSource,
+    onTitleChange,
+    onMediaChange,
+  });
+
+  // Spotify URL input state
+  const [spotifyUrl, setSpotifyUrl] = useState('');
+  const [spotifyError, setSpotifyError] = useState('');
+  const [showSpotifyBrowser, setShowSpotifyBrowser] = useState(false);
+
+  const handleSpotifyBrowserSelect = useCallback((track) => {
+    sp.playTrack(track.trackId, track.title || track.name || '');
+    setShowSpotifyBrowser(false);
+  }, [sp]);
+
+  const [syncingNowPlaying, setSyncingNowPlaying] = useState(false);
+  const handleSyncNowPlaying = useCallback(async () => {
+    setSyncingNowPlaying(true);
+    try {
+      const data = await spotifyApi.getCurrentlyPlaying();
+      if (data?.track?.trackId) {
+        sp.playTrack(data.track.trackId, data.track.name || '');
+      } else {
+        toast(t('spotify.nothingPlaying'));
+      }
+    } catch {
+      toast.error(t('spotify.syncFailed'));
+    } finally {
+      setSyncingNowPlaying(false);
+    }
+  }, [sp, t]);
+
+  const hasMedia = (source === 'local' && local.localUrl) || (source === 'youtube' && yt.ytReady) || (source === 'spotify' && sp.ready);
 
   const handleSelectUpload = useCallback((upload) => {
     if (upload.source === 'youtube' && upload.youtubeUrl) {
       yt.setYtUrl(upload.youtubeUrl);
       setTimeout(() => yt.loadYouTube(), 0);
+    } else if (upload.source === 'spotify' && upload.spotifyTrackId) {
+      sp.playTrack(upload.spotifyTrackId, upload.title || upload.artist || '', false);
+      onTitleChange?.(upload.title || upload.artist || '');
     } else if (upload.source === 'cloudinary' && upload.cloudinaryUrl) {
       fetch(upload.cloudinaryUrl)
         .then((res) => res.blob())
@@ -150,7 +194,7 @@ const Player = forwardRef(function Player(
         })
         .catch(() => {});
     }
-  }, [local, yt]);
+  }, [local, yt, sp, onTitleChange]);
 
   // ——— Unified controls ———
 
@@ -162,15 +206,19 @@ const Player = forwardRef(function Player(
     } else if (source === 'youtube' && yt.ytReady) {
       if (isPlaying) yt.pause();
       else yt.play();
+    } else if (source === 'spotify' && sp.ready) {
+      if (isPlaying) sp.pause();
+      else sp.play();
     }
-  }, [source, isPlaying, local, yt]);
+  }, [source, isPlaying, local, yt, sp]);
 
   const seek = useCallback(
     (time) => {
       if (source === 'local') local.seek(time);
       else if (source === 'youtube') yt.seek(time);
+      else if (source === 'spotify') sp.seek(time);
     },
-    [source, local, yt],
+    [source, local, yt, sp],
   );
 
   const applySpeed = useCallback(
@@ -179,6 +227,7 @@ const Player = forwardRef(function Player(
       setPlaybackSpeed(clamped);
       if (source === 'local') local.setSpeed(clamped);
       else if (source === 'youtube') yt.setSpeed(clamped);
+      // Spotify Web Playback SDK does not support speed control
     },
     [source, MIN_SPEED, MAX_SPEED, local, yt],
   );
@@ -200,7 +249,7 @@ const Player = forwardRef(function Player(
     ref ?? _legacyRef,
     () => ({
       getCurrentTime: () =>
-        source === 'local' ? local.getCurrentTime() : yt.getCurrentTime(),
+        source === 'local' ? local.getCurrentTime() : source === 'youtube' ? yt.getCurrentTime() : sp.getCurrentTime(),
       isPlaying: () => isPlaying,
       play: () => {
         if (!isPlaying) togglePlay();
@@ -215,11 +264,12 @@ const Player = forwardRef(function Player(
       getAudioBlob: () => localBlobRef.current || null,
       loadLocalAudio: (file) => local.handleFileChange(file),
       loadYouTube: (url) => yt.loadYouTube(url),
+      loadSpotify: (trackId, title, autoPlay = false) => sp.playTrack(trackId, title, autoPlay),
       setLoop,
       clearLoop,
       getLoop: () => ({ a: loopA, b: loopB }),
     }),
-    [source, isPlaying, togglePlay, seek, local, yt, applySpeed, playbackSpeed, setLoop, clearLoop, loopA, loopB],
+    [source, isPlaying, togglePlay, seek, local, yt, sp, applySpeed, playbackSpeed, setLoop, clearLoop, loopA, loopB],
   );
 
   // ——— Apply restored seek/speed once after YouTube media is ready ———
@@ -241,6 +291,7 @@ const Player = forwardRef(function Player(
     requestConfirm(t('confirm.removeMedia') || 'Remove currently loaded media?', () => {
       if (source === 'local') local.remove();
       else if (source === 'youtube') yt.remove();
+      else if (source === 'spotify') sp.remove();
       setIsPlaying(false);
       setCurrentTime(0);
       setDuration(0);
@@ -250,7 +301,7 @@ const Player = forwardRef(function Player(
       onTitleChange?.('');
       onMediaChange?.(false);
     });
-  }, [source, local, yt, requestConfirm, t, onTimeUpdate, onDurationChange, onTitleChange, onMediaChange]);
+  }, [source, local, yt, sp, requestConfirm, t, onTimeUpdate, onDurationChange, onTitleChange, onMediaChange]);
 
   return (
     <>
@@ -280,45 +331,14 @@ const Player = forwardRef(function Player(
             {hasMedia && mediaTitle && (
               <div className="flex items-center gap-1 px-1.5 py-0.5 rounded text-xs min-w-0 flex-1">
                 <Music2 className="w-2.5 h-2.5 text-primary shrink-0" strokeWidth={2.5} />
-                <div className="flex-1 min-w-0 overflow-hidden relative" style={{ maskImage: 'linear-gradient(to right, transparent, black 10px, black calc(100% - 10px), transparent)' }}>
-                  <span className="text-primary normal-case tracking-normal animate-marquee inline-block whitespace-nowrap">{mediaTitle}</span>
-                </div>
+                <span className="text-primary normal-case tracking-normal truncate">{mediaTitle}</span>
               </div>
             )}
           </h2>
-          {hasMedia && (
-            <div className="flex items-center gap-1 shrink-0">
-              <Tip content={t('player.changeSong')}>
-                <label
-                  htmlFor="audio-file-input"
-                  className="flex items-center gap-1 px-2 py-1.5 text-xs font-medium text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700/60 rounded-lg cursor-pointer transition-colors"
-                >
-                  <Upload className="w-3.5 h-3.5" />
-                  <input
-                    id="audio-file-input"
-                    type="file"
-                    accept="audio/*"
-                    onChange={local.handleFileChange}
-                    className="hidden"
-                  />
-                </label>
-              </Tip>
-              <Tip content={t('player.remove')}>
-                <Button
-                  id="remove-media-btn"
-                  variant="ghost"
-                  onClick={removeMedia}
-                  className="gap-1 px-2 py-1.5 text-xs font-medium text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg shrink-0 h-auto"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </Button>
-              </Tip>
-            </div>
-          )}
         </div>
 
-        {/* Loading placeholder while YouTube initialises */}
-        {!hasMedia && yt.ytLoading && (
+        {/* Loading placeholder while YouTube or Spotify initialises */}
+        {!hasMedia && (yt.ytLoading || sp.loading) && (
           <div className="flex items-center justify-center gap-3 py-6 animate-fade-in">
             <svg className="w-5 h-5 text-primary animate-spin" fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
@@ -329,7 +349,7 @@ const Player = forwardRef(function Player(
         )}
 
         {/* Unified media loader — shown when no media is loaded */}
-        {!hasMedia && !yt.ytLoading && (
+        {!hasMedia && !yt.ytLoading && !sp.loading && (
           <div className="animate-fade-in overflow-hidden">
             {/* Drop zone — hidden once a URL has been entered */}
             {!yt.ytUrl.trim() && (<>
@@ -412,6 +432,94 @@ const Player = forwardRef(function Player(
               )}
             </div>
 
+            {/* Spotify section */}
+            {getAccessToken() && (
+              <div className="px-1 py-2 space-y-2">
+                <div className="flex items-center gap-3 px-2 py-0.5">
+                  <div className="flex-1 h-px bg-zinc-800" />
+                  <span className="text-[10px] text-zinc-600 uppercase tracking-widest">{t('player.or')}</span>
+                  <div className="flex-1 h-px bg-zinc-800" />
+                </div>
+
+                {showSpotifyBrowser ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-green-400 flex items-center gap-1.5">
+                        <SpotifyIcon className="w-3.5 h-3.5" />
+                        {t('spotify.browse')}
+                      </span>
+                      <button onClick={() => setShowSpotifyBrowser(false)} className="text-[10px] text-zinc-500 hover:text-zinc-300">
+                        {t('spotify.pasteUrl')}
+                      </button>
+                    </div>
+                    <SpotifyBrowser
+                      onSelectTrack={handleSpotifyBrowserSelect}
+                      onClose={() => setShowSpotifyBrowser(false)}
+                    />
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="flex gap-2 items-center">
+                      <div className="relative flex-1">
+                        <SpotifyIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-green-500/70 shrink-0 pointer-events-none" />
+                        <Input
+                          type="text"
+                          value={spotifyUrl}
+                          onChange={(e) => { setSpotifyUrl(e.target.value); setSpotifyError(''); }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              spotifyApi.createUpload(spotifyUrl).then((result) => {
+                                sp.playTrack(result.spotifyTrackId || result.trackMeta?.trackId, result.title || result.trackMeta?.name || '', false);
+                                setSpotifyUrl('');
+                              }).catch((err) => setSpotifyError(err.message || 'Invalid Spotify URL'));
+                            }
+                          }}
+                          placeholder={t('player.pasteSpotifyUrl') || 'Paste Spotify track URL...'}
+                          className={`pl-7 bg-zinc-800/60 text-zinc-100 placeholder-zinc-500 ${spotifyError ? 'border-red-500/70 focus-visible:ring-red-500/25' : 'border-zinc-700 focus-visible:ring-primary/25'}`}
+                        />
+                      </div>
+                      <Button
+                        onClick={() => {
+                          spotifyApi.createUpload(spotifyUrl).then((result) => {
+                            sp.playTrack(result.spotifyTrackId || result.trackMeta?.trackId, result.title || result.trackMeta?.name || '', false);
+                            onTitleChange?.(result.title || result.trackMeta?.name || '');
+                            setSpotifyUrl('');
+                          }).catch((err) => setSpotifyError(err.message || 'Invalid Spotify URL'));
+                        }}
+                        className="px-4 bg-green-600 hover:bg-green-500 text-white text-sm font-medium rounded-lg shrink-0"
+                      >
+                        {t('player.load')}
+                      </Button>
+                    </div>
+                    {spotifyError && (
+                      <p className="text-xs text-red-400 flex items-center gap-1.5 animate-fade-in">
+                        <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                        {spotifyError}
+                      </p>
+                    )}
+                    <div className="flex items-center gap-3 px-1">
+                      <button
+                        onClick={() => setShowSpotifyBrowser(true)}
+                        className="flex items-center gap-1.5 text-[10px] text-green-400 hover:text-green-300 font-medium"
+                      >
+                        <SpotifyIcon className="w-3 h-3" />
+                        {t('spotify.browseLibrary')}
+                      </button>
+                      <span className="text-zinc-700">·</span>
+                      <button
+                        onClick={handleSyncNowPlaying}
+                        disabled={syncingNowPlaying}
+                        className="flex items-center gap-1.5 text-[10px] text-green-400 hover:text-green-300 font-medium disabled:opacity-50"
+                      >
+                        <Headphones className="w-3 h-3" />
+                        {syncingNowPlaying ? t('spotify.syncing') : t('spotify.syncNowPlaying')}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Uploads selector */}
             {getAccessToken() && (
               <div className="px-1 pb-1">
@@ -420,7 +528,7 @@ const Player = forwardRef(function Player(
                   <span className="text-[10px] text-zinc-600 uppercase tracking-widest">{t('player.or')}</span>
                   <div className="flex-1 h-px bg-zinc-800" />
                 </div>
-                <Popover onOpenChange={(open) => { if (open && !uploadsLoaded) fetchUploads(); }}>
+                <Popover onOpenChange={(open) => { if (open) fetchUploads(); }}>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
@@ -443,9 +551,23 @@ const Player = forwardRef(function Player(
                           onClick={() => handleSelectUpload(upload)}
                           className="w-full flex items-center gap-2 px-2.5 py-2 rounded-md text-left hover:bg-zinc-700/60 transition-colors"
                         >
-                          {upload.source === 'youtube'
-                            ? <Video className="w-3.5 h-3.5 text-red-400 shrink-0" />
-                            : <Cloud className="w-3.5 h-3.5 text-blue-400 shrink-0" />}
+                          <div className="w-8 h-8 rounded flex-shrink-0 overflow-hidden bg-zinc-700/50 flex items-center justify-center">
+                            {upload.thumbnailUrl ? (
+                              <img 
+                                src={upload.thumbnailUrl} 
+                                alt={upload.title || 'Thumbnail'} 
+                                className="w-full h-full object-cover"
+                                onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+                              />
+                            ) : null}
+                            <div className={upload.thumbnailUrl ? 'hidden' : 'flex'} style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
+                              {upload.source === 'youtube'
+                                ? <Video className="w-3.5 h-3.5 text-red-400 shrink-0" />
+                                : upload.source === 'spotify'
+                                ? <SpotifyIcon className="w-3.5 h-3.5 text-green-400 shrink-0" />
+                                : <Cloud className="w-3.5 h-3.5 text-blue-400 shrink-0" />}
+                            </div>
+                          </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-xs font-medium text-zinc-200 truncate">
                               {upload.title || upload.fileName || upload.youtubeUrl || t('uploads.untitled')}
@@ -480,7 +602,7 @@ const Player = forwardRef(function Player(
           </div>
         )}
 
-        {(local.localUrl || yt.ytReady) && (
+        {(local.localUrl || yt.ytReady || sp.ready) && (
           <div className="space-y-1 sm:space-y-2 pt-1 sm:pt-2 animate-fade-in">
             <div className="flex items-center gap-2 sm:gap-3 flex-wrap sm:flex-nowrap">
               <Button
@@ -514,7 +636,7 @@ const Player = forwardRef(function Player(
                 {/* A-B loop region overlay */}
                 {loopA != null && loopB != null && duration > 0 && (
                   <div
-                    className="absolute top-0 bottom-0 bg-accent-purple/15 border-x border-accent-purple/40 rounded-sm pointer-events-none z-10"
+                    className="absolute top-0 bottom-0 bg-accent-purple/15 border-x border-accent-purple/40 rounded-sm pointer-events-none z-base"
                     style={{
                       left: `${(loopA / duration) * 100}%`,
                       width: `${((loopB - loopA) / duration) * 100}%`,
@@ -541,8 +663,8 @@ const Player = forwardRef(function Player(
                     } else {
                       seek(raw);
                     }
-                  }}
-                  className="w-full relative z-20"
+                  }}  
+                  className="w-full relative z-raised"
                   style={{
                     background: `linear-gradient(to right, var(--color-primary) ${duration ? (currentTime / duration) * 100 : 0}%, rgba(255, 255, 255, 0.15) ${duration ? (currentTime / duration) * 100 : 0}%)`,
                   }}
@@ -578,7 +700,8 @@ const Player = forwardRef(function Player(
                     } else {
                       const now = source === 'local'
                         ? (audioRef.current?.currentTime ?? currentTime)
-                        : (yt.getCurrentTime?.() ?? currentTime);
+                        : source === 'youtube' ? (yt.getCurrentTime?.() ?? currentTime)
+                        : currentTime;
                       if (lines?.length) {
                         let activeIdx = -1;
                         for (let i = 0; i < lines.length; i++) {
@@ -626,7 +749,7 @@ const Player = forwardRef(function Player(
         {/* No media */}
         {!hasMedia && (
           <div className="flex flex-col gap-1 px-3 py-2">
-            {yt.ytLoading ? (
+            {(yt.ytLoading || sp.loading) ? (
               <div className="flex items-center gap-3 flex-1 py-2">
                 <svg className="w-5 h-5 text-primary animate-spin" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
@@ -660,7 +783,7 @@ const Player = forwardRef(function Player(
                   </div>
                 </div>
                 {getAccessToken() && (
-                  <Popover onOpenChange={(open) => { if (open && !uploadsLoaded) fetchUploads(); }}>
+                  <Popover onOpenChange={(open) => { if (open) fetchUploads(); }}>
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
@@ -683,9 +806,23 @@ const Player = forwardRef(function Player(
                             onClick={() => handleSelectUpload(upload)}
                             className="w-full flex items-center gap-2 px-2.5 py-2 rounded-md text-left hover:bg-zinc-700/60 transition-colors"
                           >
-                            {upload.source === 'youtube'
-                              ? <Video className="w-3.5 h-3.5 text-red-400 shrink-0" />
-                              : <Cloud className="w-3.5 h-3.5 text-blue-400 shrink-0" />}
+                            <div className="w-8 h-8 rounded flex-shrink-0 overflow-hidden bg-zinc-700/50 flex items-center justify-center">
+                              {upload.thumbnailUrl ? (
+                                <img 
+                                  src={upload.thumbnailUrl} 
+                                  alt={upload.title || 'Thumbnail'} 
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+                                />
+                              ) : null}
+                              <div className={upload.thumbnailUrl ? 'hidden' : 'flex'} style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
+                                {upload.source === 'youtube'
+                                  ? <Video className="w-3.5 h-3.5 text-red-400 shrink-0" />
+                                  : upload.source === 'spotify'
+                                  ? <SpotifyIcon className="w-3.5 h-3.5 text-green-400 shrink-0" />
+                                  : <Cloud className="w-3.5 h-3.5 text-blue-400 shrink-0" />}
+                              </div>
+                            </div>
                             <span className="text-xs font-medium text-zinc-200 truncate">
                               {upload.title || upload.fileName || upload.youtubeUrl || t('uploads.untitled')}
                             </span>
@@ -694,6 +831,29 @@ const Player = forwardRef(function Player(
                       )}
                     </PopoverContent>
                   </Popover>
+                )}
+                {getAccessToken() && (
+                  <div className="flex gap-2 w-full">
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowSpotifyBrowser(true)}
+                      className="flex-1 justify-between bg-green-500/10 border-green-500/20 hover:bg-green-500/20 text-green-400 text-xs h-8"
+                    >
+                      <span className="flex items-center gap-1.5">
+                        <SpotifyIcon className="w-3 h-3" />
+                        {t('spotify.browseLibrary')}
+                      </span>
+                      <ChevronRight className="w-3 h-3" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={handleSyncNowPlaying}
+                      disabled={syncingNowPlaying}
+                      className="bg-green-500/10 border-green-500/20 hover:bg-green-500/20 text-green-400 text-xs h-8 px-2 disabled:opacity-50"
+                    >
+                      <Headphones className="w-3 h-3" />
+                    </Button>
+                  </div>
                 )}
               </>
             )}
@@ -720,7 +880,7 @@ const Player = forwardRef(function Player(
               <div className="flex-1 relative min-w-0">
                 {loopA != null && loopB != null && duration > 0 && (
                   <div
-                    className="absolute top-0 bottom-0 bg-accent-purple/15 border-x border-accent-purple/40 rounded-sm pointer-events-none z-10"
+                    className="absolute top-0 bottom-0 bg-accent-purple/15 border-x border-accent-purple/40 rounded-sm pointer-events-none z-base"
                     style={{
                       left: `${(loopA / duration) * 100}%`,
                       width: `${((loopB - loopA) / duration) * 100}%`,
@@ -731,7 +891,7 @@ const Player = forwardRef(function Player(
                   type="range" min={0} max={duration || 0} step={0.1} value={currentTime}
                   aria-label="Seek" aria-valuenow={Math.round(currentTime)} aria-valuemin={0} aria-valuemax={Math.round(duration)}
                   onChange={(e) => seek(parseFloat(e.target.value))}
-                  className="w-full relative z-20"
+                  className="w-full relative z-raised"
                   style={{ background: `linear-gradient(to right, var(--color-primary) ${duration ? (currentTime / duration) * 100 : 0}%, rgba(255, 255, 255, 0.15) ${duration ? (currentTime / duration) * 100 : 0}%)` }}
                 />
               </div>
@@ -757,7 +917,7 @@ const Player = forwardRef(function Player(
                   if (loopA != null && loopB != null) {
                     clearLoop();
                   } else {
-                    const now = source === 'local' ? (audioRef.current?.currentTime ?? currentTime) : (yt.getCurrentTime?.() ?? currentTime);
+                    const now = source === 'local' ? (audioRef.current?.currentTime ?? currentTime) : source === 'youtube' ? (yt.getCurrentTime?.() ?? currentTime) : currentTime;
                     if (lines?.length) {
                       let activeIdx = -1;
                       for (let i = 0; i < lines.length; i++) {
@@ -785,15 +945,6 @@ const Player = forwardRef(function Player(
 
               <VolumeControl />
 
-              <label
-                htmlFor="audio-file-compact-change"
-                className="flex flex-col items-center justify-center w-11 h-11 rounded-xl text-zinc-400 active:text-zinc-100 active:bg-zinc-800/60 transition-all cursor-pointer"
-                aria-label="Change audio file"
-              >
-                <Upload className="w-5 h-5" />
-                <input id="audio-file-compact-change" type="file" accept="audio/*" onChange={local.handleFileChange} className="hidden" />
-              </label>
-
               <button
                 onClick={() => seek(Math.min(duration, currentTime + (settings.playback?.seekTime ?? 5)))}
                 aria-label={`Skip forward ${settings.playback?.seekTime ?? 5} seconds`}
@@ -818,6 +969,32 @@ const Player = forwardRef(function Player(
           </>
         )}
       </div>
+
+      {/* Mobile Spotify Browser overlay */}
+      {showSpotifyBrowser && (
+        <div className="lg:hidden fixed inset-0 z-50 bg-zinc-950/95 backdrop-blur-sm flex flex-col animate-fade-in">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800">
+            <span className="text-sm font-semibold text-green-400 flex items-center gap-2">
+              <SpotifyIcon className="w-4 h-4" />
+              {t('spotify.browse')}
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowSpotifyBrowser(false)}
+              className="text-zinc-400 hover:text-zinc-200 h-7 px-2 text-xs"
+            >
+              ✕
+            </Button>
+          </div>
+          <div className="flex-1 overflow-y-auto p-3">
+            <SpotifyBrowser
+              onSelectTrack={handleSpotifyBrowserSelect}
+              onClose={() => setShowSpotifyBrowser(false)}
+            />
+          </div>
+        </div>
+      )}
 
       {confirmModal}
     </>
