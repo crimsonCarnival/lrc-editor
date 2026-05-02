@@ -4,13 +4,21 @@ import { Button } from '@/components/ui/button';
 import { Copy, Check, AlertCircle } from 'lucide-react';
 import { Tip } from '@/components/ui/tip';
 
-export function SharePanel({ url, ytUrl, linesCount, hasSynced, isPublic = true, onPrivacyChange }) {
+export function SharePanel({ url: baseUrl, ytUrl, linesCount, hasSynced, isPublic = true, onPrivacyChange, playbackPosition = 0 }) {
   const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
   const inputRef = useRef(null);
 
   // Privacy state (public/private)
   const [privacy, setPrivacy] = useState(isPublic ? 'public' : 'private');
+  
+  // Time toggle state
+  const [includeTime, setIncludeTime] = useState(false);
+  
+  // Dynamic URL
+  const url = includeTime && playbackPosition > 0 
+    ? `${baseUrl}?s=${Math.floor(playbackPosition)}`
+    : baseUrl;
 
   const handlePrivacyToggle = () => {
     const newPrivacy = privacy === 'public' ? 'private' : 'public';
@@ -60,28 +68,41 @@ export function SharePanel({ url, ytUrl, linesCount, hasSynced, isPublic = true,
       </div>
       {/* Badges */}
       <div className="flex flex-wrap gap-2">
-        <span className={`inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded-full border ${
-          ytUrl
+        <span className={`inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded-full border ${ytUrl
             ? 'border-accent-blue/40 bg-accent-blue/10 text-accent-blue'
             : 'border-zinc-700 bg-zinc-800 text-zinc-500'
-        }`}>
+          }`}>
           <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+            <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
           </svg>
           {ytUrl ? t('share.youtubeIncluded', 'YouTube included') : t('share.noYoutube', 'No YouTube loaded')}
         </span>
 
-        <span className={`inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded-full border ${
-          hasSynced
+        <span className={`inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded-full border ${hasSynced
             ? 'border-primary/40 bg-primary/10 text-primary'
             : 'border-zinc-700 bg-zinc-800 text-zinc-500'
-        }`}>
+          }`}>
           <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
           </svg>
           {linesCount} {hasSynced ? t('share.syncedLines', 'synced lines') : t('share.lines', 'lines (unsynced)')}
         </span>
       </div>
+
+      {/* Time Toggle */}
+      {playbackPosition > 0 && (
+        <div className="flex items-center gap-2 mt-1">
+          <button
+            onClick={() => setIncludeTime(!includeTime)}
+            className="flex items-center gap-2 text-xs text-zinc-400 hover:text-zinc-200 transition-colors focus:outline-none"
+          >
+            <div className={`w-8 h-4 rounded-full p-0.5 transition-colors ${includeTime ? 'bg-primary' : 'bg-zinc-700'}`}>
+              <div className={`w-3 h-3 rounded-full bg-white transition-transform ${includeTime ? 'translate-x-4' : 'translate-x-0'}`} />
+            </div>
+            <span>{t('share.includeTime', 'Start at current time')} ({Math.floor(playbackPosition)}s)</span>
+          </button>
+        </div>
+      )}
 
       {/* Description */}
       <p className="text-xs text-zinc-400 leading-relaxed">
@@ -114,16 +135,15 @@ export function SharePanel({ url, ytUrl, linesCount, hasSynced, isPublic = true,
             onClick={handleCopy}
             variant="outline"
             size="icon"
-            className={`flex-shrink-0 border transition-all duration-200 ${
-              copied
+            className={`flex-shrink-0 border transition-all duration-200 ${copied
                 ? 'bg-primary/15 border-primary/40 text-primary hover:bg-primary/20 scale-110'
                 : 'bg-zinc-800 border-zinc-700/60 text-zinc-300 hover:bg-zinc-700 hover:text-zinc-100'
-            }`}
+              }`}
           >
-          {copied
-            ? <Check className="w-4 h-4" />
-            : <Copy className="w-4 h-4" />
-          }
+            {copied
+              ? <Check className="w-4 h-4" />
+              : <Copy className="w-4 h-4" />
+            }
           </Button>
         </Tip>
       </div>
