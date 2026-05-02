@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { useAuthContext } from '../../context/AuthContext';
+import { useAuthContext } from '../../contexts/useAuthContext';
 import { projects } from '../../api';
 import { Button } from '@/components/ui/button';
 import { 
