@@ -192,7 +192,7 @@ const Player = forwardRef(function Player(
           const file = new File([blob], upload.fileName || 'audio.mp3', { type: blob.type || 'audio/mpeg' });
           local.handleFileChange({ target: { files: [file] } });
         })
-        .catch(() => {});
+        .catch(() => { });
     }
   }, [local, yt, sp, onTitleChange]);
 
@@ -404,7 +404,7 @@ const Player = forwardRef(function Player(
                 )}
                 <div className="relative flex-1">
                   <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-red-500/70 shrink-0 pointer-events-none" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                    <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
                   </svg>
                   <Input
                     id="youtube-url-input"
@@ -553,9 +553,9 @@ const Player = forwardRef(function Player(
                         >
                           <div className="w-8 h-8 rounded flex-shrink-0 overflow-hidden bg-zinc-700/50 flex items-center justify-center">
                             {upload.thumbnailUrl ? (
-                              <img 
-                                src={upload.thumbnailUrl} 
-                                alt={upload.title || 'Thumbnail'} 
+                              <img
+                                src={upload.thumbnailUrl}
+                                alt={upload.title || 'Thumbnail'}
                                 className="w-full h-full object-cover"
                                 onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
                               />
@@ -564,8 +564,8 @@ const Player = forwardRef(function Player(
                               {upload.source === 'youtube'
                                 ? <Video className="w-3.5 h-3.5 text-red-400 shrink-0" />
                                 : upload.source === 'spotify'
-                                ? <SpotifyIcon className="w-3.5 h-3.5 text-green-400 shrink-0" />
-                                : <Cloud className="w-3.5 h-3.5 text-blue-400 shrink-0" />}
+                                  ? <SpotifyIcon className="w-3.5 h-3.5 text-green-400 shrink-0" />
+                                  : <Cloud className="w-3.5 h-3.5 text-blue-400 shrink-0" />}
                             </div>
                           </div>
                           <div className="flex-1 min-w-0">
@@ -663,7 +663,7 @@ const Player = forwardRef(function Player(
                     } else {
                       seek(raw);
                     }
-                  }}  
+                  }}
                   className="w-full relative z-raised"
                   style={{
                     background: `linear-gradient(to right, var(--color-primary) ${duration ? (currentTime / duration) * 100 : 0}%, rgba(255, 255, 255, 0.15) ${duration ? (currentTime / duration) * 100 : 0}%)`,
@@ -688,9 +688,9 @@ const Player = forwardRef(function Player(
               <VolumeControl />
 
               <Tip content={loopA != null && loopB != null
-                  ? `${t('player.loopActive') || 'Loop active'}: ${formatTime(loopA)} – ${formatTime(loopB)} (click to clear)`
-                  : t('player.setLoop') || 'Set A-B loop'
-                }>
+                ? `${t('player.loopActive') || 'Loop active'}: ${formatTime(loopA)} – ${formatTime(loopB)} (click to clear)`
+                : t('player.setLoop') || 'Set A-B loop'
+              }>
                 <Button
                   variant="ghost"
                   size="icon"
@@ -701,7 +701,7 @@ const Player = forwardRef(function Player(
                       const now = source === 'local'
                         ? (audioRef.current?.currentTime ?? currentTime)
                         : source === 'youtube' ? (yt.getCurrentTime?.() ?? currentTime)
-                        : currentTime;
+                          : currentTime;
                       if (lines?.length) {
                         let activeIdx = -1;
                         for (let i = 0; i < lines.length; i++) {
@@ -722,11 +722,10 @@ const Player = forwardRef(function Player(
                       }
                     }
                   }}
-                  className={`rounded-full flex-shrink-0 ${
-                    loopA != null && loopB != null
+                  className={`rounded-full flex-shrink-0 ${loopA != null && loopB != null
                       ? 'bg-accent-purple/20 text-accent-purple hover:bg-accent-purple/30'
                       : 'bg-zinc-800/80 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700'
-                  }`}
+                    }`}
                 >
                   <Repeat className="w-4 h-4" />
                 </Button>
@@ -808,9 +807,9 @@ const Player = forwardRef(function Player(
                           >
                             <div className="w-8 h-8 rounded flex-shrink-0 overflow-hidden bg-zinc-700/50 flex items-center justify-center">
                               {upload.thumbnailUrl ? (
-                                <img 
-                                  src={upload.thumbnailUrl} 
-                                  alt={upload.title || 'Thumbnail'} 
+                                <img
+                                  src={upload.thumbnailUrl}
+                                  alt={upload.title || 'Thumbnail'}
                                   className="w-full h-full object-cover"
                                   onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
                                 />
@@ -819,8 +818,8 @@ const Player = forwardRef(function Player(
                                 {upload.source === 'youtube'
                                   ? <Video className="w-3.5 h-3.5 text-red-400 shrink-0" />
                                   : upload.source === 'spotify'
-                                  ? <SpotifyIcon className="w-3.5 h-3.5 text-green-400 shrink-0" />
-                                  : <Cloud className="w-3.5 h-3.5 text-blue-400 shrink-0" />}
+                                    ? <SpotifyIcon className="w-3.5 h-3.5 text-green-400 shrink-0" />
+                                    : <Cloud className="w-3.5 h-3.5 text-blue-400 shrink-0" />}
                               </div>
                             </div>
                             <span className="text-xs font-medium text-zinc-200 truncate">
@@ -872,7 +871,7 @@ const Player = forwardRef(function Player(
               >
                 {isPlaying
                   ? <Pause className="w-3.5 h-3.5 text-zinc-950" fill="currentColor" />
-                  : <Play  className="w-3.5 h-3.5 text-zinc-950 ml-0.5" fill="currentColor" />}
+                  : <Play className="w-3.5 h-3.5 text-zinc-950 ml-0.5" fill="currentColor" />}
               </button>
               <span className="text-[10px] font-mono tabular-nums text-zinc-400 w-10 shrink-0 text-right">
                 {formatTime(currentTime)}
