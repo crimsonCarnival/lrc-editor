@@ -26,7 +26,7 @@ import {
   PopoverTrigger,
 } from './components/ui/popover';
 import { Tip } from './components/ui/tip';
-import { Music2, UploadCloud, Globe, Settings as SettingsIcon, Eye, EyeOff, Lock, LockOpen, LayoutList, User, LogOut, BookOpen, Pencil, Share2, Loader2 } from 'lucide-react';
+import { Music2, UploadCloud, Globe, Settings as SettingsIcon, Eye, EyeOff, Lock, LockOpen, LayoutList, User, LogOut, BookOpen, Pencil, Share2, Loader2, Sun, Moon, Monitor } from 'lucide-react';
 import { useScrollLock } from './hooks/useScrollLock';
 import { useNetworkStatus } from './hooks/useNetworkStatus';
 
@@ -407,6 +407,47 @@ function AppInner() {
                   {lang.label}
                 </PopoverItem>
               ))}
+            </PopoverContent>
+          </Popover>
+
+          {/* Theme Selector */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className="flex items-center justify-center px-2.5 sm:px-3 h-8 sm:h-9 bg-zinc-800/80 hover:bg-zinc-700 border-zinc-700/60 rounded-lg sm:rounded-xl text-zinc-200 flex-shrink-0"
+                aria-label={t('settings.interface.theme') || 'Theme'}
+              >
+                {settings.interface.theme === 'light' ? (
+                  <Sun className="w-4 h-4 text-zinc-400" strokeWidth={2} />
+                ) : settings.interface.theme === 'dark' ? (
+                  <Moon className="w-4 h-4 text-zinc-400" strokeWidth={2} />
+                ) : (
+                  <Monitor className="w-4 h-4 text-zinc-400" strokeWidth={2} />
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-32" align="end">
+              {[
+                { code: 'light', label: t('settings.options.themes.light') || 'Light', icon: Sun },
+                { code: 'dark', label: t('settings.options.themes.dark') || 'Dark', icon: Moon },
+                { code: 'system', label: t('settings.options.themes.system') || 'System', icon: Monitor }
+              ].map(th => {
+                const Icon = th.icon;
+                return (
+                  <PopoverItem
+                    key={th.code}
+                    onClick={() => updateSetting('interface.theme', th.code)}
+                    className={`font-semibold ${(settings.interface.theme === th.code)
+                      ? 'bg-primary/15 text-primary hover:bg-primary/20'
+                      : ''
+                      }`}
+                  >
+                    <Icon className="w-3.5 h-3.5 mr-2" />
+                    {th.label}
+                  </PopoverItem>
+                );
+              })}
             </PopoverContent>
           </Popover>
 
