@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
+import { useSearchParams } from 'react-router-dom';
 import { useSettings } from '../contexts/useSettings';
 import useHistory from './useHistory';
 import useConfirm from './useConfirm';
@@ -12,57 +13,10 @@ const PROJECT_KEY = 'lrc-syncer-project';
 const SHARED_PROJECT_KEY = 'lrc-syncer-shared-project';
 const ACTIVE_PROJECT_ID_KEY = 'lrc-syncer-active-project-id';
 
-// ——— URL compression helpers for legacy shareable project links ———
-async function decompressFromBase64(b64) {
-  const normalized = b64.replace(/-/g, '+').replace(/_/g, '/');
-  const padded = normalized + '=='.slice(0, (4 - normalized.length % 4) % 4);
-  const bytes = Uint8Array.from(atob(padded), (c) => c.charCodeAt(0));
-  const stream = new DecompressionStream('deflate');
-  const writer = stream.writable.getWriter();
-  writer.write(bytes);
-  writer.close();
-  return new Response(stream.readable).text();
-}
-
-// ——— Compact v1 share format helpers (legacy) ———
-// Expands a v1 compact payload back into the full project shape.
-function expandSharePayload(p) {
-  const lines = (p.l || []).map((l) => ({
-    text: l.t || '',
-    timestamp: l.s ?? null,
-    endTime: l.e ?? null,
-    secondary: l.x || '',
-    translation: l.r || '',
-    id: crypto.randomUUID(),
-    words: Array.isArray(l.w)
-      ? l.w.map((w) => ({
-          word: w.w || '',
-          time: w.t ?? null,
-          ...(w.rd ? { reading: w.rd } : {}),
-        })).filter((w) => w.word)
-      : undefined,
-    secondaryWords: Array.isArray(l.sw)
-      ? l.sw.map((w) => ({
-          word: w.w || '',
-          time: w.t ?? null,
-        })).filter((w) => w.word)
-      : undefined,
-  }));
-  return {
-    lines,
-    editorMode: p.m || (lines.some((l) => l.endTime != null) ? 'srt' : 'lrc'),
-    ytUrl: p.y || '',
-    syncMode: true,
-    activeLineIndex: 0,
-    playbackPosition: 0,
-    playbackSpeed: 1,
-    readOnly: p.ro !== 0,
-  };
-}
-
 export function useAppState(user) {
   const { t, i18n } = useTranslation();
   const { settings, updateSetting } = useSettings();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // ——— Theme ———
   useEffect(() => {
@@ -70,9 +24,12 @@ export function useAppState(user) {
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
 
     const updateTheme = () => {
-      if (settings.interface.theme === 'light') {
+      const themeParam = searchParams.get('theme');
+      const activeTheme = themeParam || settings.interface.theme;
+
+      if (activeTheme === 'light') {
         root.classList.remove('dark');
-      } else if (settings.interface.theme === 'system') {
+      } else if (activeTheme === 'system') {
         if (mediaQuery.matches) {
           root.classList.add('dark');
         } else {
@@ -86,7 +43,38 @@ export function useAppState(user) {
     updateTheme();
     mediaQuery.addEventListener('change', updateTheme);
     return () => mediaQuery.removeEventListener('change', updateTheme);
-  }, [settings.interface.theme]);
+  }, [settings.interface.theme, searchParams]);
+
+  // Sync URL params to state when they change
+  useEffect(() => {
+    const hlParam = searchParams.get('hl');
+    if (hlParam && i18n.resolvedLanguage?.split('-')[0] !== hlParam) {
+      i18n.changeLanguage(hlParam);
+    }
+    const themeParam = searchParams.get('theme');
+    if (themeParam && settings.interface.theme !== themeParam) {
+      updateSetting('interface.theme', themeParam);
+    }
+  }, [searchParams, i18n, settings.interface.theme, updateSetting]);
+
+  // Sync current language and theme back to URL
+  useEffect(() => {
+    setSearchParams(prev => {
+      const newParams = new URLSearchParams(prev);
+      let changed = false;
+      const currentHl = i18n.resolvedLanguage?.split('-')[0];
+      if (currentHl && newParams.get('hl') !== currentHl) {
+        newParams.set('hl', currentHl);
+        changed = true;
+      }
+      const activeTheme = settings.interface.theme;
+      if (activeTheme && newParams.get('theme') !== activeTheme) {
+        newParams.set('theme', activeTheme);
+        changed = true;
+      }
+      return changed ? newParams : prev;
+    }, { replace: true });
+  }, [i18n.resolvedLanguage, settings.interface.theme, setSearchParams]);
 
   // ——— Lines state with undo/redo ———
   // editorMode must be declared before useHistory so getCompanion can close over it
@@ -108,7 +96,7 @@ export function useAppState(user) {
   const [hasMedia, setHasMedia] = useState(false);
   const [showKeyboardHelp, setShowKeyboardHelp] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  
+
   const [isSharedProject, setIsSharedProject] = useState(false);
   const [sharedReadOnly, setSharedReadOnly] = useState(true);
   const [shareModal, setShareModal] = useState(null); // null | { url, ytUrl, linesCount, hasSynced, readOnly }
@@ -156,10 +144,24 @@ export function useAppState(user) {
   // Refs for stale-closure-safe reads inside save callbacks and guarded setLines
   const isSharedProjectRef = useRef(false);
   const sharedReadOnlyRef = useRef(true);
+  const lastServerSnapshotRef = useRef(null);
 
   const playerRef = useRef(null);
   const langMenuRef = useRef(null);
   const [requestConfirm, confirmModal] = useConfirm();
+
+  // Handle Playback Time (s) and Readonly params on mount
+  useEffect(() => {
+    const sParam = searchParams.get('s');
+    if (sParam && !isNaN(Number(sParam))) {
+      setRestoredPosition(Number(sParam));
+    }
+    
+    const readonlyParam = searchParams.get('readonly');
+    if (readonlyParam !== null) {
+      setSharedReadOnly(readonlyParam === '1' || readonlyParam === 'true');
+    }
+  }, [searchParams, setRestoredPosition, setSharedReadOnly]);
 
   useEffect(() => { isSharedProjectRef.current = isSharedProject; }, [isSharedProject]);
   useEffect(() => { sharedReadOnlyRef.current = sharedReadOnly; }, [sharedReadOnly]);
@@ -240,7 +242,23 @@ export function useAppState(user) {
           if (project.state?.playbackSpeed) setRestoredSpeed(project.state.playbackSpeed);
           if (project.title) setMediaTitle(project.title);
           if (project.metadata) setProjectMetadata({ description: project.metadata.description || '', tags: project.metadata.tags || [] });
-          
+          updateServerSnapshot({
+            title: project.title || '',
+            metadata: project.metadata || { description: '', tags: [] },
+            state: {
+              syncMode: project.state?.syncMode ?? true,
+              activeLineIndex: project.state?.activeLineIndex || 0,
+              playbackPosition: project.state?.playbackPosition || 0,
+              playbackSpeed: project.state?.playbackSpeed || 1,
+              saveTime: project.state?.saveTime || null,
+              timezone: project.state?.timezone || null,
+              utcOffset: project.state?.utcOffset || null,
+            },
+            editorMode: project.lyrics?.editorMode || 'lrc',
+            lines: serverLines,
+            uploadId: project.upload?.id,
+          });
+
           // Sync server data to localStorage for offline access
           try {
             localStorage.setItem(PROJECT_KEY, JSON.stringify({
@@ -266,8 +284,11 @@ export function useAppState(user) {
       // Not authenticated - use localStorage
       restoreFromLocalStorage();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+
+
 
   // ——— Manual save ———
   // Build an ISO-8601 string in the local timezone, e.g. "2026-03-30T20:46:37.191-05:00"
@@ -276,6 +297,88 @@ export function useAppState(user) {
     const offsetMs = (sign === '-' ? -1 : 1) * (Number(hh) * 60 + Number(mm)) * 60000;
     const local = new Date(date.getTime() + offsetMs);
     return local.toISOString().replace('Z', utcOffset);
+  }
+
+  const deepEqual = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+  const cloneValue = (value) => JSON.parse(JSON.stringify(value));
+
+  function buildLyricsPatch(prevSnapshot, nextEditorMode, nextLines) {
+    if (!prevSnapshot) {
+      return { editorMode: nextEditorMode, lines: nextLines };
+    }
+
+    const prevMode = prevSnapshot.editorMode;
+    const prevLines = Array.isArray(prevSnapshot.lines) ? prevSnapshot.lines : [];
+    const modeChanged = prevMode !== nextEditorMode;
+
+    if (prevLines.length !== nextLines.length) {
+      return modeChanged
+        ? { editorMode: nextEditorMode, lines: nextLines }
+        : { lines: nextLines };
+    }
+
+    let changedIndex = -1;
+    for (let i = 0; i < nextLines.length; i += 1) {
+      if (!deepEqual(prevLines[i], nextLines[i])) {
+        if (changedIndex !== -1) {
+          return modeChanged
+            ? { editorMode: nextEditorMode, lines: nextLines }
+            : { lines: nextLines };
+        }
+        changedIndex = i;
+      }
+    }
+
+    if (changedIndex === -1) {
+      return modeChanged ? { editorMode: nextEditorMode } : null;
+    }
+
+    return modeChanged
+      ? { editorMode: nextEditorMode, lineIndex: changedIndex, line: nextLines[changedIndex] }
+      : { lineIndex: changedIndex, line: nextLines[changedIndex] };
+  }
+
+  function buildProjectPatch({
+    prevSnapshot,
+    title,
+    metadata,
+    state,
+    uploadId,
+    editorMode: nextEditorMode,
+    lines: nextLines,
+  }) {
+    const patch = {};
+
+    if (!prevSnapshot || prevSnapshot.title !== title) patch.title = title;
+    if (!prevSnapshot || !deepEqual(prevSnapshot.metadata, metadata)) patch.metadata = metadata;
+    if (!prevSnapshot || !deepEqual(prevSnapshot.state, state)) patch.state = state;
+    if (uploadId !== undefined && (!prevSnapshot || prevSnapshot.uploadId !== uploadId)) {
+      patch.uploadId = uploadId;
+    }
+
+    const lyricsPatch = buildLyricsPatch(prevSnapshot, nextEditorMode, nextLines);
+    if (lyricsPatch) patch.lyrics = lyricsPatch;
+
+    return patch;
+  }
+
+  function updateServerSnapshot({
+    title,
+    metadata,
+    state,
+    editorMode: nextEditorMode,
+    lines: nextLines,
+    uploadId,
+  }) {
+    const prev = lastServerSnapshotRef.current;
+    lastServerSnapshotRef.current = {
+      title,
+      metadata: cloneValue(metadata),
+      state: cloneValue(state),
+      editorMode: nextEditorMode,
+      lines: cloneValue(nextLines),
+      uploadId: uploadId ?? prev?.uploadId ?? null,
+    };
   }
 
   const buildProjectPayload = useCallback(() => {
@@ -325,13 +428,13 @@ export function useAppState(user) {
   const handleManualSave = useCallback(async () => {
     const key = isSharedProjectRef.current ? SHARED_PROJECT_KEY : PROJECT_KEY;
     const payload = buildProjectPayload();
-    
+
     console.log('[Manual Save] Starting manual save...');
     console.log('[Manual Save] Lines count:', payload.lines?.length);
     console.log('[Manual Save] ActiveProjectId:', activeProjectId);
     console.log('[Manual Save] Authenticated:', !!getAccessToken());
     console.log('[Manual Save] Payload:', payload);
-    
+
     localStorage.setItem(key, JSON.stringify(payload));
     setIsAutosaving(true);
     setTimeout(() => setIsAutosaving(false), 1200);
@@ -360,6 +463,8 @@ export function useAppState(user) {
             source: 'youtube',
             youtubeUrl: payload.ytUrl,
             fileName: '',
+            title: mediaTitle || '',
+            duration: duration || null,
           });
           uploadIdToSave = upload.id;
         } catch (err) {
@@ -367,28 +472,45 @@ export function useAppState(user) {
         }
       }
 
-      const patchData = {
-        title: mediaTitle || '',
-        metadata: projectMetadata,
-        lyrics: { editorMode, lines: payload.lines },
-        state: {
-          syncMode,
-          activeLineIndex,
-          playbackPosition: payload.playbackPosition,
-          playbackSpeed: payload.playbackSpeed,
-        },
+      const patchState = {
+        syncMode,
+        activeLineIndex,
+        playbackPosition: payload.playbackPosition,
+        playbackSpeed: payload.playbackSpeed,
+        saveTime: payload.saveTime,
+        timezone: payload.timezone,
+        utcOffset: payload.utcOffset,
       };
-      if (uploadIdToSave) {
-        patchData.uploadId = uploadIdToSave;
-      }
-      
+      const title = mediaTitle || '';
+      const metadata = projectMetadata;
+      const patchData = buildProjectPatch({
+        prevSnapshot: lastServerSnapshotRef.current,
+        title,
+        metadata,
+        state: patchState,
+        uploadId: uploadIdToSave ?? undefined,
+        editorMode,
+        lines: payload.lines,
+      });
+
       console.log('[Manual Save] Patching project:', activeProjectId, 'with data:', patchData);
-      projects.patch(activeProjectId, patchData)
-        .then(() => console.log('[Manual Save] Successfully saved to server'))
-        .catch((err) => {
+      if (Object.keys(patchData).length > 0) {
+        try {
+          await projects.patch(activeProjectId, patchData);
+          updateServerSnapshot({
+            title,
+            metadata,
+            state: patchState,
+            editorMode,
+            lines: payload.lines,
+            uploadId: uploadIdToSave ?? undefined,
+          });
+          console.log('[Manual Save] Successfully saved to server');
+        } catch (err) {
           console.error('[Manual Save] Failed to save to server:', err);
           toast.error(t('project.saveFailed') || 'Failed to save to server');
-        });
+        }
+      }
     } else if (getAccessToken() && !activeProjectId && !isSharedProjectRef.current && payload.lines?.length > 0) {
       // Create a new project if authenticated but no project exists
       // First ensure upload exists
@@ -413,6 +535,8 @@ export function useAppState(user) {
             source: 'youtube',
             youtubeUrl: payload.ytUrl,
             fileName: '',
+            title: mediaTitle || '',
+            duration: duration || null,
           });
           uploadIdToSave = upload.id;
         } catch (err) {
@@ -429,6 +553,9 @@ export function useAppState(user) {
           activeLineIndex,
           playbackPosition: payload.playbackPosition || 0,
           playbackSpeed: payload.playbackSpeed || 1,
+          saveTime: payload.saveTime,
+          timezone: payload.timezone,
+          utcOffset: payload.utcOffset,
         },
         readOnly: false,
       };
@@ -438,6 +565,14 @@ export function useAppState(user) {
 
       projects.create(createData).then(({ projectId }) => {
         setActiveProjectId(projectId);
+        updateServerSnapshot({
+          title: createData.title,
+          metadata: createData.metadata,
+          state: createData.state,
+          editorMode,
+          lines: payload.lines,
+          uploadId: uploadIdToSave ?? undefined,
+        });
         try {
           localStorage.setItem(ACTIVE_PROJECT_ID_KEY, projectId);
         } catch { /* ignore localStorage errors */ }
@@ -556,7 +691,7 @@ export function useAppState(user) {
         })
         .catch((err) => console.error('Failed to decode shared project URL', err));
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ——— Clean up shared project when the page is closed ———
@@ -592,6 +727,8 @@ export function useAppState(user) {
             source: 'youtube',
             youtubeUrl: projectYtUrl,
             fileName: '',
+            title: mediaTitle || '',
+            duration: duration || null,
           });
           uploadIdToSave = upload.id;
         } catch (err) {
@@ -616,13 +753,13 @@ export function useAppState(user) {
       }
 
       const result = await projects.create(createData);
-      
+
       // Track this project for future updates
       if (!readOnly) {
         setActiveProjectId(result.projectId);
         localStorage.setItem(ACTIVE_PROJECT_ID_KEY, result.projectId);
       }
-      const url = `${window.location.origin}${window.location.pathname}#s=${result.projectId}`;
+      const url = `${window.location.origin}/share/${result.projectId}${readOnly ? '?readonly=1' : ''}`;
       // Write the shared project to its own localStorage key (separate from the personal project)
       localStorage.setItem(SHARED_PROJECT_KEY, JSON.stringify(buildProjectPayload()));
       setShareModal({
@@ -678,7 +815,7 @@ export function useAppState(user) {
     // This ensures deleted lyrics properly persist instead of reappearing on reload
     const key = s.isSharedProject ? SHARED_PROJECT_KEY : PROJECT_KEY;
     localStorage.setItem(key, JSON.stringify(payload));
-    
+
     // ✅ FIX: Sync to server database, not just localStorage
     if (getAccessToken() && activeProjectId && !isSharedProjectRef.current) {
       // First ensure upload exists if we have audio
@@ -703,6 +840,8 @@ export function useAppState(user) {
             source: 'youtube',
             youtubeUrl: payload.ytUrl,
             fileName: '',
+            title: mediaTitle || '',
+            duration: duration || null,
           });
           uploadIdToSave = upload.id;
         } catch (err) {
@@ -710,20 +849,41 @@ export function useAppState(user) {
         }
       }
 
-      const patchData = {
-        title: mediaTitle || '',
-        lyrics: { editorMode, lines: payload.lines || [] },
-        state: {
-          syncMode,
-          activeLineIndex,
-          playbackPosition: payload.playbackPosition || 0,
-          playbackSpeed: payload.playbackSpeed || 1,
-        },
+      const patchState = {
+        syncMode,
+        activeLineIndex,
+        playbackPosition: payload.playbackPosition || 0,
+        playbackSpeed: payload.playbackSpeed || 1,
+        saveTime: payload.saveTime,
+        timezone: payload.timezone,
+        utcOffset: payload.utcOffset,
       };
-      if (uploadIdToSave) {
-        patchData.uploadId = uploadIdToSave;
+      const title = mediaTitle || '';
+      const metadata = projectMetadata;
+      const patchData = buildProjectPatch({
+        prevSnapshot: lastServerSnapshotRef.current,
+        title,
+        metadata,
+        state: patchState,
+        uploadId: uploadIdToSave ?? undefined,
+        editorMode,
+        lines: payload.lines || [],
+      });
+      if (Object.keys(patchData).length > 0) {
+        try {
+          await projects.patch(activeProjectId, patchData);
+          updateServerSnapshot({
+            title,
+            metadata,
+            state: patchState,
+            editorMode,
+            lines: payload.lines || [],
+            uploadId: uploadIdToSave ?? undefined,
+          });
+        } catch {
+          // silent fail for autosave path
+        }
       }
-      projects.patch(activeProjectId, patchData).catch(() => {});
     } else if (getAccessToken() && !activeProjectId && !isSharedProjectRef.current && payload.lines?.length > 0) {
       // ✅ FIX: Auto-create project on first save if authenticated but no project exists
       // First ensure upload exists
@@ -748,6 +908,8 @@ export function useAppState(user) {
             source: 'youtube',
             youtubeUrl: payload.ytUrl,
             fileName: '',
+            title: mediaTitle || '',
+            duration: duration || null,
           });
           uploadIdToSave = upload.id;
         } catch (err) {
@@ -764,6 +926,9 @@ export function useAppState(user) {
           activeLineIndex,
           playbackPosition: payload.playbackPosition || 0,
           playbackSpeed: payload.playbackSpeed || 1,
+          saveTime: payload.saveTime,
+          timezone: payload.timezone,
+          utcOffset: payload.utcOffset,
         },
         readOnly: false,
       };
@@ -773,12 +938,20 @@ export function useAppState(user) {
 
       projects.create(createData).then(({ projectId }) => {
         setActiveProjectId(projectId);
+        updateServerSnapshot({
+          title: createData.title,
+          metadata: createData.metadata,
+          state: createData.state,
+          editorMode,
+          lines: payload.lines,
+          uploadId: uploadIdToSave ?? undefined,
+        });
         try {
           localStorage.setItem(ACTIVE_PROJECT_ID_KEY, projectId);
         } catch { /* ignore localStorage errors */ }
-      }).catch(() => {});
+      }).catch(() => { });
     }
-    
+
     lastSaveTimeRef.current = Date.now();
     changeCountRef.current = 0;
     setIsAutosaving(true);
@@ -861,6 +1034,8 @@ export function useAppState(user) {
                 source: 'youtube',
                 youtubeUrl: pendingProject.ytUrl,
                 fileName: '',
+                title: mediaTitle || '',
+                duration: duration || null,
               });
               uploadIdToSave = upload.id;
             } catch (err) {
@@ -925,10 +1100,10 @@ export function useAppState(user) {
     setActiveLineIndex(0);
     setMediaTitle('');
     setProjectMetadata({ description: '', tags: [] });
-    
+
     // Clear localStorage
     localStorage.removeItem(PROJECT_KEY);
-    
+
     // Delete project from database if it exists
     if (activeProjectId && getAccessToken()) {
       try {
@@ -964,6 +1139,22 @@ export function useAppState(user) {
     if (project.state?.playbackSpeed) setRestoredSpeed(project.state.playbackSpeed);
     if (project.title) setMediaTitle(project.title);
     setActiveProjectId(projectId);
+    updateServerSnapshot({
+      title: project.title || '',
+      metadata: project.metadata || { description: '', tags: [] },
+      state: {
+        syncMode: project.state?.syncMode ?? true,
+        activeLineIndex: project.state?.activeLineIndex || 0,
+        playbackPosition: project.state?.playbackPosition || 0,
+        playbackSpeed: project.state?.playbackSpeed || 1,
+        saveTime: project.state?.saveTime || null,
+        timezone: project.state?.timezone || null,
+        utcOffset: project.state?.utcOffset || null,
+      },
+      editorMode: project.lyrics?.editorMode || 'lrc',
+      lines: projectLines,
+      uploadId: project.upload?.id,
+    });
     localStorage.setItem(ACTIVE_PROJECT_ID_KEY, projectId);
     // Save to localStorage so it's available on refresh
     localStorage.setItem(PROJECT_KEY, JSON.stringify({
@@ -1010,7 +1201,7 @@ export function useAppState(user) {
         redo();
       } else if (matchKey(e, settings.shortcuts?.showHelp?.[0] || '?')) {
         setShowKeyboardHelp((prev) => !prev);
-      // ——— Player shortcuts ———
+        // ——— Player shortcuts ———
       } else if (matchKey(e, settings.shortcuts?.playPause?.[0] || 'Enter')) {
         e.preventDefault();
         playerRef.current?.togglePlay?.();
@@ -1200,6 +1391,35 @@ export function useAppState(user) {
       window.removeEventListener('drop', handleDrop);
     };
   }, [handleDragEnter, handleDragLeave, handleDragOver, handleDrop]);
+
+  // ——— Process Query Parameters (?clone= and ?projectId=) ———
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const cloneId = params.get('clone');
+    const projId = params.get('projectId');
+    
+    if (cloneId && getAccessToken()) {
+      // Remove query param
+      const newUrl = new URL(window.location);
+      newUrl.searchParams.delete('clone');
+      window.history.replaceState(null, '', newUrl.toString());
+      
+      projects.clone(cloneId).then(res => {
+        loadProject(res.projectId);
+        toast.success(t('project.cloneSuccess') || 'Project copied successfully!');
+      }).catch(err => {
+        console.error('Failed to clone project:', err);
+        toast.error(t('project.cloneFailed') || 'Failed to copy project');
+      });
+    } else if (projId && getAccessToken()) {
+      // Remove query param
+      const newUrl = new URL(window.location);
+      newUrl.searchParams.delete('projectId');
+      window.history.replaceState(null, '', newUrl.toString());
+      
+      loadProject(projId);
+    }
+  }, [t, loadProject]); // loadProject included as dependency
 
   return {
     t,
