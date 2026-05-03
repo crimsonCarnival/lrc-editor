@@ -11,7 +11,9 @@ const UploadsLibrary = lazy(() => import('./components/Library/UploadsLibrary'))
 const UploadDetailView = lazy(() => import('./components/Library/UploadDetailView'));
 const SetupScreen = lazy(() => import('./components/Setup/SetupScreen'));
 const Home = lazy(() => import('./components/Home/Home'));
+const AdminDashboard = lazy(() => import('./components/Admin/AdminDashboard'));
 import ProjectSetupModal from './components/Setup/ProjectSetupModal';
+import BannedScreen from './components/Shared/BannedScreen';
 import { useAppState } from './hooks/useAppState';
 import { useSettings } from './contexts/useSettings';
 import { useAuthContext } from './contexts/useAuthContext';
@@ -26,7 +28,7 @@ import {
   PopoverTrigger,
 } from './components/ui/popover';
 import { Tip } from './components/ui/tip';
-import { Music2, UploadCloud, Globe, Settings as SettingsIcon, Eye, EyeOff, Lock, LockOpen, LayoutList, User, LogOut, BookOpen, Pencil, Share2, Loader2, Sun, Moon, Monitor, AlertCircle } from 'lucide-react';
+import { Music2, UploadCloud, Globe, Settings as SettingsIcon, Eye, EyeOff, Lock, LockOpen, LayoutList, User, LogOut, BookOpen, Pencil, Share2, Loader2, Sun, Moon, Monitor, AlertCircle, ShieldAlert } from 'lucide-react';
 import { useScrollLock } from './hooks/useScrollLock';
 import { useNetworkStatus } from './hooks/useNetworkStatus';
 
@@ -245,6 +247,10 @@ function AppInner() {
 
   const showEditor = focusMode !== 'playback' && !hideEditor;
   const showPreview = true; // always visible
+
+  if (user?.isBanned) {
+    return <BannedScreen />;
+  }
 
   return (
     <div className="min-h-screen lg:h-screen bg-zinc-950 relative overflow-x-hidden flex flex-col">
@@ -494,6 +500,12 @@ function AppInner() {
             </PopoverTrigger>
             <PopoverContent className="w-40" align="end">
               <div className="px-2 py-1.5 text-xs text-zinc-400 truncate">{t('auth.loggedInAs', { name: user?.username || user?.email })}</div>
+              {user?.role === 'admin' && (
+                <PopoverItem onClick={() => navigate('/admin')} className="text-indigo-400 hover:text-indigo-300">
+                  <ShieldAlert className="w-3.5 h-3.5 mr-1.5" />
+                  Admin Dashboard
+                </PopoverItem>
+              )}
               <PopoverItem onClick={logout} className="text-red-400 hover:text-red-300">
                 <LogOut className="w-3.5 h-3.5 mr-1.5" />
                 {t('auth.logout')}
@@ -575,6 +587,11 @@ function AppInner() {
                 }}
                 onBack={() => navigate('/project/new')}
               />
+            </Suspense>
+          } />
+          <Route path="admin" element={
+            <Suspense fallback={<SkeletonList count={3} />}>
+              <AdminDashboard />
             </Suspense>
           } />
           <Route path="project/:id" element={

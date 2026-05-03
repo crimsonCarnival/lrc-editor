@@ -17,6 +17,7 @@ import settings from './settings.js';
 import setup from './setup.js';
 import uploads from './uploads.js';
 import spotify from './spotify.js';
+import admin from './admin.js';
 
 export default {
   translation: {
@@ -38,6 +39,7 @@ export default {
     settings,
     setup,
     uploads,
-    spotify
+    spotify,
+    admin
   }
 };

@@ -89,6 +89,13 @@ export const auth = {
       body: JSON.stringify(data),
     });
   },
+
+  async submitAppeal(appealText) {
+    return request('/auth/appeal', {
+      method: 'POST',
+      body: JSON.stringify({ appealText }),
+    });
+  },
 };
 
 // ——— Settings ———
