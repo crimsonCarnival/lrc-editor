@@ -9,7 +9,12 @@ export default {
         "preview": "Vista previa",
         "playback": "Reproducción"
       },
-      "hideEditor": "Ocultar editor"
+      "hideEditor": "Ocultar Editor",
+      "unsavedChangesTitle": "Cambios sin guardar",
+      "unsavedChangesMessage": "Tienes cambios sin guardar. ¿Qué deseas hacer antes de salir?",
+      "discard": "Descartar",
+      "saveAndExit": "Guardar e ir a Inicio",
+      "cancel": "Cancelar"
     },
 
     "player": {

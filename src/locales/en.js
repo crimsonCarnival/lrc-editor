@@ -9,7 +9,12 @@ export default {
         "preview": "Preview",
         "playback": "Playback"
       },
-      "hideEditor": "Hide Editor"
+      "hideEditor": "Hide Editor",
+      "unsavedChangesTitle": "Unsaved Changes",
+      "unsavedChangesMessage": "You have unsaved changes. What would you like to do before leaving?",
+      "discard": "Discard",
+      "saveAndExit": "Save and go Home",
+      "cancel": "Cancel"
     },
 
     "player": {
