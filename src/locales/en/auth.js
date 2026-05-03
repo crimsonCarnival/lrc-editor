@@ -24,5 +24,11 @@ export default {
     "usernamePattern": "Only letters, numbers, hyphens and underscores",
     "emailInvalid": "Please enter a valid email address",
     "fieldRequired": "This field is required"
-  }
+  },
+  "unbanTitle": "Welcome Back!",
+  "unbanMessage": "Your account suspension has been lifted. You can now use all features again.",
+  "registrationBlockedTitle": "Registration Restricted",
+  "registrationBlockedMessage": "This account or network has been flagged due to previous policy violations.",
+  "registrationBlockedDetail": "To maintain platform integrity, we do not allow new accounts to be created using credentials associated with banned users.",
+  "securityNotice": "Security Violation Detected"
 };

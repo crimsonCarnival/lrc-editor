@@ -6,5 +6,8 @@ export default {
   "global": "Global",
   "goHome": "Ir al inicio",
   "cancel": "Cancelar",
-  "back": "Volver"
+  "confirm": "Confirmar",
+  "back": "Volver",
+  "close": "Cerrar",
+  "gotIt": "¡Entendido!"
 };

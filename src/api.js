@@ -11,7 +11,7 @@ import {
   inferEndTimes as localInferEndTimes,
 } from './utils/lrc';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
 let accessToken = null;
 
@@ -94,6 +94,12 @@ export const auth = {
     return request('/auth/appeal', {
       method: 'POST',
       body: JSON.stringify({ appealText }),
+    });
+  },
+
+  async clearUnbanMessage() {
+    return request('/auth/clear-unban-message', {
+      method: 'POST',
     });
   },
 };
@@ -539,15 +545,21 @@ export const admin = {
     return request(`/admin/users?${query}`);
   },
 
-  async banUser(userId, reason) {
+  async banUser(userId, { reason, bannedUntil, banIp }) {
     return request(`/admin/users/${userId}/ban`, {
       method: 'POST',
-      body: JSON.stringify({ reason }),
+      body: JSON.stringify({ reason, bannedUntil, banIp }),
     });
   },
 
   async unbanUser(userId) {
     return request(`/admin/users/${userId}/unban`, {
+      method: 'POST',
+    });
+  },
+  
+  async rejectAppeal(userId) {
+    return request(`/admin/users/${userId}/reject-appeal`, {
       method: 'POST',
     });
   },
@@ -562,6 +574,12 @@ export const admin = {
   async deleteUser(userId) {
     return request(`/admin/users/${userId}`, {
       method: 'DELETE',
+    });
+  },
+
+  async reactivateUser(userId) {
+    return request(`/admin/users/${userId}/reactivate`, {
+      method: 'POST',
     });
   },
 
@@ -580,6 +598,9 @@ export const api = {
   uploads,
   spotify,
   admin,
+  getHealth() {
+    return request('/health');
+  },
   setAccessToken,
   getAccessToken,
   clearAccessToken

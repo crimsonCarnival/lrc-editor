@@ -24,5 +24,11 @@ export default {
     "usernamePattern": "Solo letras, números, guiones y guiones bajos",
     "emailInvalid": "Ingresa un correo electrónico válido",
     "fieldRequired": "Este campo es obligatorio"
-  }
+  },
+  "unbanTitle": "¡Bienvenido de nuevo!",
+  "unbanMessage": "La suspensión de tu cuenta ha sido levantada. Ya puedes usar todas las funciones.",
+  "registrationBlockedTitle": "Registro Restringido",
+  "registrationBlockedMessage": "Esta cuenta o red ha sido marcada por violaciones previas a nuestras políticas.",
+  "registrationBlockedDetail": "Para mantener la integridad de la plataforma, no permitimos crear cuentas nuevas con credenciales asociadas a usuarios baneados.",
+  "securityNotice": "Aviso de Seguridad Detectado"
 };

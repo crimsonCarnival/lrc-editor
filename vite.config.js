@@ -15,6 +15,28 @@ export default defineConfig({
       '@': resolve(__dirname, 'src'),
     },
   },
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, ''),
+      },
+      '/render-api': {
+        target: 'https://lrc-editor-server.onrender.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/render-api/, ''),
+        configure: (proxy, _options) => {
+          proxy.on('error', (err, _req, _res) => {
+            console.log('Proxy error (Render):', err);
+          });
+          proxy.on('proxyReq', (proxyReq, req, _res) => {
+            console.log('Proxying request to Render:', req.method, req.url);
+          });
+        },
+      },
+    },
+  },
   envPrefix: 'VITE_',
   build: {
     chunkSizeWarningLimit: 600,

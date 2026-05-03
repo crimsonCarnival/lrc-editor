@@ -21,6 +21,9 @@ export default {
     noAppeal: '-',
     ban: 'Ban',
     unban: 'Unban',
+    rejectAppeal: 'Reject Appeal',
+    deleted: 'Deleted',
+    reactivate: 'Reactivate',
     promptBanReason: 'Enter reason for banning this user:',
     confirmRoleChange: 'Are you sure you want to change the role of {{name}} to {{role}}?',
     confirmDelete: 'Are you sure you want to permanently delete {{name}}? This removes all their projects and uploads.',
@@ -28,6 +31,10 @@ export default {
     roleTitle: 'Change User Role',
     deleteTitle: 'Delete User',
     reasonPlaceholder: 'Violation of terms, spam, etc.',
+    reasonLabel: 'Reason',
+    untilLabel: 'Banned Until',
+    banUntilHint: 'Leave empty for permanent ban',
+    banIpLabel: 'Also ban last known IP address',
   },
   logger: {
     title: 'Live Request Logger',
@@ -46,7 +53,8 @@ export default {
   },
   banned: {
     title: 'Account Suspended',
-    description: 'Your account has been suspended by an administrator due to a violation of our terms of service. You no longer have access to Syncify.',
+    descriptionTemp: 'Your account has been temporarily suspended by an administrator. Please check the remaining time below.',
+    descriptionPerm: 'Your account has been permanently suspended by an administrator. You no longer have access to Syncify services.',
     underReview: 'Your appeal is under review.',
     reviewSoon: 'An administrator will review your case soon.',
     submitLabel: 'Submit an Appeal',
@@ -54,6 +62,17 @@ export default {
     submitBtn: 'Submit Appeal',
     submitting: 'Submitting...',
     signOut: 'Sign Out',
+    reasonLabel: 'Reason for suspension',
+    untilLabel: 'Suspended until',
+    remainingTime: 'Remaining time',
+    expired: 'Expiring now...',
+    yourAppealLabel: 'Your Appeal',
+    appealRejected: 'Appeal Rejected',
+    appealRejectedSub: 'An administrator has reviewed your appeal and decided to uphold the suspension.',
+  },
+  appeal: {
+    modalTitle: 'Review Appeal',
+    submittedAt: 'Submitted At',
   },
   toast: {
     appealSuccess: 'Appeal submitted successfully',
@@ -67,5 +86,8 @@ export default {
     roleSuccess: 'Changed role of {{name}} to {{role}}',
     roleError: 'Failed to change user role',
     noSelfAction: 'You cannot perform administrative actions on your own account.',
+    noAppealForUnban: 'No appeal submitted for this user',
+    appealRejectedSuccess: 'Appeal from {{name}} rejected',
+    reactivateSuccess: 'Account for {{name}} reactivated',
   }
 };
