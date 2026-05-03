@@ -66,11 +66,11 @@ export default function Home() {
   const username = user?.username || 'Creator';
 
   const renderEmptyState = () => (
-    <div className="flex-1 flex flex-col items-center justify-center animate-fade-in max-w-2xl mx-auto text-center py-4">
-      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-accent-purple flex items-center justify-center shadow-lg shadow-primary/20 mb-4">
-        <Music2 className="w-8 h-8 text-white" />
+    <div className="flex-1 flex flex-col items-center justify-center animate-fade-in max-w-2xl mx-auto text-center py-8 sm:py-4">
+      <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-primary to-accent-purple flex items-center justify-center shadow-lg shadow-primary/20 mb-4">
+        <Music2 className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
       </div>
-      <h2 className="text-2xl font-bold text-zinc-100 mb-2 tracking-tight">
+      <h2 className="text-xl sm:text-2xl font-bold text-zinc-100 mb-2 tracking-tight">
         {t('home.welcome', { name: username })}
       </h2>
       <p className="text-zinc-400 text-base mb-6 max-w-md leading-relaxed">
@@ -106,12 +106,12 @@ export default function Home() {
         <div className="max-w-6xl mx-auto w-full h-full flex flex-col gap-6 overflow-y-auto scrollbar-thin pr-2">
 
           {/* Header */}
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 sm:gap-6">
             <div>
-              <h1 className="text-3xl font-bold text-zinc-100 tracking-tight mb-2">
+              <h1 className="text-2xl sm:text-3xl font-bold text-zinc-100 tracking-tight mb-1 sm:mb-2">
                 {t('home.greeting', { name: username })}
               </h1>
-              <p className="text-zinc-400">{t('home.ready')}</p>
+              <p className="text-zinc-400 text-sm sm:text-base">{t('home.ready')}</p>
             </div>
 
             <div className="flex items-center gap-3">
@@ -127,7 +127,7 @@ export default function Home() {
               </div>
               <Button
                 onClick={() => navigate('/project/new')}
-                className="bg-primary hover:bg-primary-dim text-zinc-950 font-bold rounded-full px-6 gap-2"
+                className="bg-primary hover:bg-primary-dim text-zinc-950 font-bold rounded-full px-5 sm:px-6 h-10 sm:h-11 gap-2 text-sm sm:text-base w-full sm:w-auto"
               >
                 <Plus className="w-4 h-4" />
                 {t('home.newProject')}
@@ -158,8 +158,8 @@ export default function Home() {
                     <div className="absolute inset-0 overflow-hidden opacity-20 group-hover:opacity-30 transition-opacity">
                       <div className="w-full h-full bg-gradient-to-r from-primary/20 to-accent-purple/20" />
                     </div>
-                    <div className="relative flex items-center gap-6 p-4 sm:p-6 bg-zinc-950/40 rounded-xl">
-                      <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center shrink-0 overflow-hidden shadow-inner relative">
+                    <div className="relative flex items-center gap-4 sm:gap-6 p-3 sm:p-6 bg-zinc-950/40 rounded-xl">
+                      <div className="w-14 h-14 sm:w-20 sm:h-20 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center shrink-0 overflow-hidden shadow-inner relative">
                         <Music2 className="w-8 h-8 text-primary/50" />
                         <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                           <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center shadow-lg transform scale-90 group-hover:scale-100 transition-transform">

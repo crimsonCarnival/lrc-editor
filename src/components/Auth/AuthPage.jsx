@@ -4,8 +4,9 @@ import { useAuthContext } from '../../contexts/useAuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Music2 } from 'lucide-react';
+import { Music2, Eye, EyeOff } from 'lucide-react';
 import { Spinner } from '@/components/ui/skeleton';
+import RegistrationBlockedModal from './RegistrationBlockedModal';
 
 function FieldError({ message }) {
   if (!message) return null;
@@ -19,6 +20,8 @@ export default function AuthPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({});
+  const [showBlockedModal, setShowBlockedModal] = useState(false);
+  const [blockedMessage, setBlockedMessage] = useState('');
 
   // Login fields
   const [identifier, setIdentifier] = useState('');
@@ -28,6 +31,9 @@ export default function AuthPage() {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [regPassword, setRegPassword] = useState('');
+
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [showRegPassword, setShowRegPassword] = useState(false);
 
   const switchTab = (newTab) => {
     setTab(newTab);
@@ -86,6 +92,10 @@ export default function AuthPage() {
       });
     } catch (err) {
       if (err.status === 409) setError(t('auth.usernameTaken'));
+      else if (err.status === 403) {
+        setBlockedMessage(err.message || t('auth.registrationBlockedMessage'));
+        setShowBlockedModal(true);
+      }
       else if (err.status === 400) setError(t('auth.validationError'));
       else if (err.status === 429) setError(t('auth.tooManyAttempts'));
       else setError(t('auth.registerError'));
@@ -168,14 +178,23 @@ export default function AuthPage() {
                   <Label htmlFor="auth-password" className="text-xs font-semibold text-zinc-300">
                     {t('auth.password')}
                   </Label>
-                  <Input
-                    id="auth-password"
-                    type="password"
-                    value={loginPassword}
-                    onChange={(e) => { setLoginPassword(e.target.value); setFieldErrors((p) => ({ ...p, loginPassword: undefined })); }}
-                    autoComplete="current-password"
-                    className={`bg-zinc-800/80 ${fieldErrors.loginPassword ? 'border-red-500/60' : 'border-zinc-700/60'}`}
-                  />
+                  <div className="relative">
+                    <Input
+                      id="auth-password"
+                      type={showLoginPassword ? "text" : "password"}
+                      value={loginPassword}
+                      onChange={(e) => { setLoginPassword(e.target.value); setFieldErrors((p) => ({ ...p, loginPassword: undefined })); }}
+                      autoComplete="current-password"
+                      className={`bg-zinc-800/80 pr-10 ${fieldErrors.loginPassword ? 'border-red-500/60' : 'border-zinc-700/60'}`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowLoginPassword(!showLoginPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors"
+                    >
+                      {showLoginPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
                   <FieldError message={fieldErrors.loginPassword} />
                 </div>
                 <Button
@@ -227,14 +246,23 @@ export default function AuthPage() {
                   <Label htmlFor="auth-reg-password" className="text-xs font-semibold text-zinc-300">
                     {t('auth.password')}
                   </Label>
-                  <Input
-                    id="auth-reg-password"
-                    type="password"
-                    value={regPassword}
-                    onChange={(e) => { setRegPassword(e.target.value); setFieldErrors((p) => ({ ...p, regPassword: undefined })); }}
-                    autoComplete="new-password"
-                    className={`bg-zinc-800/80 ${fieldErrors.regPassword ? 'border-red-500/60' : 'border-zinc-700/60'}`}
-                  />
+                  <div className="relative">
+                    <Input
+                      id="auth-reg-password"
+                      type={showRegPassword ? "text" : "password"}
+                      value={regPassword}
+                      onChange={(e) => { setRegPassword(e.target.value); setFieldErrors((p) => ({ ...p, regPassword: undefined })); }}
+                      autoComplete="new-password"
+                      className={`bg-zinc-800/80 pr-10 ${fieldErrors.regPassword ? 'border-red-500/60' : 'border-zinc-700/60'}`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowRegPassword(!showRegPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors"
+                    >
+                      {showRegPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
                   <FieldError message={fieldErrors.regPassword} />
                 </div>
                 <Button
@@ -255,6 +283,11 @@ export default function AuthPage() {
           </div>
         </div>
       </div>
+      <RegistrationBlockedModal
+        isOpen={showBlockedModal}
+        onClose={() => setShowBlockedModal(false)}
+        errorDetails={blockedMessage}
+      />
     </div>
   );
 }

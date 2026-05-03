@@ -1,19 +1,61 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuthContext } from '../../contexts/useAuthContext';
 import { useTranslation } from 'react-i18next';
 import { auth } from '../../api';
 import { Button } from '@/components/ui/button';
-import { Ban, LogOut, Send } from 'lucide-react';
+import { Ban, LogOut, Send, CheckCircle2, RefreshCw, XCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { Clock } from 'lucide-react';
+
+function Countdown({ targetDate }) {
+  const { t } = useTranslation();
+  const [timeLeft, setTimeLeft] = useState('');
+
+  useEffect(() => {
+    const calculateTimeLeft = () => {
+      const difference = new Date(targetDate) - new Date();
+      if (difference <= 0) return t('admin.banned.expired') || 'Expired';
+
+      const d = Math.floor(difference / (1000 * 60 * 60 * 24));
+      const h = Math.floor((difference / (1000 * 60 * 60)) % 24);
+      const m = Math.floor((difference / 1000 / 60) % 60);
+      const s = Math.floor((difference / 1000) % 60);
+
+      const parts = [];
+      if (d > 0) parts.push(`${d}d`);
+      if (h > 0 || d > 0) parts.push(`${h}h`);
+      parts.push(`${m}m`);
+      parts.push(`${s}s`);
+
+      return parts.join(' ');
+    };
+
+    setTimeLeft(calculateTimeLeft());
+    const timer = setInterval(() => {
+      setTimeLeft(calculateTimeLeft());
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [targetDate, t]);
+
+  return (
+    <div className="flex items-center gap-1.5 text-red-400 font-mono text-xs mt-1">
+      <Clock className="w-3 h-3" />
+      <span>{t('admin.banned.remainingTime') || 'Remaining'}: {timeLeft}</span>
+    </div>
+  );
+}
 
 export default function BannedScreen() {
   const { user, logout } = useAuthContext();
   const { t } = useTranslation();
   const [appealText, setAppealText] = useState('');
   const [loading, setLoading] = useState(false);
-  const [submitted, setSubmitted] = useState(!!user?.banAppeal);
+  const [localSubmitted, setLocalSubmitted] = useState(false);
 
   if (!user || !user.isBanned) return null;
+
+  const currentStatus = localSubmitted ? 'pending' : (user.appealStatus || 'none');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -22,7 +64,7 @@ export default function BannedScreen() {
     setLoading(true);
     try {
       await auth.submitAppeal(appealText);
-      setSubmitted(true);
+      setLocalSubmitted(true);
       toast.success(t('admin.toast.appealSuccess'));
     } catch (err) {
       toast.error(t('admin.toast.appealError'));
@@ -41,33 +83,97 @@ export default function BannedScreen() {
         </div>
         
         <h2 className="text-2xl font-bold text-zinc-100 mb-2">{t('admin.banned.title')}</h2>
-        <p className="text-zinc-400 text-sm mb-6">
-          {t('admin.banned.description')}
+        
+        {user.banReason && (
+          <div className="bg-red-500/5 border border-red-500/10 rounded-xl p-3 mb-4 text-left">
+            <span className="text-[10px] font-bold text-red-500/70 uppercase tracking-widest mb-1 block">
+              {t('admin.banned.reasonLabel') || 'Reason'}
+            </span>
+            <p className="text-sm text-zinc-300 italic">"{user.banReason}"</p>
+          </div>
+        )}
+
+        {user.bannedUntil && (
+          <div className="bg-zinc-950/50 border border-zinc-800 rounded-xl p-3 mb-4">
+            <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2 block">
+              {t('admin.banned.untilLabel')}
+            </span>
+            <div className="flex flex-col gap-1">
+              <span className="text-zinc-200 font-semibold text-sm">
+                {new Date(user.bannedUntil).toLocaleString()}
+              </span>
+              <Countdown targetDate={user.bannedUntil} />
+            </div>
+          </div>
+        )}
+
+        <p className="text-zinc-400 text-sm mb-6 px-2 leading-relaxed">
+          {user.bannedUntil ? t('admin.banned.descriptionTemp') : t('admin.banned.descriptionPerm')}
         </p>
 
-        {submitted ? (
-          <div className="bg-zinc-950/50 border border-zinc-800 rounded-xl p-4 mb-6">
-            <p className="text-zinc-300 text-sm font-medium">{t('admin.banned.underReview')}</p>
-            <p className="text-zinc-500 text-xs mt-1">{t('admin.banned.reviewSoon')}</p>
+        {currentStatus === 'pending' ? (
+          <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-2xl p-6 mb-6">
+            <div className="w-12 h-12 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto mb-3">
+              <CheckCircle2 className="w-6 h-6 text-emerald-500" />
+            </div>
+            <p className="text-emerald-400 text-sm font-bold uppercase tracking-widest mb-1">{t('admin.banned.underReview')}</p>
+            <p className="text-zinc-500 text-xs">{t('admin.banned.reviewSoon')}</p>
+            
+            {user.banAppeal && (
+              <div className="mt-4 pt-4 border-t border-emerald-500/10 text-left">
+                <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1 block">
+                  {t('admin.banned.yourAppealLabel')}:
+                </span>
+                <p className="text-xs text-zinc-400 italic">"{user.banAppeal}"</p>
+              </div>
+            )}
+          </div>
+        ) : currentStatus === 'rejected' ? (
+          <div className="bg-red-500/5 border border-red-500/10 rounded-2xl p-6 mb-6">
+            <div className="w-12 h-12 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-3">
+              <XCircle className="w-6 h-6 text-red-500" />
+            </div>
+            <p className="text-red-400 text-sm font-bold uppercase tracking-widest mb-1">{t('admin.banned.appealRejected')}</p>
+            <p className="text-zinc-500 text-xs leading-relaxed">{t('admin.banned.appealRejectedSub')}</p>
+            
+            {user.banAppeal && (
+              <div className="mt-4 pt-4 border-t border-red-500/10 text-left">
+                <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1 block">
+                  {t('admin.banned.yourAppealLabel')}:
+                </span>
+                <p className="text-xs text-zinc-400 italic">"{user.banAppeal}"</p>
+              </div>
+            )}
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="mb-6 text-left">
-            <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">
-              {t('admin.banned.submitLabel')}
-            </label>
-            <textarea
-              value={appealText}
-              onChange={(e) => setAppealText(e.target.value)}
-              placeholder={t('admin.banned.placeholder')}
-              className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-red-500/50 resize-none h-24 mb-3"
-              maxLength={1000}
-            />
+          <form onSubmit={handleSubmit} className="mb-6 text-left space-y-4">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
+                  {t('admin.banned.submitLabel')}
+                </label>
+                <span className={`text-[10px] font-medium ${appealText.length > 900 ? 'text-red-400' : 'text-zinc-600'}`}>
+                  {appealText.length}/1000
+                </span>
+              </div>
+              <textarea
+                value={appealText}
+                onChange={(e) => setAppealText(e.target.value)}
+                placeholder={t('admin.banned.placeholder')}
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-4 text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-red-500/50 resize-none h-32 transition-all"
+                maxLength={1000}
+              />
+            </div>
             <Button 
               type="submit" 
-              className="w-full bg-red-500 hover:bg-red-600 text-white" 
+              className="w-full bg-red-500 hover:bg-red-600 text-white font-bold h-11 rounded-xl shadow-lg shadow-red-500/20 transition-all active:scale-[0.98]" 
               disabled={loading || !appealText.trim()}
             >
-              {loading ? t('admin.banned.submitting') : (
+              {loading ? (
+                <div className="flex items-center gap-2">
+                  <RefreshCw className="w-4 h-4 animate-spin" /> {t('admin.banned.submitting')}
+                </div>
+              ) : (
                 <span className="flex items-center justify-center gap-2">
                   <Send className="w-4 h-4" /> {t('admin.banned.submitBtn')}
                 </span>
