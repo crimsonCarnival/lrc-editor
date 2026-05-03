@@ -147,6 +147,10 @@ export function useAppState(user) {
   const isSharedProjectRef = useRef(false);
   const sharedReadOnlyRef = useRef(true);
   const lastServerSnapshotRef = useRef(null);
+  // Guard: prevents two concurrent project.create() calls (manual + autosave race)
+  const isCreatingProjectRef = useRef(false);
+  // Keep activeProjectId accessible synchronously inside save callbacks (state is async)
+  const activeProjectIdRef = useRef(null);
 
   const playerRef = useRef(null);
   const langMenuRef = useRef(null);
@@ -297,6 +301,9 @@ export function useAppState(user) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Keep activeProjectIdRef in sync with state so save callbacks can read it synchronously
+  useEffect(() => { activeProjectIdRef.current = activeProjectId; }, [activeProjectId]);
 
 
 
@@ -538,7 +545,10 @@ export function useAppState(user) {
       }
     } else if (getAccessToken() && !activeProjectId && !isSharedProjectRef.current && payload.lines?.length > 0) {
       // Create a new project if authenticated but no project exists
-      // First ensure upload exists
+      // Guard against concurrent creates (manual save + autosave race)
+      if (isCreatingProjectRef.current) return;
+      isCreatingProjectRef.current = true;
+
       let uploadIdToSave = null;
       if (cloudinaryAudio) {
         try {
@@ -590,6 +600,7 @@ export function useAppState(user) {
 
       projects.create(createData).then(({ projectId }) => {
         setActiveProjectId(projectId);
+        activeProjectIdRef.current = projectId;
         updateServerSnapshot({
           title: createData.title,
           metadata: createData.metadata,
@@ -605,6 +616,8 @@ export function useAppState(user) {
       }).catch((err) => {
         console.error('Failed to create project:', err);
         toast.error(t('project.createFailed') || 'Failed to create project');
+      }).finally(() => {
+        isCreatingProjectRef.current = false;
       });
     }
   }, [buildProjectPayload, activeProjectId, mediaTitle, projectMetadata, editorMode, syncMode, activeLineIndex, cloudinaryAudio, t]);
@@ -770,7 +783,7 @@ export function useAppState(user) {
         }
       }
 
-      const createData = {
+      const shareData = {
         title: mediaTitle || '',
         metadata: projectMetadata,
         lyrics: { editorMode, lines },
@@ -783,17 +796,38 @@ export function useAppState(user) {
         readOnly,
       };
       if (uploadIdToSave) {
-        createData.uploadId = uploadIdToSave;
+        shareData.uploadId = uploadIdToSave;
       }
 
-      const result = await projects.create(createData);
-
-      // Track this project for future updates
-      if (!readOnly) {
-        setActiveProjectId(result.projectId);
-        localStorage.setItem(ACTIVE_PROJECT_ID_KEY, result.projectId);
+      // If the user already has a project, patch it to update and reuse its ID
+      // instead of creating a duplicate every time they generate a share link
+      let sharedProjectId = activeProjectIdRef.current;
+      if (sharedProjectId && !readOnly) {
+        // Editable share: update the existing project's readOnly flag + latest content
+        try {
+          await projects.patch(sharedProjectId, {
+            readOnly,
+            lyrics: shareData.lyrics,
+            state: shareData.state,
+          });
+        } catch {
+          // Fall through to create if patch fails
+          sharedProjectId = null;
+        }
       }
-      const url = `${window.location.origin}/share/${result.projectId}${readOnly ? '?readonly=1' : ''}`;
+
+      if (!sharedProjectId) {
+        const result = await projects.create(shareData);
+        sharedProjectId = result.projectId;
+        // Track as active project if writable
+        if (!readOnly) {
+          setActiveProjectId(sharedProjectId);
+          activeProjectIdRef.current = sharedProjectId;
+          localStorage.setItem(ACTIVE_PROJECT_ID_KEY, sharedProjectId);
+        }
+      }
+
+      const url = `${window.location.origin}/share/${sharedProjectId}${readOnly ? '?readonly=1' : ''}`;
       // Write the shared project to its own localStorage key (separate from the personal project)
       localStorage.setItem(SHARED_PROJECT_KEY, JSON.stringify(buildProjectPayload()));
       setShareModal({
@@ -806,7 +840,7 @@ export function useAppState(user) {
     } catch {
       toast.error(t('project.shareFailed') || 'Could not generate share link.');
     }
-  }, [lines, editorMode, projectYtUrl, syncMode, mediaTitle, buildProjectPayload, cloudinaryAudio, t]);
+  }, [lines, editorMode, projectYtUrl, syncMode, mediaTitle, buildProjectPayload, cloudinaryAudio, t, activeProjectId, projectMetadata]);
 
   // ——— Mode switching with end-time inference ———
   const setEditorMode = useCallback(
@@ -918,7 +952,10 @@ export function useAppState(user) {
           // silent fail for autosave path
         }
       }
-    } else if (getAccessToken() && !activeProjectId && !isSharedProjectRef.current && payload.lines?.length > 0) {
+    } else if (getAccessToken() && !activeProjectIdRef.current && !isSharedProjectRef.current && payload.lines?.length > 0) {
+      // Guard against concurrent creates (autosave + manual save race)
+      if (isCreatingProjectRef.current) return;
+      isCreatingProjectRef.current = true;
       // ✅ FIX: Auto-create project on first save if authenticated but no project exists
       // First ensure upload exists
       let uploadIdToSave = null;
@@ -972,6 +1009,7 @@ export function useAppState(user) {
 
       projects.create(createData).then(({ projectId }) => {
         setActiveProjectId(projectId);
+        activeProjectIdRef.current = projectId;
         updateServerSnapshot({
           title: createData.title,
           metadata: createData.metadata,
@@ -983,7 +1021,9 @@ export function useAppState(user) {
         try {
           localStorage.setItem(ACTIVE_PROJECT_ID_KEY, projectId);
         } catch { /* ignore localStorage errors */ }
-      }).catch(() => { });
+      }).catch(() => { }).finally(() => {
+        isCreatingProjectRef.current = false;
+      });
     }
 
     lastSaveTimeRef.current = Date.now();
