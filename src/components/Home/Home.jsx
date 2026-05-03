@@ -77,27 +77,16 @@ export default function Home() {
         {t('home.welcomeSub')}
       </p>
       
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
+      <div className="flex justify-center w-full">
         <div 
           onClick={() => navigate('/project/new')}
-          className="group cursor-pointer glass rounded-2xl p-6 text-left hover:border-primary/50 transition-all shadow-elevated"
+          className="group cursor-pointer glass rounded-2xl p-6 text-left hover:border-primary/50 transition-all shadow-elevated max-w-sm w-full"
         >
           <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
             <Plus className="w-6 h-6 text-primary" />
           </div>
           <h3 className="text-lg font-bold text-zinc-100 mb-1">{t('home.createNew')}</h3>
           <p className="text-sm text-zinc-500">{t('home.createNewDesc')}</p>
-        </div>
-        
-        <div 
-          onClick={() => navigate('/templates')}
-          className="group cursor-pointer glass rounded-2xl p-6 text-left hover:border-accent-purple/50 transition-all shadow-elevated"
-        >
-          <div className="w-12 h-12 rounded-xl bg-accent-purple/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-            <FileText className="w-6 h-6 text-accent-purple" />
-          </div>
-          <h3 className="text-lg font-bold text-zinc-100 mb-1">{t('home.exploreTemplates')}</h3>
-          <p className="text-sm text-zinc-500">{t('home.exploreTemplatesDesc')}</p>
         </div>
       </div>
     </div>
