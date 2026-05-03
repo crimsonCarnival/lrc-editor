@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useCallback, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Routes, Route, Navigate, useNavigate, useLocation, useParams } from 'react-router-dom';
 import Player from './components/Player';
 import { SettingsProvider } from './contexts/SettingsContext';
@@ -14,6 +15,8 @@ const Home = lazy(() => import('./components/Home/Home'));
 const AdminDashboard = lazy(() => import('./components/Admin/AdminDashboard'));
 import ProjectSetupModal from './components/Setup/ProjectSetupModal';
 import BannedScreen from './components/shared/BannedScreen';
+import UnbanNotificationModal from './components/Auth/UnbanNotificationModal';
+import toast from 'react-hot-toast';
 import { useAppState } from './hooks/useAppState';
 import { useSettings } from './contexts/useSettings';
 import { useAuthContext } from './contexts/useAuthContext';
@@ -48,11 +51,21 @@ function EditorContainer({ loadProject, activeProjectId, children }) {
 }
 
 function AppInner() {
+  const { user, loading: authLoading, logout, clearUnbanMessage } = useAuthContext();
+  const { t } = useTranslation();
+  const [showUnbanModal, setShowUnbanModal] = useState(false);
+
+  useEffect(() => {
+    if (user?.showUnbanMessage) {
+      setShowUnbanModal(true);
+      clearUnbanMessage().catch(() => {});
+    }
+  }, [user?.showUnbanMessage, clearUnbanMessage]);
+
   const navigate = useNavigate();
   const location = useLocation();
 
   const {
-    t,
     i18n,
     lines,
     setLines,
@@ -113,7 +126,6 @@ function AppInner() {
   useNetworkStatus();
 
   const { settings, updateSetting, syncFromServer } = useSettings();
-  const { user, logout } = useAuthContext();
 
   // Sync settings from server when user logs in
   useEffect(() => {
@@ -903,6 +915,11 @@ function AppInner() {
           </svg>
         </div>
       )}
+
+      <UnbanNotificationModal 
+        isOpen={showUnbanModal} 
+        onClose={() => setShowUnbanModal(false)} 
+      />
     </div>
   );
 }

@@ -181,5 +181,10 @@ export function useAuth() {
     setUser(me.user);
   }, []);
 
-  return { user, setUser, loading, login, register, logout: doLogout, connectSpotify, disconnectSpotify };
+  const clearUnbanMessage = useCallback(async () => {
+    await auth.clearUnbanMessage();
+    setUser(prev => prev ? { ...prev, showUnbanMessage: false } : null);
+  }, []);
+
+  return { user, setUser, loading, login, register, logout: doLogout, connectSpotify, disconnectSpotify, clearUnbanMessage };
 }
