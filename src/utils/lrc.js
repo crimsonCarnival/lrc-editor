@@ -29,13 +29,25 @@ function buildSecondaryText(line, wordPrecision) {
 function formatWordsToLrc(words, precision = 'hundredths') {
   const cjk = (ch) => { const c = ch?.codePointAt(0) ?? 0; return (c >= 0x3000 && c <= 0x9FFF) || (c >= 0xF900 && c <= 0xFAFF) || (c >= 0xFF00 && c <= 0xFFEF) || (c >= 0x20000 && c <= 0x2FA1F); };
   return words.map((w, i, arr) => {
-    const token = `${formatWordTimestamp(w.time, precision)}${w.word}`;
+    const ts = w.time != null ? formatWordTimestamp(w.time, precision) : '';
+    const token = `${ts}${w.word}`;
     const next = arr[i + 1];
     if (!next) return token;
     const lastChar = w.word.slice(-1);
     const firstChar = next.word.slice(0, 1);
     return cjk(lastChar) || cjk(firstChar) ? token : token + ' ';
   }).join('');
+}
+
+function formatWordTimestamp(seconds, precision = 'hundredths') {
+  if (seconds == null) return '';
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  const mm = String(mins).padStart(2, '0');
+  const decimals = precision === 'thousandths' ? 3 : 2;
+  const padLen = decimals + 3;
+  const ss = secs.toFixed(decimals).padStart(padLen, '0');
+  return `<${mm}:${ss}>`;
 }
 
 /**
@@ -102,14 +114,14 @@ export function compileLRC(lines, includeTranslations = false, precision = 'hund
           ? formatWordsToLrc(line.words, wp)
           : line.text;
         let out = `[${formatTimestamp(ts, precision)}] ${wordText}`;
-          if (includeSecondary) {
-            const sec = buildSecondaryText(line, wp);
-            if (sec) out += `\n[${formatTimestamp(ts, precision)}] ${sec}`;
-          }
-          if (includeTranslations && line.translation) {
-            out += `\n[${formatTimestamp(ts, precision)}] ${line.translation}`;
-          }
-          return out;
+        if (includeSecondary) {
+          const sec = buildSecondaryText(line, wp);
+          if (sec) out += `\n[${formatTimestamp(ts, precision)}] ${sec}`;
+        }
+        if (includeTranslations && line.translation) {
+          out += `\n[${formatTimestamp(ts, precision)}] ${line.translation}`;
+        }
+        return out;
       }
       return [line.text];
     })
@@ -182,15 +194,7 @@ export function parseWordTimestamps(text) {
   return words;
 }
 
-function formatWordTimestamp(seconds, precision = 'hundredths') {
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  const mm = String(mins).padStart(2, '0');
-  const decimals = precision === 'thousandths' ? 3 : 2;
-  const padLen = decimals + 3;
-  const ss = secs.toFixed(decimals).padStart(padLen, '0');
-  return `<${mm}:${ss}>`;
-}
+
 
 /**
  * Triggers a browser download of the given text content as a file.
@@ -361,20 +365,46 @@ export function parseLrcSrtFile(content, filename) {
           // Ruby markup like {持|も}ち{上|あ}げて — strip to plain text and merge readings into words
           const { plainText, segments } = parseRubyMarkup(line.text);
           existing.secondary = plainText;
-          if (existing.words?.length) {
-            // Build charPos → reading map from parsed segments
-            const readingAt = new Map();
-            let pos = 0;
+          
+          if (!existing.words?.length) {
+            // Case 1: No word timestamps on primary line — use segments directly as words
+            existing.words = segments.map(s => ({
+              word: s.text,
+              reading: s.reading || undefined,
+              time: null
+            })).filter(w => w.word.trim());
+          } else {
+            // Case 2: Primary line has word timestamps — align segments with existing words
+            const oldWords = [...existing.words];
+            const newWords = [];
+            let oldIdx = 0;
+            
             for (const seg of segments) {
-              if (seg.reading) readingAt.set(pos, seg.reading);
-              pos += [...seg.text].length;
+              const segText = seg.text;
+              if (!segText) continue;
+              
+              // Find which old words (or characters) correspond to this segment
+              let consumed = '';
+              let firstTime = null;
+              
+              while (oldIdx < oldWords.length && consumed.length < segText.length) {
+                const w = oldWords[oldIdx];
+                if (firstTime === null) firstTime = w.time;
+                consumed += w.word;
+                oldIdx++;
+              }
+              
+              newWords.push({
+                word: segText,
+                reading: seg.reading || undefined,
+                time: firstTime
+              });
             }
-            let c = 0;
-            existing.words = existing.words.map((w) => {
-              const reading = readingAt.get(c);
-              c += [...w.word].length;
-              return reading ? { ...w, reading } : w;
-            });
+            // Append any leftover words
+            if (oldIdx < oldWords.length) {
+              newWords.push(...oldWords.slice(oldIdx));
+            }
+            existing.words = newWords;
           }
         } else {
           existing.secondary = line.text;
