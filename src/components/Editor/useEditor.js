@@ -685,10 +685,23 @@ export function useEditor({
     e.preventDefault();
     if (dragIndex == null || dragIndex === dropIndex) return;
     setLines((prev) => {
+      // Extract timestamps in their current order to preserve them at these indices
+      const timestamps = prev.map(l => ({
+        timestamp: l.timestamp,
+        endTime: l.endTime
+      }));
+
+      // Reorder the line objects themselves
       const updated = [...prev];
       const [moved] = updated.splice(dragIndex, 1);
       updated.splice(dropIndex, 0, moved);
-      return updated;
+
+      // Re-apply the original timestamps to the new line order
+      return updated.map((line, i) => ({
+        ...line,
+        timestamp: timestamps[i].timestamp,
+        endTime: timestamps[i].endTime
+      }));
     });
     if (activeLineIndex === dragIndex) {
       setActiveLineIndex(dropIndex);
