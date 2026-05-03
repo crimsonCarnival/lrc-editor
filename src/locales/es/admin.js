@@ -21,7 +21,13 @@ export default {
     noAppeal: '-',
     ban: 'Banear',
     unban: 'Desbanear',
+    promptBanReason: 'Ingresa la razón del baneo:',
+    confirmRoleChange: '¿Estás seguro de que quieres cambiar el rol de {{name}} a {{role}}?',
     confirmDelete: '¿Estás seguro de que quieres eliminar permanentemente a {{name}}? Esto eliminará todos sus proyectos y archivos.',
+    banTitle: 'Banear Usuario',
+    roleTitle: 'Cambiar Rol de Usuario',
+    deleteTitle: 'Eliminar Usuario',
+    reasonPlaceholder: 'Violación de términos, spam, etc.',
   },
   logger: {
     title: 'Registro en Vivo',
@@ -58,5 +64,8 @@ export default {
     deleteError: 'Error al eliminar usuario',
     bannedSuccess: '{{name}} baneado',
     unbannedSuccess: '{{name}} desbaneado',
+    roleSuccess: 'Rol de {{name} cambiado a {{role}}',
+    roleError: 'Error al cambiar rol',
+    noSelfAction: 'No puedes realizar acciones administrativas sobre tu propia cuenta.',
   }
 };

@@ -530,3 +530,59 @@ export const spotify = {
     return request('/spotify/player/queue');
   },
 };
+
+// ——— Admin ———
+
+export const admin = {
+  async getUsers(params) {
+    const query = new URLSearchParams(params).toString();
+    return request(`/admin/users?${query}`);
+  },
+
+  async banUser(userId, reason) {
+    return request(`/admin/users/${userId}/ban`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    });
+  },
+
+  async unbanUser(userId) {
+    return request(`/admin/users/${userId}/unban`, {
+      method: 'POST',
+    });
+  },
+
+  async changeRole(userId, role) {
+    return request(`/admin/users/${userId}/role`, {
+      method: 'POST',
+      body: JSON.stringify({ role }),
+    });
+  },
+
+  async deleteUser(userId) {
+    return request(`/admin/users/${userId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  async getLogs() {
+    return request('/admin/logs');
+  },
+};
+
+// ——— Unified Export ———
+
+export const api = {
+  auth,
+  settings,
+  projects,
+  lyrics,
+  uploads,
+  spotify,
+  admin,
+  setAccessToken,
+  getAccessToken,
+  clearAccessToken
+};
+
+export default api;

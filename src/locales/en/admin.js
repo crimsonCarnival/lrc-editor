@@ -21,7 +21,13 @@ export default {
     noAppeal: '-',
     ban: 'Ban',
     unban: 'Unban',
+    promptBanReason: 'Enter reason for banning this user:',
+    confirmRoleChange: 'Are you sure you want to change the role of {{name}} to {{role}}?',
     confirmDelete: 'Are you sure you want to permanently delete {{name}}? This removes all their projects and uploads.',
+    banTitle: 'Ban User',
+    roleTitle: 'Change User Role',
+    deleteTitle: 'Delete User',
+    reasonPlaceholder: 'Violation of terms, spam, etc.',
   },
   logger: {
     title: 'Live Request Logger',
@@ -58,5 +64,8 @@ export default {
     deleteError: 'Failed to delete user',
     bannedSuccess: 'Banned {{name}}',
     unbannedSuccess: 'Unbanned {{name}}',
+    roleSuccess: 'Changed role of {{name}} to {{role}}',
+    roleError: 'Failed to change user role',
+    noSelfAction: 'You cannot perform administrative actions on your own account.',
   }
 };

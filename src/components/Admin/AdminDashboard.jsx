@@ -1,18 +1,26 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { admin } from '../../api';
+import { useAuthContext } from '../../contexts/useAuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ShieldAlert, Trash2, Ban, CheckCircle2, RefreshCw, Activity } from 'lucide-react';
+import { ShieldAlert, Trash2, Ban, CheckCircle2, RefreshCw, Activity, User as UserIcon } from 'lucide-react';
 import toast from 'react-hot-toast';
 import RequestLogger from './RequestLogger';
+import ConfirmModal from '../shared/ConfirmModal';
+import PromptModal from '../shared/PromptModal';
 
 export default function AdminDashboard() {
   const { t } = useTranslation();
+  const { user: currentUser } = useAuthContext();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [showLogger, setShowLogger] = useState(false);
+
+  // Modal States
+  const [confirmModal, setConfirmModal] = useState({ isOpen: false, type: '', user: null });
+  const [promptModal, setPromptModal] = useState({ isOpen: false, user: null });
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -34,28 +42,68 @@ export default function AdminDashboard() {
   }, [search]);
 
   const handleToggleBan = async (user) => {
-    try {
-      if (user.isBanned) {
+    if (user.id === currentUser?.id || user._id === currentUser?._id) {
+      toast.error(t('admin.toast.noSelfAction'));
+      return;
+    }
+
+    if (user.isBanned) {
+      try {
         await admin.unbanUser(user.id || user._id);
         toast.success(t('admin.toast.unbannedSuccess', { name: user.username }));
-      } else {
-        await admin.banUser(user.id || user._id);
-        toast.success(t('admin.toast.bannedSuccess', { name: user.username }));
+        fetchUsers();
+      } catch (err) {
+        toast.error(t('admin.toast.statusError'));
       }
+    } else {
+      setPromptModal({ isOpen: true, user });
+    }
+  };
+
+  const onBanConfirm = async (reason) => {
+    const { user } = promptModal;
+    setPromptModal({ isOpen: false, user: null });
+    try {
+      await admin.banUser(user.id || user._id, reason);
+      toast.success(t('admin.toast.bannedSuccess', { name: user.username }));
       fetchUsers();
     } catch (err) {
       toast.error(t('admin.toast.statusError'));
     }
   };
 
-  const handleDelete = async (user) => {
-    if (!window.confirm(t('admin.table.confirmDelete', { name: user.username }))) return;
+  const handleChangeRole = (user) => {
+    if (user.id === currentUser?.id || user._id === currentUser?._id) {
+      toast.error(t('admin.toast.noSelfAction'));
+      return;
+    }
+    setConfirmModal({ isOpen: true, type: 'role', user });
+  };
+
+  const handleDelete = (user) => {
+    if (user.id === currentUser?.id || user._id === currentUser?._id) {
+      toast.error(t('admin.toast.noSelfAction'));
+      return;
+    }
+    setConfirmModal({ isOpen: true, type: 'delete', user });
+  };
+
+  const onConfirmAction = async () => {
+    const { type, user } = confirmModal;
+    setConfirmModal({ isOpen: false, type: '', user: null });
+    
     try {
-      await admin.deleteUser(user.id || user._id);
-      toast.success(t('admin.toast.deleteSuccess', { name: user.username }));
+      if (type === 'role') {
+        const newRole = user.role === 'admin' ? 'user' : 'admin';
+        await admin.changeRole(user.id || user._id, newRole);
+        toast.success(t('admin.toast.roleSuccess', { name: user.username, role: newRole }));
+      } else if (type === 'delete') {
+        await admin.deleteUser(user.id || user._id);
+        toast.success(t('admin.toast.deleteSuccess', { name: user.username }));
+      }
       fetchUsers();
     } catch (err) {
-      toast.error(t('admin.toast.deleteError'));
+      toast.error(type === 'role' ? t('admin.toast.roleError') : t('admin.toast.deleteError'));
     }
   };
 
@@ -115,62 +163,97 @@ export default function AdminDashboard() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-800/30">
-                {users.map(user => (
-                  <tr key={user.id || user._id} className={`transition-colors ${user.deletedAt ? 'opacity-50 bg-red-950/20' : 'hover:bg-zinc-800/30'}`}>
-                    <td className="p-4">
-                      <div className="font-medium text-zinc-200">{user.username} {user.deletedAt && t('admin.table.deleted')}</div>
-                      <div className="text-xs text-zinc-500">{user.email || t('admin.table.noEmail')}</div>
-                    </td>
-                    <td className="p-4">
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
-                        user.role === 'admin' ? 'bg-indigo-500/20 text-indigo-400' : 'bg-zinc-800 text-zinc-400'
-                      }`}>
-                        {user.role}
-                      </span>
-                    </td>
-                    <td className="p-4">
-                      {user.isBanned ? (
-                        <span className="flex items-center gap-1.5 text-xs text-red-400 font-medium">
-                          <Ban className="w-3.5 h-3.5" /> {t('admin.table.banned')}
-                        </span>
-                      ) : (
-                        <span className="flex items-center gap-1.5 text-xs text-emerald-400 font-medium">
-                          <CheckCircle2 className="w-3.5 h-3.5" /> {t('admin.table.active')}
-                        </span>
-                      )}
-                    </td>
-                    <td className="p-4 max-w-[200px] truncate text-xs text-zinc-300">
-                      {user.banAppeal ? (
-                        <span className="italic text-yellow-200" title={user.banAppeal}>"{user.banAppeal}"</span>
-                      ) : (
-                        <span className="text-zinc-600">{t('admin.table.noAppeal')}</span>
-                      )}
-                    </td>
-                    <td className="p-4 text-xs text-zinc-400">
-                      {new Date(user.createdAt).toLocaleDateString()}
-                    </td>
-                    <td className="p-4 text-right space-x-2">
-                      <Button
-                        variant={user.isBanned ? "secondary" : "ghost"}
-                        size="sm"
-                        onClick={() => handleToggleBan(user)}
-                        disabled={user.role === 'admin'}
-                        className={!user.isBanned ? "text-red-400 hover:text-red-300 hover:bg-red-500/10" : ""}
-                      >
-                        {user.isBanned ? t('admin.table.unban') : t('admin.table.ban')}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        onClick={() => handleDelete(user)}
-                        disabled={user.role === 'admin'}
-                        className="text-red-500 hover:text-red-400 hover:bg-red-500/10"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
+                {users.map(user => {
+                  const userId = user.id || user._id?.toString();
+                  const currentUserId = currentUser?.id || currentUser?._id?.toString();
+                  const isSelf = userId === currentUserId;
+                  return (
+                    <tr key={user.id || user._id} className={`transition-colors ${user.deletedAt ? 'opacity-50 bg-red-950/20' : 'hover:bg-zinc-800/30'}`}>
+                      <td className="p-4">
+                        <div className="flex items-center gap-2 font-medium text-zinc-200">
+                          {user.username} {user.deletedAt && t('admin.table.deleted')}
+                          {isSelf && <span className="text-[10px] bg-zinc-700 text-zinc-400 px-1.5 rounded uppercase tracking-tighter">You</span>}
+                        </div>
+                        <div className="text-xs text-zinc-500">{user.email || t('admin.table.noEmail')}</div>
+                      </td>
+                      <td className="p-4">
+                        {isSelf ? (
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-indigo-500/20 text-indigo-400">
+                            {user.role}
+                          </span>
+                        ) : (
+                          <button 
+                            onClick={() => handleChangeRole(user)}
+                            className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider transition-all hover:ring-1 hover:ring-zinc-400 ${
+                              user.role === 'admin' ? 'bg-indigo-500/20 text-indigo-400' : 'bg-zinc-800 text-zinc-400'
+                            }`}
+                          >
+                            {user.role}
+                          </button>
+                        )}
+                      </td>
+                      <td className="p-4">
+                        {user.isBanned ? (
+                          <div className="flex flex-col gap-0.5">
+                            <span className="flex items-center gap-1.5 text-xs text-red-400 font-medium">
+                              <Ban className="w-3.5 h-3.5" /> {t('admin.table.banned')}
+                            </span>
+                            {user.banReason && (
+                              <span className="text-[10px] text-zinc-500 italic truncate max-w-[150px]" title={user.banReason}>
+                                {user.banReason}
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="flex items-center gap-1.5 text-xs text-emerald-400 font-medium">
+                            <CheckCircle2 className="w-3.5 h-3.5" /> {t('admin.table.active')}
+                          </span>
+                        )}
+                      </td>
+                      <td className="p-4 max-w-[200px] truncate text-xs text-zinc-300">
+                        {user.banAppeal ? (
+                          <div className="flex flex-col gap-0.5">
+                            <span className="italic text-yellow-200" title={user.banAppeal}>"{user.banAppeal}"</span>
+                            {user.appealAt && (
+                              <span className="text-[10px] text-zinc-500">
+                                {new Date(user.appealAt).toLocaleDateString()}
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-zinc-600">{t('admin.table.noAppeal')}</span>
+                        )}
+                      </td>
+                      <td className="p-4 text-xs text-zinc-400">
+                        {new Date(user.createdAt).toLocaleDateString()}
+                      </td>
+                      <td className="p-4 text-right space-x-2">
+                        {!isSelf && (
+                          <>
+                            <Button
+                              variant={user.isBanned ? "secondary" : "ghost"}
+                              size="sm"
+                              onClick={() => handleToggleBan(user)}
+                              disabled={user.role === 'admin'}
+                              className={!user.isBanned ? "text-red-400 hover:text-red-300 hover:bg-red-500/10" : ""}
+                            >
+                              {user.isBanned ? t('admin.table.unban') : t('admin.table.ban')}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              onClick={() => handleDelete(user)}
+                              disabled={user.role === 'admin'}
+                              className="text-red-500 hover:text-red-400 hover:bg-red-500/10"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           )}
@@ -178,6 +261,28 @@ export default function AdminDashboard() {
       </div>
 
       <RequestLogger open={showLogger} onClose={() => setShowLogger(false)} />
+
+      {/* Confirm Action Modal */}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title={confirmModal.type === 'role' ? t('admin.table.roleTitle') : t('admin.table.deleteTitle')}
+        message={confirmModal.type === 'role' 
+          ? t('admin.table.confirmRoleChange', { name: confirmModal.user?.username, role: confirmModal.user?.role === 'admin' ? 'user' : 'admin' }) 
+          : t('admin.table.confirmDelete', { name: confirmModal.user?.username })
+        }
+        onConfirm={onConfirmAction}
+        onCancel={() => setConfirmModal({ isOpen: false, type: '', user: null })}
+      />
+
+      {/* Ban Reason Prompt Modal */}
+      <PromptModal
+        isOpen={promptModal.isOpen}
+        title={t('admin.table.banTitle')}
+        message={t('admin.table.promptBanReason')}
+        placeholder={t('admin.table.reasonPlaceholder')}
+        onConfirm={onBanConfirm}
+        onCancel={() => setPromptModal({ isOpen: false, user: null })}
+      />
     </div>
   );
 }
