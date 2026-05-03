@@ -11,8 +11,15 @@ import { KEY_SYMBOLS } from '../Settings/keySymbols';
 import { matchKey } from '../../utils/keyboard';
 
 // Split a shortcut string like 'Ctrl+M' into display parts ['Ctrl', 'M']
-const resolveShortcut = (shortcut) =>
-  shortcut.split('+').map((k) => KEY_SYMBOLS[k] ?? k);
+const resolveShortcut = (shortcut) => {
+  if (shortcut === '+') return [KEY_SYMBOLS['+'] ?? '+'];
+  if (shortcut.endsWith('++')) {
+    const parts = shortcut.slice(0, -2).split('+');
+    parts.push('+');
+    return parts.map((k) => KEY_SYMBOLS[k] ?? k);
+  }
+  return shortcut.split('+').map((k) => KEY_SYMBOLS[k] ?? k);
+};
 
 const HELP_TABS = [
   { id: 'player', icon: Headphones, labelKey: 'shortcuts.tabs.player' },
