@@ -19,7 +19,7 @@ import { LogIn, UserPlus, Music2, Copy, Check } from 'lucide-react';
  * Player is in viewerMode: only seek/play controls, no upload/load actions.
  */
 function SharedProjectViewerInner({ projectId }) {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const startTime = parseInt(searchParams.get('s')) || 0;
 
@@ -42,31 +42,31 @@ function SharedProjectViewerInner({ projectId }) {
   useEffect(() => {
     let cancelled = false;
     projects.getShare(projectId)
-    .then(({ project }) => {
-      if (cancelled) return;
-      const rawLines = (project.lyrics?.lines || []).map((l) => ({
-        text: l.text || '',
-        timestamp: l.timestamp ?? null,
-        endTime: l.endTime ?? undefined,
-        secondary: l.secondary || '',
-        translation: l.translation || '',
-        id: crypto.randomUUID(),
-        words: l.words,
-        secondaryWords: l.secondaryWords,
-      }));
-      setLines(rawLines);
-      setEditorMode(project.lyrics?.editorMode || 'lrc');
-      setMediaTitle(project.title || '');
-      setProjectData(project);
-      if (project.upload?.youtubeUrl) {
-        setInitialYtUrl(project.upload.youtubeUrl);
-      }
-      setLoadStatus('ok');
-    })
-    .catch((err) => {
-      if (cancelled) return;
-      setLoadStatus(err.status === 403 ? 403 : 404);
-    });
+      .then(({ project }) => {
+        if (cancelled) return;
+        const rawLines = (project.lyrics?.lines || []).map((l) => ({
+          text: l.text || '',
+          timestamp: l.timestamp ?? null,
+          endTime: l.endTime ?? undefined,
+          secondary: l.secondary || '',
+          translation: l.translation || '',
+          id: crypto.randomUUID(),
+          words: l.words,
+          secondaryWords: l.secondaryWords,
+        }));
+        setLines(rawLines);
+        setEditorMode(project.lyrics?.editorMode || 'lrc');
+        setMediaTitle(project.title || '');
+        setProjectData(project);
+        if (project.upload?.youtubeUrl) {
+          setInitialYtUrl(project.upload.youtubeUrl);
+        }
+        setLoadStatus('ok');
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setLoadStatus(err.status === 403 ? 403 : 404);
+      });
     return () => { cancelled = true; };
   }, [projectId]);
 
@@ -177,56 +177,56 @@ function SharedProjectViewerInner({ projectId }) {
         </div>
       </div>
 
-{/* ── Create Copy CTA banner ── */}
-<div className="relative z-sticky w-full bg-gradient-to-r from-zinc-900/95 via-zinc-900 to-zinc-900/95 border-t border-zinc-700/50 backdrop-blur-md">
-  <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-    {/* Callout Box */}
-    <div className="flex items-start gap-3 min-w-0 flex-1">
-      <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-accent-purple flex items-center justify-center flex-shrink-0 mt-0.5">
-        <Music2 className="w-4 h-4 text-white" strokeWidth={2} />
+      {/* ── Create Copy CTA banner ── */}
+      <div className="relative z-sticky w-full bg-gradient-to-r from-zinc-900/95 via-zinc-900 to-zinc-900/95 border-t border-zinc-700/50 backdrop-blur-md">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          {/* Callout Box */}
+          <div className="flex items-start gap-3 min-w-0 flex-1">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-accent-purple flex items-center justify-center flex-shrink-0 mt-0.5">
+              <Music2 className="w-4 h-4 text-white" strokeWidth={2} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-zinc-100 truncate">
+                {t('share.likeThisProject', "Like this project?")}
+              </p>
+              <p className="text-xs text-zinc-400 mt-0.5">
+                {t('share.createCopyDesc', "Create your own editable copy and customize it")}
+              </p>
+            </div>
+          </div>
+          {/* Action Buttons */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleCopyLink}
+              disabled={copied}
+              className="h-8 px-3 bg-zinc-800 border-zinc-700/60 text-zinc-300 hover:text-zinc-100 hover:bg-zinc-700 text-xs font-semibold gap-1.5 rounded-lg transition-all"
+            >
+              {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+              {copied ? t('share.copied', 'Copied') : t('share.copyLink', 'Copy Link')}
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleClone}
+              disabled={isCloning}
+              className="h-8 px-3 bg-primary hover:bg-primary-dim text-zinc-950 text-xs font-semibold gap-1.5 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isCloning ? (
+                <>
+                  <Spinner size={14} className="w-3.5 h-3.5" />
+                  {t('share.creating', 'Creating...')}
+                </>
+              ) : (
+                <>
+                  <Copy className="w-3.5 h-3.5" />
+                  {t('share.createCopy', 'Create Copy')}
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
       </div>
-      <div className="min-w-0 flex-1">
-        <p className="text-sm font-semibold text-zinc-100 truncate">
-          {t('share.likeThisProject', "Like this project?")}
-        </p>
-        <p className="text-xs text-zinc-400 mt-0.5">
-          {t('share.createCopyDesc', "Create your own editable copy and customize it")}
-        </p>
-      </div>
-    </div>
-    {/* Action Buttons */}
-    <div className="flex items-center gap-2 flex-shrink-0">
-      <Button
-        size="sm"
-        variant="outline"
-        onClick={handleCopyLink}
-        disabled={copied}
-        className="h-8 px-3 bg-zinc-800 border-zinc-700/60 text-zinc-300 hover:text-zinc-100 hover:bg-zinc-700 text-xs font-semibold gap-1.5 rounded-lg transition-all"
-      >
-        {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-        {copied ? t('share.copied', 'Copied') : t('share.copyLink', 'Copy Link')}
-      </Button>
-      <Button
-        size="sm"
-        onClick={handleClone}
-        disabled={isCloning}
-        className="h-8 px-3 bg-primary hover:bg-primary-dim text-zinc-950 text-xs font-semibold gap-1.5 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        {isCloning ? (
-          <>
-            <Spinner size={14} className="w-3.5 h-3.5" />
-            {t('share.creating', 'Creating...')}
-          </>
-        ) : (
-          <>
-            <Copy className="w-3.5 h-3.5" />
-            {t('share.createCopy', 'Create Copy')}
-          </>
-        )}
-      </Button>
-    </div>
-  </div>
-</div>
     </div>
   );
 }
