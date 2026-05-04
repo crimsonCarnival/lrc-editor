@@ -7,18 +7,9 @@ import { Music, Video, Upload, FileText, Trash2, ExternalLink, Clock, ArrowLeft,
 import { SkeletonCard } from '@ui/skeleton';
 import ProjectSetupModal from '@features/editor/components/ProjectSetupModal';
 import useConfirm from '@/hooks/useConfirm';
+import { useSettings } from '@/contexts/useSettings';
+import { formatInTimezone, getRelativeTime } from '@/utils/date';
 
-function formatRelativeTime(dateStr, t) {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return t('library.justNow');
-  if (mins < 60) return t('library.minutesAgo', { count: mins });
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return t('library.hoursAgo', { count: hours });
-  const days = Math.floor(hours / 24);
-  if (days < 30) return t('library.daysAgo', { count: days });
-  return new Date(dateStr).toLocaleDateString();
-}
 
 function SourceIcon({ source }) {
   if (source === 'youtube') return <Video className="w-4 h-4 text-red-400" />;
@@ -28,6 +19,8 @@ function SourceIcon({ source }) {
 
 export default function Library({ onOpenProject, onBack }) {
   const { t } = useTranslation();
+  const { settings } = useSettings();
+  const timezone = settings.advanced?.timezone;
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState(null);
@@ -147,9 +140,12 @@ export default function Library({ onOpenProject, onBack }) {
                   )}
                 </div>
 
-                <Tip content={new Date(project.updatedAt).toLocaleString()}>
+                <Tip content={formatInTimezone(project.updatedAt, timezone, {
+                  dateStyle: 'full',
+                  timeStyle: 'long'
+                })}>
                   <span className="text-[10px] text-zinc-600 mt-1 block">
-                    {formatRelativeTime(project.updatedAt, t)}
+                    {getRelativeTime(project.updatedAt, t, timezone)}
                   </span>
                 </Tip>
               </div>
