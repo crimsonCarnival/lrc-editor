@@ -91,7 +91,7 @@ export default function Preview(props) {
     handleCopy,
   } = usePreview(props);
 
-  const { lines, playbackPosition, exportToUrl, isSharedProject, sharedReadOnly, setSharedReadOnly, editorMode, shareModal, setShareModal, hasMedia, viewerMode } = props;
+  const { lines, playbackPosition, duration, exportToUrl, isSharedProject, sharedReadOnly, setSharedReadOnly, editorMode, shareModal, setShareModal, hasMedia, viewerMode } = props;
 
   const shareTriggerRef = useRef(null);
   const sharePanelRef = useRef(null);
@@ -189,7 +189,7 @@ export default function Preview(props) {
                   </Button>
                 </Tip>
               )}
-              {lines.some(l => l.translation) && (
+              {hasTranslations && (
                 <Tip content={t('preview.toggleTranslations') || 'Toggle Translations'}>
                   <Button
                     variant="ghost"
@@ -331,6 +331,7 @@ export default function Preview(props) {
             isPublic={isPublic}
             onPrivacyChange={handlePrivacyChange}
             playbackPosition={playbackPosition}
+            duration={duration}
           />
         </div>,
         document.body
@@ -364,21 +365,24 @@ function PreviewViewport({
   editorMode,
   t,
   hasMedia,
+  isPlaying,
+  playbackSpeed,
 }) {
   const isDualLine = settings.editor?.display?.dualLine;
   const showNextLine = settings.editor?.display?.showNextLine !== false;
   const scrollAlignment = settings.editor?.scroll?.alignment || 'center';
   const scrollMode = settings.editor?.scroll?.mode || 'smooth';
 
-  // Pre-compute nextTimestamp for karaoke fill
+  // Pre-compute nextTimestamp for karaoke fill — O(n) backward pass
   const nextTimestamps = useMemo(() => {
     const result = {};
-    for (let idx = 0; idx < lines.length; idx++) {
-      for (let j = idx + 1; j < lines.length; j++) {
-        if (lines[j].timestamp != null) {
-          result[idx] = lines[j].timestamp;
-          break;
-        }
+    let nextTs = null;
+    for (let idx = lines.length - 1; idx >= 0; idx--) {
+      if (lines[idx].timestamp != null) {
+        nextTs = lines[idx].timestamp;
+      }
+      if (idx < lines.length - 1 && nextTs != null) {
+        result[idx] = nextTs;
       }
     }
     return result;
@@ -418,13 +422,17 @@ function PreviewViewport({
 
   // Auto-scroll to active line (virtual)
   useEffect(() => {
-    if (isDualLine || scrollAlignment === 'none' || currentIndex < 0) return;
-    virtualizer.scrollToIndex(currentIndex, {
-      align: scrollAlignment === 'start' ? 'start' : scrollAlignment === 'end' ? 'end' : 'center',
-      behavior: scrollMode,
+    if (isDualLine || scrollAlignment === 'none' || currentIndex < 0 || settings.preview?.autoScroll === false) return;
+    
+    // Use queueMicrotask to ensure the virtualizer has measured items
+    queueMicrotask(() => {
+      virtualizer.scrollToIndex(currentIndex, {
+        align: scrollAlignment === 'start' ? 'start' : scrollAlignment === 'end' ? 'end' : 'center',
+        behavior: scrollMode,
+      });
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentIndex, isDualLine, scrollAlignment, scrollMode]);
+  }, [currentIndex, isDualLine, scrollAlignment, scrollMode, settings.preview?.autoScroll]);
 
   if (!lines.length) {
     return (
@@ -475,6 +483,8 @@ function PreviewViewport({
               handleLineHoverEnd={() => { }}
               showTranslationsInPreview={showTranslationsInPreview}
               showFuriganaInPreview={showFuriganaInPreview}
+              isPlaying={isPlaying}
+              playbackSpeed={playbackSpeed}
               sizeOption={sizeOption}
               spacingOption={spacingOption}
               activeSecondarySizes={activeSecondarySizes}
@@ -533,6 +543,8 @@ function PreviewViewport({
                 handleLineHoverEnd={() => { }}
                 showTranslationsInPreview={showTranslationsInPreview}
                 showFuriganaInPreview={showFuriganaInPreview}
+                isPlaying={isPlaying}
+                playbackSpeed={playbackSpeed}
                 sizeOption={sizeOption}
                 spacingOption={spacingOption}
                 activeSecondarySizes={activeSecondarySizes}
