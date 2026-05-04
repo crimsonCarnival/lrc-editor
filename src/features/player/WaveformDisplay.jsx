@@ -313,7 +313,7 @@ const WaveformDisplay = React.memo(function WaveformDisplay({
       updateTooltip(e);
     };
 
-    const handleMouseDown = (e) => {
+    const handleMouseDown = () => {
       // Don't start drag on single clicks — let the overlay onClick handle marker snapping
       // Only start drag-seek mode (isFollowingCursor) for continued mouse moves
       isFollowingCursor = true;

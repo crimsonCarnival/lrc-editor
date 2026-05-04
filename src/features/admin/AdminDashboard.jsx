@@ -56,7 +56,7 @@ export default function AdminDashboard() {
         status: statusFilter
       });
       setUsers(fetchedUsers);
-    } catch (error) {
+    } catch {
       toast.error(t('admin.toast.fetchError'));
     } finally {
       setLoading(false);
@@ -68,7 +68,7 @@ export default function AdminDashboard() {
     try {
       const data = await admin.getBannedIps();
       setBannedIps(data);
-    } catch (err) {
+    } catch {
       toast.error(t('admin.toast.fetchError'));
     } finally {
       setLoading(false);
@@ -80,7 +80,7 @@ export default function AdminDashboard() {
     try {
       const data = await admin.getBannedDevices();
       setBannedDevices(data);
-    } catch (err) {
+    } catch {
       toast.error(t('admin.toast.fetchError'));
     } finally {
       setLoading(false);
@@ -92,7 +92,7 @@ export default function AdminDashboard() {
     try {
       const { logs } = await admin.getAuditLogs({ limit: 50 });
       setAuditLogs(logs);
-    } catch (err) {
+    } catch {
       toast.error(t('admin.toast.fetchError'));
     } finally {
       setLoading(false);
@@ -121,6 +121,7 @@ export default function AdminDashboard() {
     else if (activeTab === 'ips') fetchIps();
     else if (activeTab === 'devices') fetchDevices();
     else if (activeTab === 'audit') fetchAuditLogs();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
   useEffect(() => {
@@ -129,6 +130,7 @@ export default function AdminDashboard() {
       fetchUsers();
     }, 500);
     return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search, roleFilter, statusFilter]);
 
   const handleToggleBan = async (user) => {
@@ -143,7 +145,7 @@ export default function AdminDashboard() {
         toast.success(t('admin.toast.unbannedSuccess', { name: user.username }));
         setAppealModal({ isOpen: false, user: null });
         fetchUsers();
-      } catch (err) {
+      } catch {
         toast.error(t('admin.toast.statusError'));
       }
     } else {
@@ -157,7 +159,7 @@ export default function AdminDashboard() {
       toast.success(t('admin.toast.appealRejectedSuccess', { name: user.username }));
       setAppealModal({ isOpen: false, user: null });
       fetchUsers();
-    } catch (err) {
+    } catch {
       toast.error(t('admin.toast.statusError'));
     }
   };
@@ -167,7 +169,7 @@ export default function AdminDashboard() {
       await admin.reactivateUser(user.id || user._id);
       toast.success(t('admin.toast.reactivateSuccess', { name: user.username }));
       fetchUsers();
-    } catch (err) {
+    } catch {
       toast.error(t('admin.toast.statusError'));
     }
   };
@@ -180,7 +182,7 @@ export default function AdminDashboard() {
       toast.success(t('admin.toast.bannedSuccess', { name: user.username }));
       fetchUsers();
       fetchStats();
-    } catch (err) {
+    } catch {
       toast.error(t('admin.toast.statusError'));
     }
   };
@@ -261,7 +263,7 @@ export default function AdminDashboard() {
         fetchStats();
       }
       fetchUsers();
-    } catch (err) {
+    } catch {
       toast.error(t('admin.toast.statusError'));
     }
   };

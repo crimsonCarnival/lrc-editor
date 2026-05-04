@@ -242,7 +242,7 @@ export function SettingsProvider({ children }) {
         setSettings((local) => {
           const merged = deepMerge(local, remote);
           // Persist merge to localStorage immediately (save effect is suppressed)
-          try { localStorage.setItem(STORAGE_KEY, JSON.stringify(merged)); } catch {}
+          try { localStorage.setItem(STORAGE_KEY, JSON.stringify(merged)); } catch { /* ignore */ }
           // Update last saved snapshot since we just synced from server
           lastSavedToServerRef.current = structuredClone(merged);
           return merged;
@@ -250,7 +250,7 @@ export function SettingsProvider({ children }) {
         // Clear the sync flag after React processes the state update
         queueMicrotask(() => { isSyncingRef.current = false; });
       }
-    }).catch(() => {}).finally(() => {
+    }).catch(() => { /* ignore */ }).finally(() => {
       syncInFlightRef.current = false;
     });
   }, []);

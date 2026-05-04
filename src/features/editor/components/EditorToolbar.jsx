@@ -52,7 +52,6 @@ export default function EditorToolbar({
   handleClearAllWordTimestamps,
   handleClearActiveLineWordTimestamps,
   requestConfirm,
-  setLines,
   setRawText,
   setSyncMode,
   handleManualSave,

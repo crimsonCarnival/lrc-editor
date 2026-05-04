@@ -5,7 +5,7 @@ import { SettingsProvider } from '@/contexts/SettingsContext';
 import { TooltipProvider } from '@ui/tooltip';
 import { Spinner } from '@ui/skeleton';
 import { Button } from '@ui/button';
-import { api, getAccessToken } from '@/api';
+import { projects, getAccessToken } from '@/api';
 import Player from '@features/player/Player';
 import Preview from '@features/preview/Preview';
 import SharedProjectError from './SharedProjectError';
@@ -97,7 +97,6 @@ function SharedProjectViewerInner({ projectId }) {
 
   // ── Redirect helpers ──
   const redirectUrl = `/share/${projectId}`;
-  const loginUrl = `/?redirect=${encodeURIComponent(redirectUrl)}`;
   const registerUrl = `/?tab=register&redirect=${encodeURIComponent(redirectUrl)}`;
 
   // ── Clone project handler ──
@@ -114,8 +113,7 @@ function SharedProjectViewerInner({ projectId }) {
         setIsCloning(false);
       }
     } else {
-      // Not logged in - redirect to login with continuation
-      localStorage.setItem('cloneAfterAuth', projectId);
+      localStorage.setItem('lrc-syncer-redirect', window.location.pathname + window.location.hash);
       window.location.href = registerUrl;
     }
   }, [projectId, registerUrl]);

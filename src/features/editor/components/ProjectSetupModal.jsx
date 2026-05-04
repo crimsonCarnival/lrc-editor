@@ -6,8 +6,7 @@ import { Textarea } from '@ui/textarea';
 import { Label } from '@ui/label';
 import { Badge } from '@ui/badge';
 import { X, Sparkles, Image as ImageIcon, Upload, Loader2 } from 'lucide-react';
-import { uploads as uploadsApi } from '@/api';
-import toast from 'react-hot-toast';
+
 
 export default function ProjectSetupModal({ 
   isOpen, 
@@ -27,6 +26,7 @@ export default function ProjectSetupModal({
 
   useEffect(() => {
     if (isOpen) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setName(initialName || '');
       setDescription(initialDescription || '');
       setTags(initialTags || []);

@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo, useRef, forwardRef, useImperativeHandle, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSettings } from '@/contexts/useSettings';
-import useConfirm from '@/hooks/useConfirm';
+
 import { formatTime } from '@/utils/formatTime';
 import useLocalAudio from './useLocalAudio';
 import useYouTubePlayer from './useYouTubePlayer';
@@ -22,7 +22,7 @@ import toast from 'react-hot-toast';
 const ALL_SPEED_PRESETS = [0.25, 0.5, 0.75, 1, 1.25, 1.5];
 
 const Player = forwardRef(function Player(
-  { onTimeUpdate, onPlayingChange, onSpeedChange, onDurationChange, onMediaChange, playerRef: _legacyRef, mediaTitle, onTitleChange, initialYtUrl, initialCloudinaryUpload, onYtUrlChange, initialSeek, initialSpeed, lines, playbackPosition, syncMode = false, onCloudinaryUpload, projectMetadata },
+  { onTimeUpdate, onPlayingChange, onSpeedChange, onDurationChange, onMediaChange, playerRef: _legacyRef, mediaTitle, onTitleChange, initialYtUrl, initialCloudinaryUpload, onYtUrlChange, initialSeek, initialSpeed, lines, playbackPosition, syncMode = false, onCloudinaryUpload },
   ref,
 ) {
   const { t } = useTranslation();
@@ -57,11 +57,7 @@ const Player = forwardRef(function Player(
 
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [requestConfirm, confirmModal] = useConfirm();
-
-  // Uploads state
   const [mediaUploads, setMediaUploads] = useState([]);
-  const [uploadsLoaded, setUploadsLoaded] = useState(false);
 
   // A-B Loop state
   const [loopA, setLoopA] = useState(null);
@@ -87,7 +83,6 @@ const Player = forwardRef(function Player(
       const { uploads } = await uploadsApi.listMedia();
       setMediaUploads(uploads || []);
     } catch { /* ignore */ }
-    setUploadsLoaded(true);
   }, []);
 
   const updateTime = useCallback(
@@ -244,6 +239,7 @@ const Player = forwardRef(function Player(
       return;
     }
     yt.setYtError(t('player.invalidUrl') || 'Invalid URL. Paste a YouTube or Cloudinary CDN URL.');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [yt, detectedUrlType, handleCdnUrlLoad, t]);
 
   const [syncingNowPlaying, setSyncingNowPlaying] = useState(false);
@@ -298,6 +294,7 @@ const Player = forwardRef(function Player(
       if (isPlaying) sp.pause();
       else sp.play();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [source, isPlaying, local, yt, sp]);
 
   const seek = useCallback(
@@ -317,7 +314,7 @@ const Player = forwardRef(function Player(
       else if (source === 'youtube') yt.setSpeed(clamped);
       // Spotify Web Playback SDK does not support speed control
     },
-    [source, MIN_SPEED, MAX_SPEED, local, yt],
+    [source, MIN_SPEED, MAX_SPEED, local, yt, setPlaybackSpeed],
   );
 
   // ——— A-B Loop helpers ———
@@ -398,23 +395,6 @@ const Player = forwardRef(function Player(
     }
   }, [initialCloudinaryUpload, local, onCloudinaryUpload]);
 
-  // ——— Remove media ———
-
-  const removeMedia = useCallback(() => {
-    requestConfirm(t('confirm.removeMedia') || 'Remove currently loaded media?', () => {
-      if (source === 'local') local.remove();
-      else if (source === 'youtube') yt.remove();
-      else if (source === 'spotify') sp.remove();
-      setIsPlaying(false);
-      setCurrentTime(0);
-      setDuration(0);
-      setPlaybackSpeed(1);
-      onTimeUpdate?.(0);
-      onDurationChange?.(0);
-      onTitleChange?.('');
-      onMediaChange?.(false);
-    }, { title: t('confirm.removeMediaTitle') || 'Remove Media', variant: 'danger' });
-  }, [source, local, yt, sp, requestConfirm, t, onTimeUpdate, onDurationChange, onTitleChange, onMediaChange]);
 
   return (
     <>
@@ -1127,7 +1107,7 @@ const Player = forwardRef(function Player(
         </div>
       )}
 
-      {confirmModal}
+
     </>
   );
 });

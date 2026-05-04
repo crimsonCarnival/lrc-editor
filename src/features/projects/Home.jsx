@@ -3,22 +3,17 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuthContext } from '@/contexts/useAuthContext';
 import { projects } from '@/api';
-import { Button } from '@ui/button';
-import {
-  Music2,
-  Video,
-  Upload,
-  Plus,
-  Search,
-  Clock,
-  Play,
-  FileText,
-  ChevronRight,
-  MoreVertical,
-  Activity,
-  Pencil
-} from 'lucide-react';
+import { Music2, Video, Plus, Search, Play, FileText, ChevronRight, Activity, Lightbulb } from 'lucide-react';
 import ProjectSetupModal from '@features/editor/components/ProjectSetupModal';
+import YoutubeSearchPanel from './YoutubeSearchPanel';
+
+function YtIcon({ className }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+      <path d="M21.8 8.001a2.75 2.75 0 0 0-1.937-1.948C18.2 5.6 12 5.6 12 5.6s-6.2 0-7.863.453A2.75 2.75 0 0 0 2.2 8.001 28.8 28.8 0 0 0 1.75 12a28.8 28.8 0 0 0 .45 3.999 2.75 2.75 0 0 0 1.937 1.948C5.8 18.4 12 18.4 12 18.4s6.2 0 7.863-.453a2.75 2.75 0 0 0 1.937-1.948A28.8 28.8 0 0 0 22.25 12a28.8 28.8 0 0 0-.45-3.999ZM9.75 15V9l5.25 3-5.25 3Z" />
+    </svg>
+  );
+}
 
 function formatRelativeTime(dateStr, t) {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -40,6 +35,25 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [editingProject, setEditingProject] = useState(null);
+  const [showYtSearch, setShowYtSearch] = useState(false);
+
+  const [randomSeed, setRandomSeed] = useState({ greeting: 0, welcome: 0, search: 0, tip: 0 });
+  useEffect(() => {
+    setRandomSeed({
+      greeting: Math.floor(Math.random() * 1000),
+      welcome: Math.floor(Math.random() * 1000),
+      search: Math.floor(Math.random() * 1000),
+      tip: Math.floor(Math.random() * 1000)
+    });
+  }, []);
+
+  const getRandStr = useCallback((key, seedVal, options = {}) => {
+    const arr = t(key, { returnObjects: true, ...options });
+    if (Array.isArray(arr) && arr.length > 0) {
+      return arr[seedVal % arr.length];
+    }
+    return t(key, options);
+  }, [t]);
 
   const fetchProjects = useCallback(async () => {
     try {
@@ -65,35 +79,45 @@ export default function Home() {
   const lastProject = items.length > 0 ? items[0] : null;
   const username = user?.username || 'Creator';
 
-  const renderEmptyState = () => (
-    <div className="flex-1 flex flex-col items-center justify-center animate-fade-in max-w-2xl mx-auto text-center py-8 sm:py-4">
-      <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-primary to-accent-purple flex items-center justify-center shadow-lg shadow-primary/20 mb-4">
-        <Music2 className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
-      </div>
-      <h2 className="text-xl sm:text-2xl font-bold text-zinc-100 mb-2 tracking-tight">
-        {t('home.welcome', { name: username })}
-      </h2>
-      <p className="text-zinc-400 text-base mb-6 max-w-md leading-relaxed">
-        {t('home.welcomeSub')}
-      </p>
+  const handleYtSelect = ({ url, title }) => {
+    // Store selected YouTube URL in sessionStorage so the new project page can pick it up
+    sessionStorage.setItem('pendingYtUrl', url);
+    sessionStorage.setItem('pendingYtTitle', title || '');
+    navigate('/project/new');
+  };
 
-      <div className="flex justify-center w-full">
-        <div
-          onClick={() => navigate('/project/new')}
-          className="group cursor-pointer glass rounded-2xl p-6 text-left hover:border-primary/50 transition-all shadow-elevated max-w-sm w-full"
-        >
-          <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-            <Plus className="w-6 h-6 text-primary" />
-          </div>
-          <h3 className="text-lg font-bold text-zinc-100 mb-1">{t('home.createNew')}</h3>
-          <p className="text-sm text-zinc-500">{t('home.createNewDesc')}</p>
+  const renderActionCards = () => (
+    <div className="flex flex-col gap-4 w-full max-w-md animate-fade-in">
+      <div
+        onClick={() => navigate('/project/new')}
+        className="group cursor-pointer glass rounded-2xl p-5 text-left hover:border-primary/50 transition-all shadow-elevated w-full flex items-center gap-5"
+      >
+        <div className="w-12 h-12 shrink-0 rounded-xl bg-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+          <Plus className="w-6 h-6 text-primary" />
+        </div>
+        <div>
+          <h3 className="text-lg font-bold text-zinc-100 mb-0.5">{t('home.createNew')}</h3>
+          <p className="text-sm text-zinc-500 leading-snug">{t('home.createNewDesc')}</p>
+        </div>
+      </div>
+
+      <div
+        onClick={() => setShowYtSearch(true)}
+        className="group cursor-pointer glass rounded-2xl p-5 text-left hover:border-red-500/40 transition-all shadow-elevated w-full flex items-center gap-5"
+      >
+        <div className="w-12 h-12 shrink-0 rounded-xl bg-red-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+          <YtIcon className="w-6 h-6 text-red-400" />
+        </div>
+        <div>
+          <h3 className="text-lg font-bold text-zinc-100 mb-0.5">{t('home.searchYoutube')}</h3>
+          <p className="text-sm text-zinc-500 leading-snug">{t('home.searchYoutubePlaceholder')}</p>
         </div>
       </div>
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-zinc-950 flex flex-col">
+    <div className="h-full flex flex-col">
       {/* Background aesthetics */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <div className="absolute inset-0 opacity-[0.015]" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.65%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E")' }}></div>
@@ -101,164 +125,150 @@ export default function Home() {
         <div className="absolute top-1/4 -left-20 w-80 h-80 bg-accent-purple/5 rounded-full blur-3xl" />
       </div>
 
-      {/* Main Content */}
+      {/* Main Content Area */}
       <div className="relative flex-1 flex flex-col h-full overflow-hidden px-6 py-6 sm:px-10 lg:px-16">
-        <div className="max-w-6xl mx-auto w-full h-full flex flex-col gap-6 overflow-y-auto scrollbar-thin pr-2">
+        {/* YouTube Search Slide-over */}
+        {showYtSearch && (
+          <div className="absolute inset-0 z-50 bg-zinc-950/95 backdrop-blur-sm flex flex-col animate-fade-in rounded-xl overflow-hidden">
+            <YoutubeSearchPanel
+              onSelect={handleYtSelect}
+              onClose={() => setShowYtSearch(false)}
+            />
+          </div>
+        )}
 
-          {/* Header */}
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 sm:gap-6">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-zinc-100 tracking-tight mb-1 sm:mb-2">
-                {t('home.greeting', { name: username })}
+        <div className="max-w-7xl mx-auto w-full h-full flex flex-col lg:flex-row gap-10 overflow-hidden">
+
+          {/* LEFT COLUMN: Welcome & Actions */}
+          <div className="flex-1 flex flex-col items-center lg:items-start text-center lg:text-left gap-8 overflow-y-auto scrollbar-none pb-10">
+            <div className="flex flex-col items-center lg:items-start animate-fade-in shrink-0 w-full">
+              <h1 className="text-3xl sm:text-4xl font-bold text-zinc-100 tracking-tight mb-3">
+                {getRandStr('home.welcome', randomSeed.welcome, { name: username })}
               </h1>
-              <p className="text-zinc-400 text-sm sm:text-base">{t('home.ready')}</p>
+              <p className="text-zinc-400 text-base sm:text-lg max-w-xl leading-relaxed mb-8">
+                {getRandStr('home.welcomeSub', randomSeed.welcome)}
+              </p>
+              <div className="flex flex-col items-center lg:items-start w-full">
+                {renderActionCards()}
+              </div>
             </div>
 
-            <div className="flex items-center gap-3">
-              <div className="relative hidden sm:block">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder={t('home.searchProjects')}
-                  className="pl-9 pr-4 py-2 bg-zinc-900/50 border border-zinc-800 rounded-full text-sm text-zinc-200 placeholder:text-zinc-500 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all w-64"
-                />
+            {/* Featured / Resume Section (Main Area) */}
+            {!loading && !searchQuery && lastProject && (
+              <section className="w-full max-w-md flex flex-col gap-4 animate-fade-in mt-4">
+                <h2 className="text-[10px] font-bold text-zinc-500 uppercase tracking-[0.2em]">{t('home.resumeLast')}</h2>
+                <div
+                  onClick={() => navigate(`/project/${lastProject.projectId}`)}
+                  className="group relative glass rounded-2xl p-1 overflow-hidden cursor-pointer shadow-elevated border-primary/20 hover:border-primary/50 transition-all"
+                >
+                  <div className="relative flex items-center gap-4 p-3 bg-zinc-950/40 rounded-xl">
+                    <div className="w-12 h-12 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center shrink-0 overflow-hidden relative">
+                      <Music2 className="w-6 h-6 text-primary/50" />
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Play className="w-4 h-4 text-zinc-950 ml-0.5" />
+                      </div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-sm font-bold text-zinc-100 truncate group-hover:text-primary transition-colors">
+                        {lastProject.title || t('library.untitled') || 'Untitled'}
+                      </h3>
+                      <p className="text-[10px] text-zinc-500 mt-0.5">{formatRelativeTime(lastProject.updatedAt, t)}</p>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-primary opacity-0 group-hover:opacity-100 transition-all -translate-x-2 group-hover:translate-x-0" />
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {/* Footer Tips (Main Area) */}
+            <div className="mt-auto w-full max-w-md pt-10 pb-4 border-t border-zinc-800/50 hidden lg:block">
+              <div className="flex items-center gap-2 mb-2 text-zinc-500">
+                <Lightbulb className="w-3.5 h-3.5" />
+                <span className="text-[10px] font-bold uppercase tracking-wider">Pro Tip</span>
               </div>
-              <Button
-                onClick={() => navigate('/project/new')}
-                className="h-10 px-6 bg-primary hover:bg-primary-dim text-zinc-950 font-bold rounded-full gap-2 text-sm sm:text-base w-full sm:w-auto transition-all"
-              >
-                <Plus className="w-4 h-4" />
-                {t('home.newProject')}
-              </Button>
+              <p className="text-xs text-zinc-400 italic leading-relaxed">
+                "{getRandStr('home.tips', randomSeed.tip)}"
+              </p>
             </div>
           </div>
 
-          {loading ? (
-            <div className="flex flex-col gap-6 animate-pulse">
-              <div className="h-48 bg-zinc-900/50 rounded-2xl w-full" />
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                {[1, 2, 3].map(i => <div key={i} className="h-32 bg-zinc-900/50 rounded-2xl" />)}
-              </div>
-            </div>
-          ) : items.length === 0 ? (
-            renderEmptyState()
-          ) : (
-            <>
-              {/* Quick Resume Section */}
-              {!searchQuery && lastProject && (
-                <section className="flex flex-col gap-4 animate-fade-in">
-                  <h2 className="text-sm font-bold text-zinc-400 uppercase tracking-widest">{t('home.resumeLast')}</h2>
-                  <div
-                    onClick={() => navigate(`/project/${lastProject.projectId}`)}
-                    className="group relative glass rounded-2xl p-1 overflow-hidden cursor-pointer shadow-elevated border-primary/20 hover:border-primary/50 transition-all"
-                  >
-                    {/* Dynamic Blurred Background */}
-                    <div className="absolute inset-0 overflow-hidden opacity-20 group-hover:opacity-30 transition-opacity">
-                      <div className="w-full h-full bg-gradient-to-r from-primary/20 to-accent-purple/20" />
-                    </div>
-                    <div className="relative flex items-center gap-4 sm:gap-6 p-3 sm:p-6 bg-zinc-950/40 rounded-xl">
-                      <div className="w-14 h-14 sm:w-20 sm:h-20 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center shrink-0 overflow-hidden shadow-inner relative">
-                        <Music2 className="w-8 h-8 text-primary/50" />
-                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                          <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center shadow-lg transform scale-90 group-hover:scale-100 transition-transform">
-                            <Play className="w-4 h-4 text-zinc-950 ml-1" />
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-xl font-bold text-zinc-100 mb-1 truncate group-hover:text-primary transition-colors">
-                          {lastProject.title || t('library.untitled') || 'Untitled'}
-                        </h3>
-                        <div className="flex flex-wrap items-center gap-3 text-sm text-zinc-400">
-                          <span className="flex items-center gap-1.5">
-                            <Clock className="w-3.5 h-3.5" />
-                            {formatRelativeTime(lastProject.updatedAt, t)}
-                          </span>
-                          <span className="w-1 h-1 rounded-full bg-zinc-700" />
-                          <span className="flex items-center gap-1.5">
-                            <Activity className="w-3.5 h-3.5" />
-                            {lastProject.syncedLineCount || 0} / {lastProject.lineCount || 0} {t('library.lines', { count: '' }).replace(/[0-9]/g, '').trim()}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="hidden sm:flex items-center text-primary font-medium text-sm gap-1 opacity-0 -translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300">
-                        {t('home.continueEditing')} <ChevronRight className="w-4 h-4" />
-                      </div>
-                    </div>
-                  </div>
-                </section>
+          {/* RIGHT COLUMN: Project Sidebar */}
+          <div className="w-full lg:w-[360px] flex flex-col gap-6 bg-zinc-900/20 glass-dark rounded-3xl p-6 h-[400px] lg:h-full overflow-hidden animate-slide-in-right">
+            <div className="flex items-center justify-between shrink-0">
+              <h2 className="text-sm font-bold text-zinc-100 uppercase tracking-widest">{t('home.recentProjects')}</h2>
+              {!loading && items.length > 0 && (
+                <span className="text-[10px] font-bold text-zinc-500 bg-zinc-800/50 px-2 py-0.5 rounded-full">{items.length}</span>
               )}
+            </div>
 
-              {/* Projects Grid */}
-              <section className="flex flex-col gap-4 animate-fade-in" style={{ animationDelay: '100ms' }}>
-                <h2 className="text-sm font-bold text-zinc-400 uppercase tracking-widest">
-                  {searchQuery ? t('home.searchResults') : t('home.recentProjects')}
-                </h2>
+            {loading ? (
+              <div className="flex flex-col gap-3 animate-pulse">
+                {[1, 2, 3, 4].map(i => (
+                  <div key={i} className="h-16 bg-zinc-800/50 rounded-2xl w-full" />
+                ))}
+              </div>
+            ) : items.length === 0 ? (
+              <div className="flex-1 flex flex-col items-center justify-center text-center p-4">
+                <div className="w-12 h-12 rounded-full bg-zinc-800/50 flex items-center justify-center mb-4 text-zinc-600">
+                  <FileText className="w-6 h-6" />
+                </div>
+                <p className="text-sm text-zinc-500">{t('home.noProjects') || 'No projects yet'}</p>
+              </div>
+            ) : (
+              <>
+                {/* Sidebar Search */}
+                <div className="relative shrink-0">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-500" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder={getRandStr('home.searchProjects', randomSeed.search)}
+                    className="w-full pl-9 pr-4 py-2 bg-zinc-950/50 border border-zinc-800/60 rounded-xl text-xs text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-primary/40 focus:ring-1 focus:ring-primary/30 transition-all"
+                  />
+                </div>
 
-                {filteredProjects.length === 0 ? (
-                  <div className="py-12 text-center text-zinc-500">
-                    {t('home.noResults', { query: searchQuery })}
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
-                    {filteredProjects.map((project, idx) => (
+                {/* Sidebar List */}
+                <div className="flex-1 overflow-y-auto scrollbar-thin pr-1 flex flex-col gap-2.5">
+                  {filteredProjects.length === 0 ? (
+                    <p className="text-xs text-zinc-600 text-center py-10">No results found</p>
+                  ) : (
+                    filteredProjects.map((project) => (
                       <div
                         key={project.projectId}
                         onClick={() => navigate(`/project/${project.projectId}`)}
-                        className="group flex flex-col glass rounded-xl p-4 cursor-pointer hover:border-zinc-600 transition-all hover:-translate-y-1 hover:shadow-elevated"
-                        style={{ animationDelay: `${150 + idx * 50}ms` }}
+                        className="group flex items-center gap-3 p-3 rounded-2xl border border-transparent hover:border-zinc-700/50 hover:bg-zinc-800/40 cursor-pointer transition-all animate-fade-in"
                       >
-                        <div className="flex items-start gap-4 mb-4">
-                          <div className="w-12 h-12 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center shrink-0 overflow-hidden relative">
-                            <div className="w-full h-full bg-zinc-800 flex items-center justify-center">
-                              <Music2 className="w-5 h-5 text-zinc-600" />
-                            </div>
-                            <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                              <Play className="w-5 h-5 text-white" />
-                            </div>
-                          </div>
-                          <div className="flex-1 min-w-0 pt-0.5">
-                            <h4 className="text-base font-bold text-zinc-200 truncate group-hover:text-primary transition-colors">
-                              {project.title || t('library.untitled') || 'Untitled'}
-                            </h4>
-                            <p className="text-xs text-zinc-500 truncate mt-0.5">
-                              {project.metadata?.description || t('home.noDescription')}
-                            </p>
-                          </div>
-                          <button
-                            className="p-1.5 rounded-md text-zinc-500 hover:text-primary hover:bg-primary/10 opacity-0 group-hover:opacity-100 transition-all shrink-0"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setEditingProject(project);
-                            }}
-                            title={t('project.editMetadata') || 'Edit Metadata'}
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </button>
-                        </div>
-
-                        <div className="mt-auto pt-3 border-t border-zinc-800/50 flex items-center justify-between text-xs text-zinc-500">
-                          <div className="flex items-center gap-1.5">
-                            <Clock className="w-3.5 h-3.5" />
-                            {formatRelativeTime(project.updatedAt, t)}
-                          </div>
-                          {(project.lineCount > 0 || project.syncedLineCount > 0) && (
-                            <div className="px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-400 font-medium">
-                              {project.syncedLineCount || 0} / {project.lineCount || 0} {t('library.lines', { count: '' }).replace(/[0-9]/g, '').trim()}
-                            </div>
+                        <div className="w-10 h-10 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center shrink-0 overflow-hidden relative group-hover:border-primary/30 transition-colors">
+                          {project.upload?.source === 'youtube' ? (
+                            <Video className="w-4 h-4 text-red-500/60" />
+                          ) : (
+                            <Music2 className="w-4 h-4 text-primary/60" />
                           )}
+                          <div className="absolute inset-0 bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity" />
                         </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-xs font-bold text-zinc-200 truncate group-hover:text-primary transition-colors">
+                            {project.title || t('library.untitled')}
+                          </h3>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-[10px] text-zinc-500">{formatRelativeTime(project.updatedAt, t)}</span>
+                            <span className="w-0.5 h-0.5 rounded-full bg-zinc-700" />
+                            <span className="text-[10px] text-zinc-500 flex items-center gap-1">
+                              <Activity className="w-2.5 h-2.5" />
+                              {project.syncedLineCount || 0}/{project.lineCount || 0}
+                            </span>
+                          </div>
+                        </div>
+                        <ChevronRight className="w-3.5 h-3.5 text-zinc-600 group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
                       </div>
-                    ))}
-                  </div>
-                )}
-              </section>
-            </>
-          )}
+                    ))
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+
         </div>
       </div>
 

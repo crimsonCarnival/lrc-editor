@@ -120,6 +120,12 @@ export default {
     "language": "Default language",
     "languageDesc": "Default application language and menus",
     "theme": "Theme",
+    "themeDark": "Dark",
+    "themeLight": "Light",
+    "themeDracula": "Dracula",
+    "themeAlucard": "Alucard",
+    "themeAlucardlight": "Alucard Light",
+    "themeSystem": "System",
     "themeDesc": "Application color scheme",
     "scrollBehavior": "Scroll animation",
     "scrollBehaviorDesc": "How the active line scrolls into view",
@@ -254,7 +260,10 @@ export default {
     "themes": {
       "dark": "Dark",
       "light": "Light",
-      "system": "System"
+      "system": "System",
+      "dracula": "Dracula",
+      "alucard": "Alucard",
+      "alucardLight": "Alucard Light"
     },
     "highlights": {
       "glow": "Glow",

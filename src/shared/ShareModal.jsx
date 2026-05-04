@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState, useCallback } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@ui/button';
 import { Input } from '@ui/input';
@@ -34,6 +34,7 @@ export function SharePanel({
   // Sync customTime with playbackPosition initially or when toggled
   useEffect(() => {
     if (includeTime && customTime === 0 && playbackPosition > 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCustomTime(Math.floor(playbackPosition));
     }
   }, [includeTime, playbackPosition, customTime]);

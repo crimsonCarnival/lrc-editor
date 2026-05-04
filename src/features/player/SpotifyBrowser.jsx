@@ -21,11 +21,10 @@ function TabButton({ active, onClick, icon: Icon, label }) {
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap ${
-        active
+      className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap ${active
           ? 'bg-green-500/20 text-green-400 border border-green-500/30'
           : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60'
-      }`}
+        }`}
     >
       <Icon className="w-3.5 h-3.5" />
       {label}
@@ -36,7 +35,7 @@ function TabButton({ active, onClick, icon: Icon, label }) {
 function TrackRow({ track, onSelect, onQueue, onSaveToggle, isSaved }) {
   const { t } = useTranslation();
   return (
-    <div 
+    <div
       className="group flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-zinc-800/60 transition-colors cursor-pointer"
       onDoubleClick={() => onSelect(track)}
     >
@@ -176,7 +175,7 @@ export default function SpotifyBrowser({ onSelectTrack }) {
 
   const loadSearch = useCallback(async (query, newOffset = 0) => {
     if (!query?.trim()) { setTracks([]); setTotal(0); return; }
-    
+
     const cacheKey = `${query.trim()}:${newOffset}`;
     if (searchCache.has(cacheKey)) {
       const cached = searchCache.get(cacheKey);
@@ -191,9 +190,9 @@ export default function SpotifyBrowser({ onSelectTrack }) {
       const data = await spotifyApi.search(query, { limit: 10, offset: newOffset });
       const newTracks = data.tracks || [];
       const newTotal = data.total || 0;
-      
+
       searchCache.put(cacheKey, { tracks: newTracks, total: newTotal });
-      
+
       setTracks(newTracks);
       setTotal(newTotal);
       setOffset(newOffset);
@@ -387,7 +386,7 @@ export default function SpotifyBrowser({ onSelectTrack }) {
     if (uris.length === 0) return;
     spotifyApi.checkLibrary(uris).then((data) => {
       if (data.results) setSavedStates((prev) => ({ ...prev, ...data.results }));
-    }).catch(() => {});
+    }).catch(() => { });
   }, [tracks]);
 
   // Pagination
@@ -470,9 +469,8 @@ export default function SpotifyBrowser({ onSelectTrack }) {
             <button
               key={value}
               onClick={() => { setTimeRange(value); loadTopTracks(value); }}
-              className={`px-2.5 py-1 rounded text-[10px] font-medium transition-colors ${
-                timeRange === value ? 'bg-green-500/20 text-green-400' : 'text-zinc-500 hover:text-zinc-300'
-              }`}
+              className={`px-2.5 py-1 rounded text-[10px] font-medium transition-colors ${timeRange === value ? 'bg-green-500/20 text-green-400' : 'text-zinc-500 hover:text-zinc-300'
+                }`}
             >
               {label}
             </button>

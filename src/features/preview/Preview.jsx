@@ -19,13 +19,14 @@ import { Eye, Share2, X, Lock, LockOpen, BookOpen, Plus } from 'lucide-react';
 
 export default function Preview(props) {
   // Accept activeProjectId and project as props
-  const { activeProjectId, project, projectMetadata } = props;
+  const { activeProjectId, project } = props;
 
   // Privacy state for sharing (default public)
   const [isPublic, setIsPublic] = useState(project?.public ?? true);
   // Sync privacy state with project prop
   useEffect(() => {
     if (project && typeof project.public === 'boolean') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsPublic(project.public);
     }
   }, [project]);
@@ -38,7 +39,7 @@ export default function Preview(props) {
     if (activeProjectId) {
       try {
         await projects.patch(activeProjectId, { public: newIsPublic });
-      } catch (err) {
+      } catch {
         // Optionally show error/toast
       }
     }
@@ -360,7 +361,6 @@ function PreviewViewport({
   activeFontSizes,
   inactiveFontSizes,
   activeMargin,
-  wrapperSpacing,
   settings,
   editorMode,
   t,

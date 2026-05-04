@@ -21,7 +21,6 @@ export default {
   "projectDescriptionPlaceholder": "Optional notes about this project...",
   "projectTags": "Tags",
   "projectTagsPlaceholder": "Add tags separated by commas...",
-  "projectTagsPlaceholder": "Add tags separated by commas...",
   "startProject": "Start syncing",
   "lyricsReady": "Lyrics loaded",
   "audioReady": "Audio loaded",

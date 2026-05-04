@@ -25,6 +25,7 @@ export default function BanUserModal({ isOpen, user, onConfirm, onCancel }) {
 
   useEffect(() => {
     if (isOpen) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setReason('');
       setBannedUntil('');
       setBanIp(false);

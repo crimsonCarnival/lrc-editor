@@ -13,8 +13,10 @@ export default function useHistory(initial, options = {}) {
 
   const getCompanionRef = useRef(null);
   const onRestoreCompanionRef = useRef(null);
-  getCompanionRef.current = options.getCompanion || null;
-  onRestoreCompanionRef.current = options.onRestoreCompanion || null;
+  useEffect(() => {
+    getCompanionRef.current = options.getCompanion || null;
+    onRestoreCompanionRef.current = options.onRestoreCompanion || null;
+  });
 
   const [state, setStateRaw] = useState(initial);
   
@@ -93,11 +95,13 @@ export default function useHistory(initial, options = {}) {
     });
   }, []);
 
-  if (pendingRestoreRef.current !== null) {
-    const companion = pendingRestoreRef.current;
-    pendingRestoreRef.current = null;
-    onRestoreCompanionRef.current?.(companion);
-  }
+  useEffect(() => {
+    if (pendingRestoreRef.current !== null) {
+      const companion = pendingRestoreRef.current;
+      pendingRestoreRef.current = null;
+      onRestoreCompanionRef.current?.(companion);
+    }
+  });
 
   return [state, setState, undo, redo, canUndo, canRedo];
 }

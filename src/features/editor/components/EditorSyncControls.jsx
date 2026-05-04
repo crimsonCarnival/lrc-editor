@@ -7,7 +7,6 @@ import { KEY_SYMBOLS } from '../../Settings/keySymbols';
 
 export default function EditorSyncControls({
   settings,
-  updateSetting,
   handleApplyOffset,
   selectedLines,
   editorMode,

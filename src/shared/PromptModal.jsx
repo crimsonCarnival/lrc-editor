@@ -18,6 +18,7 @@ export default function PromptModal({ isOpen, title, message, onConfirm, onCance
   useScrollLock(isOpen);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (isOpen) setValue(defaultValue);
   }, [isOpen, defaultValue]);
 

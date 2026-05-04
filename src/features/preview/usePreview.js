@@ -103,6 +103,7 @@ export function usePreview({ lines, setLines, playbackPosition, playerRef, durat
       }
     }
     return bestIdx;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lines, playbackPosition, editorMode]);
 
   // Scroll-to-active is now handled by PreviewViewport's virtualizer (scrollToIndex).

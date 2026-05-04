@@ -15,7 +15,6 @@ export default function InterfaceSettings({ settings, updateSetting, searchTerm 
     handlePreviewAlignmentChange,
     handleFontSizeChange,
     handleSpacingChange,
-    handleLanguageLayoutChange,
     handleTranslationLayoutChange,
   } = useInterfaceSettings(updateSetting);
 
@@ -32,6 +31,9 @@ export default function InterfaceSettings({ settings, updateSetting, searchTerm 
           <SelectContent className="bg-zinc-900 border-zinc-700">
             <SelectItem value="dark">{t('settings.options.themes.dark')}</SelectItem>
             <SelectItem value="light">{t('settings.options.themes.light')}</SelectItem>
+            <SelectItem value="dracula">{t('settings.options.themes.dracula')}</SelectItem>
+            <SelectItem value="alucard">{t('settings.options.themes.alucard')}</SelectItem>
+            <SelectItem value="alucardlight">{t('settings.options.themes.alucardLight')}</SelectItem>
             <SelectItem value="system">{t('settings.options.themes.system')}</SelectItem>
           </SelectContent>
         </Select>
@@ -62,7 +64,7 @@ export default function InterfaceSettings({ settings, updateSetting, searchTerm 
           </SelectTrigger>
           <SelectContent className="bg-zinc-900 border-zinc-700">
             <SelectItem value="en">English</SelectItem>
-            <SelectItem value="es">Espa?ol</SelectItem>
+            <SelectItem value="es">Español</SelectItem>
           </SelectContent>
         </Select>
       </SettingRow>
@@ -150,13 +152,13 @@ export default function InterfaceSettings({ settings, updateSetting, searchTerm 
         />
       </SettingRow>
       {(settings.editor?.display?.dualLine) && (
-      <SettingRow icon={ChevronDown} label={t('settings.interface.showNextLine')} description={t('settings.interface.showNextLineDesc')}>
-        <Toggle
-          id="toggle-show-next-line"
-          checked={settings.editor?.display?.showNextLine ?? true}
-          onChange={(v) => updateSetting('editor.display.showNextLine', v)}
-        />
-      </SettingRow>
+        <SettingRow icon={ChevronDown} label={t('settings.interface.showNextLine')} description={t('settings.interface.showNextLineDesc')}>
+          <Toggle
+            id="toggle-show-next-line"
+            checked={settings.editor?.display?.showNextLine ?? true}
+            onChange={(v) => updateSetting('editor.display.showNextLine', v)}
+          />
+        </SettingRow>
       )}
       <SettingRow icon={Columns} label={t('settings.interface.translationLayout')} description={t('settings.interface.translationLayoutDesc')}>
         <Select

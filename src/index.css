@@ -2,22 +2,20 @@
 @import "@fontsource-variable/geist";
 @import "tw-animate-css";
 
-@font-face {
-  font-family: 'Noto Serif JP Variable';
-  font-style: normal;
-  font-display: swap;
-  font-weight: 200 900;
-  src: url('../node_modules/@fontsource-variable/noto-serif-jp/files/noto-serif-jp-119-wght-normal.woff2') format('woff2-variations');
-  unicode-range: U+20,U+2027,U+3001-3002,U+3041-307f,U+3081-308f,U+3091-3093,U+3099-309a,U+309d-309e,U+30a1-30e1,U+30e3-30ed,U+30ef-30f0,U+30f2-30f4,U+30fb-30fe,U+ff0c,U+ff0e;
-}
+@import url('https://fonts.googleapis.com/css2?family=Stack+Sans+Notch:wght@200..700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fira+Sans:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@200..900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@200..900&display=swap');
+
 @import "shadcn/tailwind.css";
 
 @custom-variant dark (&:is(.dark *));
 
 @theme {
   /* ── Fonts ── */
-  --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
-  --font-lyrics: "Noto Serif JP Variable", "Geist Variable", ui-sans-serif, sans-serif;
+  --font-heading: "Stack Sans Notch", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Fira Sans", "Noto Serif JP", "Noto Serif TC", ui-sans-serif, system-ui, sans-serif;
+  --font-lyrics: "Fira Sans", "Noto Serif JP", "Noto Serif TC", ui-sans-serif, sans-serif;
 
   /* ── Colors ── */
   --color-primary: #1DB954;
@@ -105,6 +103,183 @@
   --color-glass-border: rgba(0, 0, 0, 0.1);
 }
 
+/* ── Dracula (dark) ─────────────────────────────────────────────────── */
+:root.theme-dracula {
+  --color-zinc-950: #191A21;
+  /* Background Darker */
+  --color-zinc-900: #21222C;
+  /* Background Dark */
+  --color-zinc-800: #343746;
+  /* Background Light / floating interactive */
+  --color-zinc-700: #424450;
+  /* Background Lighter */
+  --color-zinc-600: #6272A4;
+  /* Comment / muted */
+  --color-zinc-500: #6272A4;
+  --color-zinc-400: #8BE9FD;
+  /* Cyan accent — used for borders/dividers */
+  --color-zinc-300: #F8F8F2;
+  /* Foreground */
+  --color-zinc-200: #F8F8F2;
+  --color-zinc-100: #ffffff;
+  --color-zinc-50: #ffffff;
+  /* Primary = Dracula Green */
+  --color-primary: #50FA7B;
+  --color-primary-dim: #42D165;
+  /* Surface / glass overlays */
+  --color-surface: rgba(248, 248, 242, 0.04);
+  --color-surface-hover: rgba(248, 248, 242, 0.08);
+  --color-glass: rgba(33, 34, 44, 0.85);
+  --color-glass-border: rgba(98, 114, 164, 0.35);
+  /* Accents */
+  --color-accent-purple: #BD93F9;
+  --color-accent-blue: #8BE9FD;
+  --color-warning: #FFB86C;
+  --color-warning-dim: #F1FA8C;
+  /* Shadows */
+  --shadow-glow: 0 0 20px rgba(80, 250, 123, 0.25), 0 0 60px rgba(80, 250, 123, 0.1);
+  --shadow-glow-strong: 0 0 30px rgba(80, 250, 123, 0.35), 0 0 80px rgba(80, 250, 123, 0.15);
+
+  /* Shadcn standard variables */
+  --background: #21222C;
+  --foreground: #F8F8F2;
+  --card: #282A36;
+  --card-foreground: #F8F8F2;
+  --popover: #282A36;
+  --popover-foreground: #F8F8F2;
+  --primary: #50FA7B;
+  --primary-foreground: #282A36;
+  --secondary: #44475A;
+  --secondary-foreground: #F8F8F2;
+  --muted: #44475A;
+  --muted-foreground: #6272A4;
+  --accent: #44475A;
+  --accent-foreground: #F8F8F2;
+  --destructive: #FF5555;
+  --border: #6272A4;
+  --input: #44475A;
+  --ring: #50FA7B;
+}
+
+/* ── Alucard (dark) ──────────────────────────────────────────────────── */
+:root.theme-alucard {
+  /* Background scale — inverted warm midnight palette */
+  --color-zinc-950: #1A1917;
+  /* near-black warm */
+  --color-zinc-900: #211F1C;
+  /* darkest surface */
+  --color-zinc-800: #2E2B27;
+  /* floating panels */
+  --color-zinc-700: #3A3730;
+  /* borders */
+  --color-zinc-600: #6C664B;
+  /* Comment / muted — Alucard Comment */
+  --color-zinc-500: #6C664B;
+  --color-zinc-400: #A3904A;
+  /* muted accent */
+  --color-zinc-300: #F8F3EA;
+  /* Foreground (warm white) */
+  --color-zinc-200: #F8F3EA;
+  --color-zinc-100: #ffffff;
+  --color-zinc-50: #ffffff;
+  /* Primary = Alucard Purple */
+  --color-primary: #8B6FE8;
+  --color-primary-dim: #7355D4;
+  /* Surface / glass */
+  --color-surface: rgba(248, 243, 234, 0.04);
+  --color-surface-hover: rgba(248, 243, 234, 0.08);
+  --color-glass: rgba(33, 31, 28, 0.85);
+  --color-glass-border: rgba(108, 102, 75, 0.35);
+  /* Accents from Alucard palette */
+  --color-accent-purple: #644AC9;
+  --color-accent-blue: #036A96;
+  --color-warning: #A34D14;
+  --color-warning-dim: #846E15;
+  /* Shadows */
+  --shadow-glow: 0 0 20px rgba(139, 111, 232, 0.25), 0 0 60px rgba(139, 111, 232, 0.1);
+  --shadow-glow-strong: 0 0 30px rgba(139, 111, 232, 0.35), 0 0 80px rgba(139, 111, 232, 0.15);
+
+  /* Shadcn standard variables */
+  --background: #211F1C;
+  --foreground: #F8F3EA;
+  --card: #1A1917;
+  --card-foreground: #F8F3EA;
+  --popover: #1A1917;
+  --popover-foreground: #F8F3EA;
+  --primary: #8B6FE8;
+  --primary-foreground: #F8F3EA;
+  --secondary: #2E2B27;
+  --secondary-foreground: #F8F3EA;
+  --muted: #2E2B27;
+  --muted-foreground: #6C664B;
+  --accent: #2E2B27;
+  --accent-foreground: #F8F3EA;
+  --destructive: #CB3A2A;
+  --border: #3A3730;
+  --input: #2E2B27;
+  --ring: #8B6FE8;
+}
+
+/* ── Alucard (light) — warm parchment palette ────────────────────────── */
+:root.theme-alucardlight {
+  /* Background scale — Alucard Classic warm whites */
+  --color-zinc-950: #FFFBEB;
+  /* Main Background */
+  --color-zinc-900: #EFEDDC;
+  /* Floating interactive */
+  --color-zinc-800: #ECE9DF;
+  /* Background Lighter */
+  --color-zinc-700: #DEDCCF;
+  /* Background Light */
+  --color-zinc-600: #CECCC0;
+  /* Background Dark */
+  --color-zinc-500: #6C664B;
+  /* Comment / muted */
+  --color-zinc-400: #3F3D32;
+  /* mid text */
+  --color-zinc-300: #1F1F1F;
+  /* Foreground */
+  --color-zinc-200: #1F1F1F;
+  --color-zinc-100: #0A0A08;
+  --color-zinc-50: #0A0A08;
+  /* Primary = Alucard Purple (works on warm light bg) */
+  --color-primary: #644AC9;
+  --color-primary-dim: #5239B8;
+  /* Surface / glass */
+  --color-surface: rgba(0, 0, 0, 0.04);
+  --color-surface-hover: rgba(0, 0, 0, 0.08);
+  --color-glass: rgba(255, 251, 235, 0.85);
+  --color-glass-border: rgba(108, 102, 75, 0.25);
+  /* Accents from Alucard functional palette */
+  --color-accent-purple: #815CD6;
+  --color-accent-blue: #0081D6;
+  --color-warning: #A39514;
+  --color-warning-dim: #8A7B10;
+  /* Shadows */
+  --shadow-glow: 0 0 20px rgba(100, 74, 201, 0.2), 0 0 60px rgba(100, 74, 201, 0.08);
+  --shadow-glow-strong: 0 0 30px rgba(100, 74, 201, 0.3), 0 0 80px rgba(100, 74, 201, 0.12);
+
+  /* Shadcn standard variables */
+  --background: #FFFBEB;
+  --foreground: #1F1F1F;
+  --card: #FFFBEB;
+  --card-foreground: #1F1F1F;
+  --popover: #FFFBEB;
+  --popover-foreground: #1F1F1F;
+  --primary: #644AC9;
+  --primary-foreground: #FFFBEB;
+  --secondary: #EFEDDC;
+  --secondary-foreground: #1F1F1F;
+  --muted: #EFEDDC;
+  --muted-foreground: #6C664B;
+  --accent: #EFEDDC;
+  --accent-foreground: #1F1F1F;
+  --destructive: #CB3A2A;
+  --border: #CECCC0;
+  --input: #DEDCCF;
+  --ring: #644AC9;
+}
+
 html,
 body,
 #root {
@@ -167,14 +342,17 @@ body,
   color: var(--color-zinc-500);
   transition: color 150ms ease-out;
 }
+
 [data-slot="karaoke-cjk"][data-filled] {
   color: var(--color-primary);
   text-shadow: 0 0 12px rgba(29, 185, 84, 0.4);
 }
+
 [data-slot="karaoke-cjk-rt"] {
   color: var(--color-zinc-600);
   transition: color 150ms ease-out;
 }
+
 [data-slot="karaoke-cjk"][data-filled] [data-slot="karaoke-cjk-rt"] {
   color: var(--color-primary);
 }
@@ -214,8 +392,13 @@ body,
 
 /* Keyframes for smooth karaoke fill with overshoot to clear soft-edged masks */
 @keyframes karaoke-fill-anim {
-  from { width: 0%; }
-  to { width: calc(100% + 30px); }
+  from {
+    width: 0%;
+  }
+
+  to {
+    width: calc(100% + 30px);
+  }
 }
 
 /* Fade in */
@@ -241,6 +424,7 @@ body,
     opacity: 0;
     transform: translateY(6px) scale(0.98);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -274,6 +458,7 @@ body,
 ruby {
   ruby-align: center;
 }
+
 ruby rt {
   font-size: 0.55em;
   line-height: 1;
@@ -289,6 +474,7 @@ ruby rt {
     transform: translateY(10px);
     filter: blur(2px);
   }
+
   to {
     opacity: var(--line-opacity, 1);
     transform: translateY(0);
@@ -307,9 +493,11 @@ ruby rt {
     box-shadow: inset 3px 0 0 rgba(29, 185, 84, 0);
     background-color: transparent;
   }
+
   40% {
     box-shadow: inset 3px 0 0 rgba(29, 185, 84, 0.8);
   }
+
   100% {
     box-shadow: inset 3px 0 0 rgba(29, 185, 84, 0.3);
   }
@@ -321,10 +509,21 @@ ruby rt {
 
 /* Word chip stamp pop */
 @keyframes word-stamp {
-  0%   { transform: scale(1); }
-  40%  { transform: scale(1.22); }
-  70%  { transform: scale(0.95); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(1);
+  }
+
+  40% {
+    transform: scale(1.22);
+  }
+
+  70% {
+    transform: scale(0.95);
+  }
+
+  100% {
+    transform: scale(1);
+  }
 }
 
 .animate-word-stamp {
@@ -337,6 +536,7 @@ ruby rt {
     opacity: 0;
     transform: translateX(-8px);
   }
+
   to {
     opacity: 1;
     transform: translateX(0);
@@ -349,8 +549,15 @@ ruby rt {
 
 /* Active line left-bar indicator grow */
 @keyframes bar-grow {
-  from { transform: scaleY(0); opacity: 0; }
-  to   { transform: scaleY(1); opacity: 1; }
+  from {
+    transform: scaleY(0);
+    opacity: 0;
+  }
+
+  to {
+    transform: scaleY(1);
+    opacity: 1;
+  }
 }
 
 .animate-bar-grow {
@@ -360,10 +567,13 @@ ruby rt {
 
 /* Timestamp badge pulse on active line */
 @keyframes timestamp-pulse {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translateY(-50%) scale(1);
     opacity: 1;
   }
+
   50% {
     transform: translateY(-50%) scale(1.15);
     opacity: 0.8;
@@ -433,17 +643,20 @@ audio::-webkit-media-controls-panel {
 
 /* ── Skeleton loading shimmer ── */
 @keyframes skeleton-shimmer {
-  0%   { background-position: -200% 0; }
-  100% { background-position:  200% 0; }
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
 }
 
 .skeleton {
-  background: linear-gradient(
-    90deg,
-    rgba(255, 255, 255, 0.04) 25%,
-    rgba(255, 255, 255, 0.09) 50%,
-    rgba(255, 255, 255, 0.04) 75%
-  );
+  background: linear-gradient(90deg,
+      rgba(255, 255, 255, 0.04) 25%,
+      rgba(255, 255, 255, 0.09) 50%,
+      rgba(255, 255, 255, 0.04) 75%);
   background-size: 200% 100%;
   animation: skeleton-shimmer 1.6s ease-in-out infinite;
   border-radius: 4px;
@@ -451,12 +664,10 @@ audio::-webkit-media-controls-panel {
 
 /* Waveform gradient shimmer while WaveSurfer initializes */
 .skeleton-wave {
-  background: linear-gradient(
-    90deg,
-    rgba(255, 255, 255, 0.03) 25%,
-    rgba(255, 255, 255, 0.07) 50%,
-    rgba(255, 255, 255, 0.03) 75%
-  );
+  background: linear-gradient(90deg,
+      rgba(255, 255, 255, 0.03) 25%,
+      rgba(255, 255, 255, 0.07) 50%,
+      rgba(255, 255, 255, 0.03) 75%);
   background-size: 200% 100%;
   animation: skeleton-shimmer 2s ease-in-out infinite;
   border-radius: 8px;
@@ -641,43 +852,104 @@ audio::-webkit-media-controls-panel {
 /* ── Design System Utilities ── */
 
 /* Typography scale */
-.text-caption { font-size: var(--text-caption); line-height: 1.4; }
-.text-body-sm { font-size: var(--text-body-sm); line-height: 1.5; }
-.text-body { font-size: var(--text-body); line-height: 1.5; }
-.text-subtitle { font-size: var(--text-subtitle); line-height: 1.4; }
-.text-title { font-size: var(--text-title); line-height: 1.3; }
-.text-display { font-size: var(--text-display); line-height: 1.2; }
-.text-display-lg { font-size: var(--text-display-lg); line-height: 1.1; }
+.text-caption {
+  font-size: var(--text-caption);
+  line-height: 1.4;
+}
+
+.text-body-sm {
+  font-size: var(--text-body-sm);
+  line-height: 1.5;
+}
+
+.text-body {
+  font-size: var(--text-body);
+  line-height: 1.5;
+}
+
+.text-subtitle {
+  font-size: var(--text-subtitle);
+  line-height: 1.4;
+}
+
+.text-title {
+  font-size: var(--text-title);
+  line-height: 1.3;
+}
+
+.text-display {
+  font-size: var(--text-display);
+  line-height: 1.2;
+}
+
+.text-display-lg {
+  font-size: var(--text-display-lg);
+  line-height: 1.1;
+}
 
 /* Standardized focus ring — use on any custom interactive element */
 .focus-ring {
   outline: none;
 }
+
 .focus-ring:focus-visible {
   box-shadow: 0 0 0 2px rgba(29, 185, 84, 0.5);
   border-color: rgba(29, 185, 84, 0.5);
 }
 
 /* Transition presets */
-.transition-fast { transition-duration: var(--duration-fast); transition-timing-function: var(--ease-default); }
-.transition-normal { transition-duration: var(--duration-normal); transition-timing-function: var(--ease-default); }
-.transition-slow { transition-duration: var(--duration-slow); transition-timing-function: var(--ease-default); }
+.transition-fast {
+  transition-duration: var(--duration-fast);
+  transition-timing-function: var(--ease-default);
+}
+
+.transition-normal {
+  transition-duration: var(--duration-normal);
+  transition-timing-function: var(--ease-default);
+}
+
+.transition-slow {
+  transition-duration: var(--duration-slow);
+  transition-timing-function: var(--ease-default);
+}
 
 /* Shadow utilities */
-.shadow-card { box-shadow: var(--shadow-card); }
-.shadow-elevated { box-shadow: var(--shadow-elevated); }
+.shadow-card {
+  box-shadow: var(--shadow-card);
+}
+
+.shadow-elevated {
+  box-shadow: var(--shadow-elevated);
+}
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground select-none;
   }
+
   html {
     @apply font-sans;
   }
-  input, textarea, [contenteditable] {
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  .text-title,
+  .text-display,
+  .text-display-lg {
+    font-family: var(--font-heading);
+  }
+
+  input,
+  textarea,
+  [contenteditable] {
     @apply select-text;
   }
 }

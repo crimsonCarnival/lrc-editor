@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { AlertTriangle, Home } from 'lucide-react';
 import { Button } from '@ui/button';
 
-export default function SharedProjectError({ status, projectId }) {
+export default function SharedProjectError({ status }) {
   const { t } = useTranslation();
 
   const isNotFound = status === 404;

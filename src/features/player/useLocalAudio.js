@@ -102,6 +102,7 @@ export default function useLocalAudio({
         updateTime(initialSeek);
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [audioRef, updateDuration, settings.playback.muted, settings.playback.volume, initialSpeed]);
 
   const autoRewind = settings.playback.autoRewindOnPause;

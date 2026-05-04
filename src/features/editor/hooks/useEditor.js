@@ -116,7 +116,6 @@ export function useEditor({
 
           const { plainText, segments } = parseRubyMarkup(rawValue);
           const hasMarkup = segments.some(s => s.reading);
-          const textChanged = plainText !== (line.text || '');
 
           // If no markup and already has words that match the current text, skip
           if (!hasMarkup && line.words?.length) {

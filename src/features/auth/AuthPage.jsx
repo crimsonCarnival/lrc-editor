@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuthContext } from '@/contexts/useAuthContext';
 import { Button } from '@ui/button';
 import { Input } from '@ui/input';
 import { Label } from '@ui/label';
-import { Music2, Eye, EyeOff } from 'lucide-react';
+import { Music2, Eye, EyeOff, Lightbulb } from 'lucide-react';
 import { Spinner } from '@ui/skeleton';
 import RegistrationBlockedModal from './RegistrationBlockedModal';
 
@@ -22,6 +22,19 @@ export default function AuthPage() {
   const [fieldErrors, setFieldErrors] = useState({});
   const [showBlockedModal, setShowBlockedModal] = useState(false);
   const [blockedMessage, setBlockedMessage] = useState('');
+
+  const [randomTipSeed, setRandomTipSeed] = useState(0);
+  useEffect(() => {
+    setRandomTipSeed(Math.floor(Math.random() * 1000));
+  }, []);
+
+  const getRandStr = useCallback((key, seedVal, options = {}) => {
+    const arr = t(key, { returnObjects: true, ...options });
+    if (Array.isArray(arr) && arr.length > 0) {
+      return arr[seedVal % arr.length];
+    }
+    return t(key, options);
+  }, [t]);
 
   // Login fields
   const [identifier, setIdentifier] = useState('');
@@ -280,6 +293,14 @@ export default function AuthPage() {
                 </p>
               </form>
             )}
+          </div>
+        </div>
+        
+        {/* Tips Section */}
+        <div className="mt-8 py-4 shrink-0">
+          <div className="flex items-center justify-center gap-2 text-sm text-zinc-500 animate-fade-in w-full text-center" style={{ animationDelay: '300ms' }}>
+            <Lightbulb className="w-4 h-4 text-amber-400/80 shrink-0" />
+            <p>{getRandStr('home.tips', randomTipSeed)}</p>
           </div>
         </div>
       </div>

@@ -63,27 +63,22 @@ export default function PreviewLine({
         opacity: parallaxOpacity,
         animationDelay: staggerDelay,
       }}
-      className={`group px-2 sm:px-4 py-1 sm:py-2 rounded-lg transition-all duration-500 ease-out flex select-none relative overflow-hidden animate-preview-line-in ${
-        hasMedia ? 'cursor-pointer' : 'cursor-default'
-      } ${
-        translationLayout === 'side-by-side' && line.translation && showTranslationsInPreview
+      className={`group px-2 sm:px-4 py-1 sm:py-2 rounded-lg transition-all duration-100 ease-out flex select-none relative overflow-hidden animate-preview-line-in ${hasMedia ? 'cursor-pointer' : 'cursor-default'
+        } ${translationLayout === 'side-by-side' && line.translation && showTranslationsInPreview
           ? 'flex-row items-center gap-3 sm:gap-6'
           : 'flex-col'
-      } ${
-        settings.interface?.previewAlignment === 'right' ? 'items-end text-right' :
-        settings.interface?.previewAlignment === 'center' ? 'items-center text-center' :
-        'items-start text-left'
-      } ${isActive
-        ? `${settings.editor?.display?.activeHighlight === 'zoom' ? 'scale-y-105' : ''} origin-center bg-zinc-800/10 ${activeMargin[spacingOption] || 'my-1 sm:my-2'}`
-        : hasMedia ? 'hover:bg-zinc-800/30' : ''
-      }`}
+        } ${settings.interface?.previewAlignment === 'right' ? 'items-end text-right' :
+          settings.interface?.previewAlignment === 'center' ? 'items-center text-center' :
+            'items-start text-left'
+        } ${isActive
+          ? `${settings.editor?.display?.activeHighlight === 'zoom' ? 'scale-y-105' : ''} origin-center bg-zinc-800/10 ${activeMargin[spacingOption] || 'my-1 sm:my-2'}`
+          : hasMedia ? 'hover:bg-zinc-800/30' : ''
+        }`}
     >
       {line.timestamp != null && (
-        <div className={`absolute top-1/2 -translate-y-1/2 ${isLocked ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-opacity flex items-center justify-center pointer-events-none ${
-          isLocked ? 'text-amber-400' : 'text-primary'
-        } ${
-          settings.interface?.previewAlignment === 'right' ? 'right-0 translate-x-full pl-2' : 'left-0 -translate-x-full pr-2'
-        } ${isActive ? 'animate-timestamp-pulse' : ''}`}>
+        <div className={`absolute top-1/2 -translate-y-1/2 ${isLocked ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-opacity flex items-center justify-center pointer-events-none ${isLocked ? 'text-amber-400' : 'text-primary'
+          } ${settings.interface?.previewAlignment === 'right' ? 'right-0 translate-x-full pl-2' : 'left-0 -translate-x-full pr-2'
+          } ${isActive ? 'animate-timestamp-pulse' : ''}`}>
           {isLocked ? (
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
               <path d="M12 2C9.24 2 7 4.24 7 7v3H6a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2v-8a2 2 0 00-2-2h-1V7c0-2.76-2.24-5-5-5zm3 10H9v-2c0-1.66 1.34-3 3-3s3 1.34 3 3v2z" />
@@ -103,8 +98,8 @@ export default function PreviewLine({
             {/* Main Track (furigana renders as ruby on kanji) */}
             {renderMainTrack({
               line, isActive, isPast, hasWordTimestamps, playbackPosition,
-            activeFontSizes, inactiveFontSizes, sizeOption, spacingOption, settings, showFuriganaInPreview,
-            isPlaying, playbackSpeed
+              activeFontSizes, inactiveFontSizes, sizeOption, spacingOption, settings, showFuriganaInPreview,
+              isPlaying, playbackSpeed
             })}
             {/* Secondary/Romaji Track — below main */}
             {line.secondary && renderSecondaryTrack({
@@ -115,10 +110,10 @@ export default function PreviewLine({
           {/* Right column: translation */}
           <div className="flex-1 min-w-0 border-l border-zinc-700/40 pl-3 sm:pl-6">
             <p
-              className={`transition-all duration-300 w-full break-words overflow-wrap-anywhere hyphens-auto ${isActive
+              className={`transition-all duration-100 w-full break-words overflow-wrap-anywhere hyphens-auto ${isActive
                 ? `${activeFontSizes[sizeOption]} text-zinc-500 font-medium ${spacingOption === 'compact' ? 'my-0' : 'my-0.5 sm:my-1'}`
                 : `${inactiveFontSizes[sizeOption]} text-zinc-600`
-              }`}
+                }`}
             >
               {line.translation}
             </p>
@@ -142,10 +137,10 @@ export default function PreviewLine({
           {/* Translation Track — below secondary */}
           {(line.translation && showTranslationsInPreview) && (
             <p
-              className={`transition-all duration-300 w-full break-words overflow-wrap-anywhere hyphens-auto ${isActive
+              className={`transition-all duration-100 w-full break-words overflow-wrap-anywhere hyphens-auto ${isActive
                 ? `${activeFontSizes[sizeOption]} text-zinc-500 font-medium ${spacingOption === 'compact' ? 'my-0' : 'my-0.5 sm:my-1'}`
                 : `${inactiveFontSizes[sizeOption]} text-zinc-600`
-              }`}
+                }`}
             >
               {line.translation}
             </p>
@@ -193,7 +188,6 @@ function renderMainTrack({ line, isActive, isPast, hasWordTimestamps, playbackPo
   // Furigana readings come from word.reading; gated by showFuriganaInPreview
   const hasReadings = showFuriganaInPreview && line.words?.some((w) => w.reading);
   const mainText = line.text || '♪';
-  const hasCJK = /[\u3000-\u9FFF\uF900-\uFAFF]/.test(mainText);
   const readingFmt = settings.editor?.display?.readingFormat || 'hiragana';
   const fmtReading = (r) => r ? (readingFmt === 'katakana' ? toKatakana(r) : toHiragana(r)) : r;
 
@@ -217,76 +211,68 @@ function renderMainTrack({ line, isActive, isPast, hasWordTimestamps, playbackPo
   const words = line.words || [];
 
   return (
-    <p className={`transition-all duration-500 ease-out w-full break-words overflow-wrap-anywhere hyphens-auto ${isActive ? activeClass : isPast ? pastClass : futureClass}`} style={{ lineHeight: hasReadings ? '2' : undefined, willChange: 'opacity, transform' }}>
+    <p className={`transition-all duration-100 ease-out w-full break-words overflow-wrap-anywhere hyphens-auto ${isActive ? activeClass : isPast ? pastClass : futureClass}`} style={{ lineHeight: hasReadings ? '2' : undefined, willChange: 'opacity, transform' }}>
       {effectiveHasWordTimestamps
         ? words.map((w, wi) => {
-            // Calculate effective start and end times for this word (interpolate if untimed)
-            let startTime = w.time;
-            let endTime = null;
+          // Calculate effective start and end times for this word (interpolate if untimed)
+          let startTime = w.time;
+          let endTime = null;
 
-            if (startTime == null) {
-              // Untimed word: find surrounding timed anchors
-              let prevT = line.timestamp ?? 0;
-              let untimedCountBefore = 0;
-              for (let j = wi - 1; j >= 0; j--) {
-                if (words[j].time != null) { prevT = words[j].time; break; }
-                untimedCountBefore++;
-              }
-              let nextT = lastWordFillEnd;
-              let untimedCountAfter = 0;
-              for (let j = wi + 1; j < words.length; j++) {
-                if (words[j].time != null) { nextT = words[j].time; break; }
-                untimedCountAfter++;
-              }
-              const totalGapWords = untimedCountBefore + untimedCountAfter + 1;
-              const gapDur = Math.max(0.1, (nextT ?? (prevT + 1)) - prevT);
-              const slice = gapDur / (totalGapWords + 1);
-              startTime = prevT + (slice * (untimedCountBefore + 1));
-              endTime = prevT + (slice * (untimedCountBefore + 2));
-            } else {
-              // Timed word: ends when next timed word starts
-              endTime = words.slice(wi + 1).find((w2) => w2.time != null)?.time ?? lastWordFillEnd;
+          if (startTime == null) {
+            // Untimed word: find surrounding timed anchors
+            let prevT = line.timestamp ?? 0;
+            let untimedCountBefore = 0;
+            for (let j = wi - 1; j >= 0; j--) {
+              if (words[j].time != null) { prevT = words[j].time; break; }
+              untimedCountBefore++;
             }
-
-            let fillPct = 0;
-            if (startTime <= playbackPosition) {
-              fillPct = endTime != null && endTime > playbackPosition
-                ? Math.min(100, ((playbackPosition - startTime) / (endTime - startTime)) * 100)
-                : 100;
+            let nextT = lastWordFillEnd;
+            let untimedCountAfter = 0;
+            for (let j = wi + 1; j < words.length; j++) {
+              if (words[j].time != null) { nextT = words[j].time; break; }
+              untimedCountAfter++;
             }
+            const totalGapWords = untimedCountBefore + untimedCountAfter + 1;
+            const gapDur = Math.max(0.1, (nextT ?? (prevT + 1)) - prevT);
+            const slice = gapDur / (totalGapWords + 1);
+            startTime = prevT + (slice * (untimedCountBefore + 1));
+            endTime = prevT + (slice * (untimedCountBefore + 2));
+          } else {
+            // Timed word: ends when next timed word starts
+            endTime = words.slice(wi + 1).find((w2) => w2.time != null)?.time ?? lastWordFillEnd;
+          }
+          const nextWord = words[wi + 1];
+          const addSpace = needsSpaceAfter(w.word, nextWord?.word);
 
-            const nextWord = words[wi + 1];
-            const addSpace = needsSpaceAfter(w.word, nextWord?.word);
+          const wordContent = w.reading && isKanjiWord(w.word) && showFuriganaInPreview
+            ? <ruby>{w.word}<rp>(</rp><rt style={{ paddingBottom: '2px' }}>{fmtReading(w.reading)}</rt><rp>)</rp></ruby>
+            : w.word;
 
-            const wordContent = w.reading && isKanjiWord(w.word) && showFuriganaInPreview
-              ? <ruby>{w.word}<rp>(</rp><rt style={{ paddingBottom: '2px' }}>{fmtReading(w.reading)}</rt><rp>)</rp></ruby>
-              : w.word;
-
-            return (
-              <React.Fragment key={wi}>
-                <span className="relative inline-block">
-                  <span className={isActive ? 'text-zinc-500 transition-colors duration-300' : ''}>{wordContent}</span>
-                  {isActive && (
-                    <span
-                      className="absolute left-0 top-0 h-full overflow-hidden text-primary whitespace-nowrap karaoke-fill-glow karaoke-fill-mask"
-                      style={{ 
-                        animationName: 'karaoke-fill-anim',
-                        animationDuration: `${(endTime - startTime) / playbackSpeed}s`,
-                        animationTimingFunction: fillEasing,
-                        animationFillMode: 'both',
-                        animationDelay: `${(startTime - playbackPosition) / playbackSpeed}s`,
-                        animationPlayState: isPlaying ? 'running' : 'paused',
-                        willChange: 'width'
-                      }}
-                    >
-                      {wordContent}
-                    </span>
-                  )}
-                </span>
-                {addSpace ? ' ' : null}
-              </React.Fragment>
-            );
-          })
+          return (
+            <React.Fragment key={wi}>
+              <span className="relative inline-block">
+                <span className={isActive ? 'text-zinc-500 transition-colors duration-100' : ''}>{wordContent}</span>
+                {isActive && (
+                  <span
+                    className="absolute left-0 top-0 h-full overflow-hidden text-primary whitespace-nowrap karaoke-fill-glow karaoke-fill-mask"
+                    style={{
+                      animationName: 'karaoke-fill-anim',
+                      animationDuration: `${(endTime - startTime) / playbackSpeed}s`,
+                      animationTimingFunction: fillEasing,
+                      animationFillMode: 'both',
+                      animationDelay: `${(startTime - playbackPosition) / playbackSpeed}s`,
+                      animationPlayState: isPlaying ? 'running' : 'paused',
+                      willChange: 'width'
+                    }}
+                  >
+                    {wordContent}
+                  </span>
+                )}
+              </span>
+              {addSpace ? ' ' : null}
+            </React.Fragment>
+          );
+        })
         // No word timestamps: just render text with furigana if available, no fill
         : hasReadings ? renderLineWithReadings(line, fmtReading, showFuriganaInPreview) : mainText
       }
@@ -301,11 +287,10 @@ function renderSecondaryTrack({ line, isActive, playbackPosition, activeSecondar
   const doFill = isActive && hasSecondaryStamps && (fillTrack === 'secondary' || fillTrack === 'both');
   // secondary stays dim (inactive style) when fillTrack is 'main' — no active styling applied
   const treatAsActive = isActive && fillTrack !== 'main';
-  const baseClass = `transition-all duration-300 w-full break-words overflow-wrap-anywhere hyphens-auto ${
-    treatAsActive
-      ? `${activeSecondarySizes[sizeOption]} text-zinc-400 font-medium`
-      : `${inactiveSecondarySizes[sizeOption]} text-zinc-600`
-  }`;
+  const baseClass = `transition-all duration-100 w-full break-words overflow-wrap-anywhere hyphens-auto ${treatAsActive
+    ? `${activeSecondarySizes[sizeOption]} text-zinc-400 font-medium`
+    : `${inactiveSecondarySizes[sizeOption]} text-zinc-600`
+    }`;
 
   if (!doFill) {
     return <p className={baseClass}>{renderParsedSecondary(line.secondary)}</p>;
@@ -354,22 +339,14 @@ function renderSecondaryTrack({ line, isActive, playbackPosition, activeSecondar
           // Timed word: ends when next timed word starts
           endTime = line.secondaryWords.slice(wi + 1).find((w2) => w2.time != null)?.time ?? lastSecWordFillEnd;
         }
-
-        let fillPct = 0;
-        if (startTime <= playbackPosition) {
-          fillPct = endTime != null && endTime > playbackPosition
-            ? Math.min(100, ((playbackPosition - startTime) / (endTime - startTime)) * 100)
-            : 100;
-        }
-
         const addSpace = wi < line.secondaryWords.length - 1;
         return (
           <React.Fragment key={wi}>
             <span className="relative inline-block">
-              <span className="text-zinc-600 transition-colors duration-300">{w.word}</span>
+              <span className="text-zinc-600 transition-colors duration-100">{w.word}</span>
               <span
                 className="absolute left-0 top-0 h-full overflow-hidden text-zinc-200 whitespace-nowrap karaoke-fill-mask"
-                style={{ 
+                style={{
                   animationName: 'karaoke-fill-anim',
                   animationDuration: `${(endTime - startTime) / playbackSpeed}s`,
                   animationTimingFunction: fillEasing,
@@ -409,19 +386,6 @@ function isKanjiWord(word) {
   return KANJI_RE.test(word);
 }
 
-// ——— Render a single word with optional ruby (only on kanji) and fill color ———
-function renderWordUnit(w, filled, fmtReading, showFurigana = true) {
-  const textCls = `transition-colors duration-75 ${filled ? 'text-primary' : 'text-zinc-500'}`;
-  const rtCls = `transition-colors duration-75 ${filled ? '!text-primary' : '!text-zinc-600'}`;
-  if (w.reading && isKanjiWord(w.word) && showFurigana) {
-    return (
-      <ruby className={textCls}>
-        {w.word}<rp>(</rp><rt className={rtCls} style={{ paddingBottom: '2px' }}>{fmtReading(w.reading)}</rt><rp>)</rp>
-      </ruby>
-    );
-  }
-  return <span className={textCls}>{w.word}</span>;
-}
 
 // ——— Render line text with ruby annotations from word.reading (only on kanji) ———
 function renderLineWithReadings(line, fmtReading, showFurigana = true) {

@@ -254,7 +254,10 @@ export default {
     "themes": {
       "dark": "Oscuro",
       "light": "Claro",
-      "system": "Sistema"
+      "system": "Sistema",
+      "dracula": "Drácula",
+      "alucard": "Alucard",
+      "alucardlight": "Alucard Claro"
     },
     "highlights": {
       "glow": "Resplandor",

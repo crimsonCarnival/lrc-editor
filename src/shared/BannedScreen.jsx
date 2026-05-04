@@ -30,6 +30,7 @@ function Countdown({ targetDate }) {
       return parts.join(' ');
     };
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setTimeLeft(calculateTimeLeft());
     const timer = setInterval(() => {
       setTimeLeft(calculateTimeLeft());
@@ -66,7 +67,7 @@ export default function BannedScreen() {
       await auth.submitAppeal(appealText);
       setLocalSubmitted(true);
       toast.success(t('admin.toast.appealSuccess'));
-    } catch (err) {
+    } catch { /* ignore */
       toast.error(t('admin.toast.appealError'));
     } finally {
       setLoading(false);

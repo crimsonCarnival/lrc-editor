@@ -17,16 +17,20 @@ import { useAuthContext } from './contexts/useAuthContext.js'
 import { Spinner } from '@ui/skeleton'
 
 
+// eslint-disable-next-line react-refresh/only-export-components
 const AuthPage = lazy(() => import('@features/auth/AuthPage.jsx'));
+// eslint-disable-next-line react-refresh/only-export-components
 const SharedProjectViewer = lazy(() => import('@shared/SharedProjectViewer.jsx'));
 
 // Wrapper for SharedProjectViewer to get the id param
+// eslint-disable-next-line react-refresh/only-export-components
 function SharedProjectRoute() {
   const { id } = useParams();
   return <SharedProjectViewer projectId={id} />;
 }
 
 // Protected Route Wrapper
+// eslint-disable-next-line react-refresh/only-export-components
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuthContext();
   const location = useLocation();
@@ -46,6 +50,7 @@ function ProtectedRoute({ children }) {
   return children;
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 function RootRoutes() {
   const { user, loading } = useAuthContext();
 
@@ -74,9 +79,7 @@ function RootRoutes() {
         {/* Protected app routes - App handles nested routing inside itself */}
         <Route path="/*" element={
           <ProtectedRoute>
-            <TooltipProvider>
-              <App />
-            </TooltipProvider>
+            <App />
           </ProtectedRoute>
         } />
       </Routes>
