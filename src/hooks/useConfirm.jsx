@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useSettings } from '../contexts/useSettings';
-import ConfirmModal from '../components/shared/ConfirmModal';
+import ConfirmModal from '@shared/ConfirmModal';
 
 /**
  * Hook that provides a consistent confirm-before-destructive-action pattern.

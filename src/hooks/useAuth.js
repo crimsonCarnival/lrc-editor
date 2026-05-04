@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { auth, spotify as spotifyApi, setAccessToken, clearAccessToken } from '../api';
+import { auth, spotify as spotifyApi, setAccessToken, clearAccessToken } from '@/api';
 
 const ACCESS_TOKEN_KEY = 'lrc-syncer-access-token';
 const REFRESH_TOKEN_KEY = 'lrc-syncer-refresh-token';

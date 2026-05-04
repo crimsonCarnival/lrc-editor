@@ -1,42 +1,42 @@
 import { lazy, Suspense, useEffect, useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Routes, Route, Navigate, useNavigate, useLocation, useParams } from 'react-router-dom';
-import Player from './components/Player';
+import Player from '@features/player/Player';
 import { SettingsProvider } from './contexts/SettingsContext';
-import { SkeletonList, SkeletonEditor, SkeletonPreview, SkeletonSetup, SkeletonPlayer } from './components/ui/skeleton';
+import { SkeletonList, SkeletonEditor, SkeletonPreview, SkeletonSetup, SkeletonPlayer } from '@ui/skeleton';
 
-const Editor = lazy(() => import('./components/Editor'));
-const Preview = lazy(() => import('./components/Preview'));
-const Library = lazy(() => import('./components/Library/Library'));
-const UploadsLibrary = lazy(() => import('./components/Library/UploadsLibrary'));
-const UploadDetailView = lazy(() => import('./components/Library/UploadDetailView'));
-const SetupScreen = lazy(() => import('./components/Setup/SetupScreen'));
-const Home = lazy(() => import('./components/Home/Home'));
-const AdminDashboard = lazy(() => import('./components/Admin/AdminDashboard'));
-import ProjectSetupModal from './components/Setup/ProjectSetupModal';
-import BannedScreen from './components/shared/BannedScreen';
-import UnbanNotificationModal from './components/Auth/UnbanNotificationModal';
+const Editor = lazy(() => import('@features/editor/components/Editor'));
+const Preview = lazy(() => import('@features/preview/Preview'));
+const Library = lazy(() => import('@features/projects/Library'));
+const UploadsLibrary = lazy(() => import('@features/projects/UploadsLibrary'));
+const UploadDetailView = lazy(() => import('@features/projects/UploadDetailView'));
+const SetupScreen = lazy(() => import('@features/editor/components/SetupScreen'));
+const Home = lazy(() => import('@features/projects/Home'));
+const AdminDashboard = lazy(() => import('@features/admin/AdminDashboard'));
+import ProjectSetupModal from '@features/editor/components/ProjectSetupModal';
+import BannedScreen from '@shared/BannedScreen';
+import UnbanNotificationModal from '@features/auth/UnbanNotificationModal';
 import toast from 'react-hot-toast';
 import { useAppState } from './hooks/useAppState';
 import { useSettings } from './contexts/useSettings';
 import { useAuthContext } from './contexts/useAuthContext';
 import { matchKey } from './utils/keyboard';
-import { Kbd } from './components/shared/Kbd';
-import { Button } from './components/ui/button';
-import { Input } from './components/ui/input';
+import { Kbd } from '@shared/Kbd';
+import { Button } from '@ui/button';
+import { Input } from '@ui/input';
 import {
   Popover,
   PopoverContent,
   PopoverItem,
   PopoverTrigger,
-} from './components/ui/popover';
-import { Tip } from './components/ui/tip';
+} from '@ui/popover';
+import { Tip } from '@ui/tip';
 import { Music2, UploadCloud, Globe, Settings as SettingsIcon, Eye, EyeOff, Lock, LockOpen, LayoutList, User, LogOut, BookOpen, Pencil, Share2, Loader2, Sun, Moon, Monitor, AlertCircle, ShieldAlert } from 'lucide-react';
 import { useScrollLock } from './hooks/useScrollLock';
 import { useNetworkStatus } from './hooks/useNetworkStatus';
 
-const Settings = lazy(() => import('./components/Settings'));
-const KeyboardHelp = lazy(() => import('./components/shared/KeyboardHelp'));
+const Settings = lazy(() => import('@features/settings/SettingsModal'));
+const KeyboardHelp = lazy(() => import('@shared/KeyboardHelp'));
 
 function EditorContainer({ loadProject, activeProjectId, children }) {
   const { id } = useParams();

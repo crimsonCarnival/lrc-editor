@@ -5,7 +5,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useSettings } from '../contexts/useSettings';
 import useHistory from './useHistory';
 import useConfirm from './useConfirm';
-import { lyrics, projects, uploads, getAccessToken } from '../api';
+import { lyrics, projects, uploads, getAccessToken } from '@/api';
 import { matchKey } from '../utils/keyboard';
 
 const MAX_IMPORT_FILE_SIZE = 5 * 1024 * 1024; // 5 MB

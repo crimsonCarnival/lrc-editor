@@ -3,21 +3,22 @@ import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom';
 
 // Auto-reload when a new deployment invalidates lazy-loaded chunks
-window.addEventListener('vite:preloadError', () => {
-  window.location.reload();
-});
+// window.addEventListener('vite:preloadError', () => {
+  // window.location.reload();
+// });
 import { Toaster } from 'react-hot-toast'
-import { TooltipProvider } from '@/components/ui/tooltip'
-import './index.css'
+import { TooltipProvider } from '@ui/tooltip'
+import './index.css';
+import './i18n.js';
 import App from './App.jsx'
-import ErrorBoundary from './components/shared/ErrorBoundary.jsx'
+import ErrorBoundary from '@shared/ErrorBoundary.jsx'
 import { AuthProvider } from './contexts/AuthContext.jsx'
 import { useAuthContext } from './contexts/useAuthContext.js'
-import { Spinner } from './components/ui/skeleton'
-import './i18n.js'
+import { Spinner } from '@ui/skeleton'
 
-const AuthPage = lazy(() => import('./components/Auth/AuthPage.jsx'));
-const SharedProjectViewer = lazy(() => import('./components/shared/SharedProjectViewer.jsx'));
+
+const AuthPage = lazy(() => import('@features/auth/AuthPage.jsx'));
+const SharedProjectViewer = lazy(() => import('@shared/SharedProjectViewer.jsx'));
 
 // Wrapper for SharedProjectViewer to get the id param
 function SharedProjectRoute() {
