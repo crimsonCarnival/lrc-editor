@@ -27,6 +27,8 @@ export default function PreviewLine({
   activeMargin,
   distanceFromActive,
   hasMedia,
+  isPlaying,
+  playbackSpeed = 1,
 }) {
   const { t } = useTranslation();
   const { settings } = useSettings();
@@ -101,11 +103,13 @@ export default function PreviewLine({
             {/* Main Track (furigana renders as ruby on kanji) */}
             {renderMainTrack({
               line, isActive, isPast, hasWordTimestamps, playbackPosition,
-            activeFontSizes, inactiveFontSizes, sizeOption, spacingOption, settings, showFuriganaInPreview
+            activeFontSizes, inactiveFontSizes, sizeOption, spacingOption, settings, showFuriganaInPreview,
+            isPlaying, playbackSpeed
             })}
             {/* Secondary/Romaji Track — below main */}
             {line.secondary && renderSecondaryTrack({
               line, isActive, playbackPosition, activeSecondarySizes, inactiveSecondarySizes, sizeOption, settings,
+              isPlaying, playbackSpeed
             })}
           </div>
           {/* Right column: translation */}
@@ -125,12 +129,14 @@ export default function PreviewLine({
           {/* Main Track (furigana renders as ruby on kanji) */}
           {renderMainTrack({
             line, isActive, isPast, hasWordTimestamps, playbackPosition,
-            activeFontSizes, inactiveFontSizes, sizeOption, spacingOption, settings, showFuriganaInPreview
+            activeFontSizes, inactiveFontSizes, sizeOption, spacingOption, settings, showFuriganaInPreview,
+            isPlaying, playbackSpeed
           })}
 
           {/* Secondary/Romaji Track — below main */}
           {line.secondary && renderSecondaryTrack({
             line, isActive, playbackPosition, activeSecondarySizes, inactiveSecondarySizes, sizeOption, settings,
+            isPlaying, playbackSpeed
           })}
 
           {/* Translation Track — below secondary */}
@@ -173,7 +179,7 @@ function needsSpaceAfter(currentWord, nextWord) {
 
 // ——— Render main text track with karaoke fill ———
 // Fill effect is ONLY applied when word-level timestamps exist.
-function renderMainTrack({ line, isActive, isPast, hasWordTimestamps, playbackPosition, activeFontSizes, inactiveFontSizes, sizeOption, spacingOption, settings, showFuriganaInPreview = true }) {
+function renderMainTrack({ line, isActive, isPast, hasWordTimestamps, playbackPosition, activeFontSizes, inactiveFontSizes, sizeOption, spacingOption, settings, showFuriganaInPreview = true, isPlaying, playbackSpeed }) {
   const fillTrack = settings.editor?.display?.karaokeFillTrack ?? 'main';
   const skipMainFill = isActive && fillTrack === 'secondary';
   const effectiveHasWordTimestamps = hasWordTimestamps && !skipMainFill;
@@ -207,44 +213,70 @@ function renderMainTrack({ line, isActive, isPast, hasWordTimestamps, playbackPo
     }
   }
 
+  const words = line.words || [];
+
   return (
     <p className={`transition-all duration-500 ease-out w-full break-words overflow-wrap-anywhere hyphens-auto ${isActive ? activeClass : isPast ? pastClass : futureClass}`} style={{ lineHeight: hasReadings ? '2' : undefined, willChange: 'opacity, transform' }}>
       {effectiveHasWordTimestamps
-        ? line.words.map((w, wi) => {
-            const nextT = line.words.slice(wi + 1).find((w2) => w2.time != null)?.time;
-            const effectiveNextT = nextT ?? lastWordFillEnd;
+        ? words.map((w, wi) => {
+            // Calculate effective start and end times for this word (interpolate if untimed)
+            let startTime = w.time;
+            let endTime = null;
+
+            if (startTime == null) {
+              // Untimed word: find surrounding timed anchors
+              let prevT = line.timestamp ?? 0;
+              let untimedCountBefore = 0;
+              for (let j = wi - 1; j >= 0; j--) {
+                if (words[j].time != null) { prevT = words[j].time; break; }
+                untimedCountBefore++;
+              }
+              let nextT = lastWordFillEnd;
+              let untimedCountAfter = 0;
+              for (let j = wi + 1; j < words.length; j++) {
+                if (words[j].time != null) { nextT = words[j].time; break; }
+                untimedCountAfter++;
+              }
+              const totalGapWords = untimedCountBefore + untimedCountAfter + 1;
+              const gapDur = Math.max(0.1, (nextT ?? (prevT + 1)) - prevT);
+              const slice = gapDur / (totalGapWords + 1);
+              startTime = prevT + (slice * (untimedCountBefore + 1));
+              endTime = prevT + (slice * (untimedCountBefore + 2));
+            } else {
+              // Timed word: ends when next timed word starts
+              endTime = words.slice(wi + 1).find((w2) => w2.time != null)?.time ?? lastWordFillEnd;
+            }
+
             let fillPct = 0;
-            if (w.time != null && w.time <= playbackPosition) {
-              fillPct = effectiveNextT != null && effectiveNextT > playbackPosition
-                ? Math.min(100, ((playbackPosition - w.time) / (effectiveNextT - w.time)) * 100)
+            if (startTime <= playbackPosition) {
+              fillPct = endTime != null && endTime > playbackPosition
+                ? Math.min(100, ((playbackPosition - startTime) / (endTime - startTime)) * 100)
                 : 100;
             }
-            const nextWord = line.words[wi + 1];
+
+            const nextWord = words[wi + 1];
             const addSpace = needsSpaceAfter(w.word, nextWord?.word);
 
-            // CJK / furigana: use character-level fill (no overlay glitches)
-            if (isActive && (hasReadings || hasCJK)) {
-              const filled = fillPct >= 50;
-              return (
-                <React.Fragment key={wi}>
-                  {renderWordUnit(w, filled, fmtReading, showFuriganaInPreview)}
-                  {addSpace ? ' ' : null}
-                </React.Fragment>
-              );
-            }
-
-            // Latin text: use overlay technique for smooth sub-character fill
             const wordContent = w.reading && isKanjiWord(w.word) && showFuriganaInPreview
               ? <ruby>{w.word}<rp>(</rp><rt style={{ paddingBottom: '2px' }}>{fmtReading(w.reading)}</rt><rp>)</rp></ruby>
               : w.word;
+
             return (
               <React.Fragment key={wi}>
                 <span className="relative inline-block">
-                  <span className={isActive ? 'text-zinc-500' : ''}>{wordContent}</span>
+                  <span className={isActive ? 'text-zinc-500 transition-colors duration-300' : ''}>{wordContent}</span>
                   {isActive && (
                     <span
-                      className="absolute left-0 top-0 h-full overflow-hidden text-primary whitespace-nowrap"
-                      style={{ width: `${fillPct}%`, transition: 'width 80ms linear' }}
+                      className="absolute left-0 top-0 h-full overflow-hidden text-primary whitespace-nowrap karaoke-fill-glow karaoke-fill-mask"
+                      style={{ 
+                        animationName: 'karaoke-fill-anim',
+                        animationDuration: `${(endTime - startTime) / playbackSpeed}s`,
+                        animationTimingFunction: 'linear',
+                        animationFillMode: 'both',
+                        animationDelay: `${(startTime - playbackPosition) / playbackSpeed}s`,
+                        animationPlayState: isPlaying ? 'running' : 'paused',
+                        willChange: 'width'
+                      }}
                     >
                       {wordContent}
                     </span>
@@ -261,7 +293,7 @@ function renderMainTrack({ line, isActive, isPast, hasWordTimestamps, playbackPo
   );
 }
 
-function renderSecondaryTrack({ line, isActive, playbackPosition, activeSecondarySizes, inactiveSecondarySizes, sizeOption, settings }) {
+function renderSecondaryTrack({ line, isActive, playbackPosition, activeSecondarySizes, inactiveSecondarySizes, sizeOption, settings, isPlaying, playbackSpeed }) {
   const fillTrack = settings?.editor?.display?.karaokeFillTrack ?? 'main';
   const hasSecondaryStamps = line.secondaryWords?.some((w) => w.time != null);
   const doFill = isActive && hasSecondaryStamps && (fillTrack === 'secondary' || fillTrack === 'both');
@@ -293,22 +325,57 @@ function renderSecondaryTrack({ line, isActive, playbackPosition, activeSecondar
   return (
     <p className={baseClass}>
       {line.secondaryWords.map((w, wi) => {
-        const nextT = line.secondaryWords.slice(wi + 1).find((w2) => w2.time != null)?.time;
-        const effectiveNextT = nextT ?? lastSecWordFillEnd;
+        // Calculate effective start and end times for this word (interpolate if untimed)
+        let startTime = w.time;
+        let endTime = null;
+
+        if (startTime == null) {
+          // Untimed word: find surrounding timed anchors
+          let prevT = line.timestamp ?? 0;
+          let untimedCountBefore = 0;
+          for (let j = wi - 1; j >= 0; j--) {
+            if (line.secondaryWords[j].time != null) { prevT = line.secondaryWords[j].time; break; }
+            untimedCountBefore++;
+          }
+          let nextT = lastSecWordFillEnd;
+          let untimedCountAfter = 0;
+          for (let j = wi + 1; j < line.secondaryWords.length; j++) {
+            if (line.secondaryWords[j].time != null) { nextT = line.secondaryWords[j].time; break; }
+            untimedCountAfter++;
+          }
+          const totalGapWords = untimedCountBefore + untimedCountAfter + 1;
+          const gapDur = Math.max(0.1, (nextT ?? (prevT + 1)) - prevT);
+          const slice = gapDur / (totalGapWords + 1);
+          startTime = prevT + (slice * (untimedCountBefore + 1));
+          endTime = prevT + (slice * (untimedCountBefore + 2));
+        } else {
+          // Timed word: ends when next timed word starts
+          endTime = line.secondaryWords.slice(wi + 1).find((w2) => w2.time != null)?.time ?? lastSecWordFillEnd;
+        }
+
         let fillPct = 0;
-        if (w.time != null && w.time <= playbackPosition) {
-          fillPct = effectiveNextT != null && effectiveNextT > playbackPosition
-            ? Math.min(100, ((playbackPosition - w.time) / (effectiveNextT - w.time)) * 100)
+        if (startTime <= playbackPosition) {
+          fillPct = endTime != null && endTime > playbackPosition
+            ? Math.min(100, ((playbackPosition - startTime) / (endTime - startTime)) * 100)
             : 100;
         }
+
         const addSpace = wi < line.secondaryWords.length - 1;
         return (
           <React.Fragment key={wi}>
             <span className="relative inline-block">
-              <span className="text-zinc-600">{w.word}</span>
+              <span className="text-zinc-600 transition-colors duration-300">{w.word}</span>
               <span
-                className="absolute left-0 top-0 h-full overflow-hidden text-zinc-200 whitespace-nowrap"
-                style={{ width: `${fillPct}%`, transition: 'width 80ms linear' }}
+                className="absolute left-0 top-0 h-full overflow-hidden text-zinc-200 whitespace-nowrap karaoke-fill-mask"
+                style={{ 
+                  animationName: 'karaoke-fill-anim',
+                  animationDuration: `${(endTime - startTime) / playbackSpeed}s`,
+                  animationTimingFunction: 'linear',
+                  animationFillMode: 'both',
+                  animationDelay: `${(startTime - playbackPosition) / playbackSpeed}s`,
+                  animationPlayState: isPlaying ? 'running' : 'paused',
+                  willChange: 'width'
+                }}
               >
                 {w.word}
               </span>
