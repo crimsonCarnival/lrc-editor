@@ -11,6 +11,6 @@ export default {
   "unsavedChangesTitle": "Cambios sin guardar",
   "unsavedChangesMessage": "Tienes cambios sin guardar. ¿Qué deseas hacer antes de salir?",
   "discard": "Descartar",
-  "saveAndExit": "Guardar e ir a Inicio",
+  "saveAndExit": "Guardar",
   "cancel": "Cancelar"
 };
