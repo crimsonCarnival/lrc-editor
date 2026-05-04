@@ -629,10 +629,6 @@ export const admin = {
     const query = new URLSearchParams(params).toString();
     return request(`/admin/audit-logs?${query}`);
   },
-
-  async getLogs() {
-    return request('/admin/logs');
-  },
 };
 
 // ——— Unified Export ———
