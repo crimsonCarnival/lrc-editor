@@ -12,7 +12,9 @@ import {
   Plus, Check, SkipForward, Download,
 } from 'lucide-react';
 import SpotifyIcon from '../shared/SpotifyIcon';
+import { LRUCache } from '@crimson-carnival/ds-js';
 
+const searchCache = new LRUCache(30);
 const TABS = ['search', 'recent', 'top', 'saved', 'playlists', 'devices'];
 
 function TabButton({ active, onClick, icon: Icon, label }) {
@@ -174,11 +176,26 @@ export default function SpotifyBrowser({ onSelectTrack }) {
 
   const loadSearch = useCallback(async (query, newOffset = 0) => {
     if (!query?.trim()) { setTracks([]); setTotal(0); return; }
+    
+    const cacheKey = `${query.trim()}:${newOffset}`;
+    if (searchCache.has(cacheKey)) {
+      const cached = searchCache.get(cacheKey);
+      setTracks(cached.tracks);
+      setTotal(cached.total);
+      setOffset(newOffset);
+      return;
+    }
+
     setLoading(true);
     try {
       const data = await spotifyApi.search(query, { limit: 10, offset: newOffset });
-      setTracks(data.tracks || []);
-      setTotal(data.total || 0);
+      const newTracks = data.tracks || [];
+      const newTotal = data.total || 0;
+      
+      searchCache.put(cacheKey, { tracks: newTracks, total: newTotal });
+      
+      setTracks(newTracks);
+      setTotal(newTotal);
       setOffset(newOffset);
     } catch (err) { handleApiError(err); setTracks([]); }
     setLoading(false);
