@@ -16,6 +16,7 @@ export default function useLocalAudio({
   onMediaChange,
   onCloudinaryUpload,
   initialSpeed,
+  initialSeek,
 }) {
   const [localUrl, setLocalUrl] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -39,19 +40,36 @@ export default function useLocalAudio({
     onTitleChange?.(file.name.replace(/\.[^/.]+$/, ''));
     onMediaChange?.(true);
 
-    // Upload to Cloudinary in background if authenticated
-    if (getAccessToken() && file.size <= 50 * 1024 * 1024) {
+    // Upload to Cloudinary in background if authenticated and not already hosted there
+    if (!file.isCloudinary && getAccessToken() && file.size <= 50 * 1024 * 1024) {
       uploadAbortRef.current = false;
       setIsUploading(true);
       uploads.uploadToCloudinary(file)
-        .then((result) => {
+        .then(async (result) => {
           if (uploadAbortRef.current) return;
-          onCloudinaryUpload?.({
-            cloudinaryUrl: result.secure_url,
-            publicId: result.public_id,
-            fileName: file.name,
-            duration: result.duration,
-          });
+          try {
+            // Immediately persist to database before considering it successful
+            const { upload } = await uploads.saveMedia({
+              source: 'cloudinary',
+              cloudinaryUrl: result.secure_url,
+              publicId: result.public_id,
+              fileName: file.name,
+              title: file.name.replace(/\.[^/.]+$/, ''),
+              duration: result.duration || null,
+            });
+            if (uploadAbortRef.current) return;
+            onCloudinaryUpload?.({
+              id: upload.id,
+              cloudinaryUrl: result.secure_url,
+              publicId: result.public_id,
+              fileName: file.name,
+              duration: result.duration,
+            });
+          } catch (err) {
+            if (uploadAbortRef.current) return;
+            console.error('Failed to persist upload to database:', err);
+            toast.error(t('upload.persistFailed') || 'Failed to save media to database');
+          }
         })
         .catch((err) => {
           if (uploadAbortRef.current) return;
@@ -78,6 +96,10 @@ export default function useLocalAudio({
       const s = parseFloat(initialSpeed);
       if (isFinite(s) && s > 0 && s !== 1) {
         audioRef.current.playbackRate = s;
+      }
+      if (initialSeek > 0) {
+        audioRef.current.currentTime = initialSeek;
+        updateTime(initialSeek);
       }
     }
   }, [audioRef, updateDuration, settings.playback.muted, settings.playback.volume, initialSpeed]);
@@ -144,5 +166,16 @@ export default function useLocalAudio({
     seek,
     setSpeed,
     getCurrentTime,
+    loadFromUrl: useCallback((url, title) => {
+      // Abort any pending Cloudinary upload
+      uploadAbortRef.current = true;
+      // Set the URL directly — browser streams it without downloading the full blob
+      setSource('local');
+      setLocalUrl(url);
+      setIsPlaying(false);
+      setCurrentTime(0);
+      if (title) onTitleChange?.(title);
+      onMediaChange?.(true);
+    }, [setSource, setIsPlaying, setCurrentTime, onTitleChange, onMediaChange]),
   };
 }
