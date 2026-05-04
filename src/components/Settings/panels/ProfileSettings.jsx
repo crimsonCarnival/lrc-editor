@@ -24,14 +24,15 @@ export default function ProfileSettings({ searchTerm }) {
     if (!file) return;
 
     // Validate file type
-    if (!file.type.startsWith('image/')) {
-      toast.error(t('settings.profile.invalidImageType'));
+    const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      toast.error(t('settings.profile.invalidImageType') || 'Only JPG, PNG, GIF, and WEBP images are allowed.');
       return;
     }
 
     // Validate file size (5MB max)
     if (file.size > 5 * 1024 * 1024) {
-      toast.error(t('settings.profile.imageTooLarge'));
+      toast.error(t('settings.profile.imageTooLarge') || 'Image size must be less than 5MB.');
       return;
     }
 
@@ -144,7 +145,7 @@ export default function ProfileSettings({ searchTerm }) {
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/*"
+            accept="image/jpeg,image/png,image/gif,image/webp"
             onChange={handleAvatarUpload}
             className="hidden"
           />
