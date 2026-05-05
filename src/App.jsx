@@ -6,6 +6,7 @@ import { useSettings } from './contexts/useSettings';
 import { useScrollLock } from './hooks/useScrollLock';
 import { useNetworkStatus } from './hooks/useNetworkStatus';
 import { matchKey } from './utils/keyboard';
+import { useUrlParamsSync } from './hooks/useUrlParamsSync';
 import BannedScreen from '@shared/BannedScreen';
 
 import { AppProviders } from './app/AppProviders';
@@ -26,6 +27,7 @@ function AppInner() {
     setLines,
     setEditorMode,
     setSyncMode,
+    hasMedia,
   } = appState;
 
   useScrollLock(!!pendingProject);
@@ -39,12 +41,16 @@ function AppInner() {
   // Layout-specific state
   const rawFocusMode = settings.interface?.focusMode || 'default';
   const focusMode = ['default', 'sync', 'playback'].includes(rawFocusMode) ? rawFocusMode : 'default';
+  const layoutSwap = settings.interface?.layoutSwap || false;
+  const playerTop = settings.interface?.playerTop || false;
+  const editorWidth = settings.interface?.editorWidth ?? 50;
+  const lockLayout = settings.interface?.lockLayout || false;
+  const mobileTab = settings.interface?.mobileTab || 'editor';
+
   const [hideEditor, setHideEditor] = useState(false);
   const [unsavedModalTarget, setUnsavedModalTarget] = useState(null);
-  const [mobileTab, setMobileTab] = useState('editor');
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
-
 
   // Called by SetupScreen when user clicks Next with audio + lyrics
   const handleSetupComplete = useCallback(({ lines, editorMode }) => {
@@ -54,10 +60,23 @@ function AppInner() {
     navigate('/project/local');
   }, [setLines, setEditorMode, setSyncMode, navigate]);
 
-  const isReady = location.pathname.startsWith('/project/') && location.pathname !== '/project/new';
+  const isProjectPage = location.pathname.startsWith('/project/') && location.pathname !== '/project/new';
+  const isReady = isProjectPage;
 
   const setFocusMode = useCallback((mode) => {
     updateSetting('interface.focusMode', mode);
+  }, [updateSetting]);
+
+  const setLayoutSwap = useCallback((swap) => {
+    updateSetting('interface.layoutSwap', swap);
+  }, [updateSetting]);
+
+  const setPlayerTop = useCallback((top) => {
+    updateSetting('interface.playerTop', top);
+  }, [updateSetting]);
+
+  const setEditorWidth = useCallback((width) => {
+    updateSetting('interface.editorWidth', width);
   }, [updateSetting]);
 
   // Focus mode keyboard shortcuts
@@ -113,8 +132,6 @@ function AppInner() {
   const showEditor = focusMode !== 'playback' && !hideEditor;
   const showPreview = true;
 
-  if (user?.isBanned) return <BannedScreen />;
-
   const layoutState = {
     focusMode,
     setFocusMode,
@@ -123,12 +140,20 @@ function AppInner() {
     unsavedModalTarget,
     setUnsavedModalTarget,
     mobileTab,
-    setMobileTab,
+    setMobileTab: useCallback((tab) => updateSetting('interface.mobileTab', tab), [updateSetting]),
     isReady,
     editorColClass,
     previewColClass,
     showEditor,
-    showPreview
+    showPreview,
+    layoutSwap,
+    setLayoutSwap,
+    playerTop,
+    setPlayerTop,
+    editorWidth,
+    setEditorWidth,
+    lockLayout,
+    setLockLayout: useCallback((lock) => updateSetting('interface.lockLayout', lock), [updateSetting])
   };
 
   // Enhance appState with layout-driven state
@@ -140,6 +165,10 @@ function AppInner() {
     setPlaybackSpeed,
     handleSetupComplete,
   };
+
+  useUrlParamsSync(enhancedAppState, layoutState);
+
+  if (user?.isBanned) return <BannedScreen />;
 
   return (
     <AppLayout

@@ -140,8 +140,9 @@ export default {
     "karaokeFillEasingDesc": "Controls the smoothness of the karaoke progress fill",
     "fillEasingLinear": "Linear (Accurate)",
     "fillEasingEaseInOut": "Ease In/Out (Smooth)",
-    "readingFormat": "Reading Format",
-    "readingFormatDesc": "Select the preferred script for pronunciation aids"
+    "readingFormatDesc": "Select the preferred script for pronunciation aids",
+    "lockLayout": "Lock Workspace Layout",
+    "lockLayoutDesc": "Freeze panels and the player bar in place to prevent accidental reordering or resizing"
   },
 
   "shortcuts": {

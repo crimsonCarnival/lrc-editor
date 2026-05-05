@@ -26,7 +26,7 @@ export function AppLayout({ children, user, logout, appState, settingsState, lay
   } = appState;
 
   const { settings, updateSetting } = settingsState;
-  const { focusMode, setFocusMode, hideEditor, setHideEditor, mobileTab, setMobileTab, isReady, setUnsavedModalTarget } = layoutState;
+  const { focusMode, setFocusMode, hideEditor, setHideEditor, mobileTab, setMobileTab, isReady, setUnsavedModalTarget, playerTop, lockLayout } = layoutState;
 
   // Project naming modal state lives here — it bridges appState + layout
   const [showNamingModal, setShowNamingModal] = useState(false);
@@ -44,7 +44,7 @@ export function AppLayout({ children, user, logout, appState, settingsState, lay
   }, [mediaTitle, setMediaTitle, setProjectMetadata, navigate, activeProjectId, handleManualSave, location.pathname]);
 
   return (
-    <div className="min-h-screen lg:h-screen bg-zinc-950 relative overflow-x-hidden lg:overflow-y-hidden">
+    <div className="min-h-screen lg:h-screen bg-zinc-950 relative overflow-hidden flex flex-col">
       <AppBackground />
 
       {/* Drag overlay */}
@@ -81,8 +81,11 @@ export function AppLayout({ children, user, logout, appState, settingsState, lay
         i18n={i18n}
       />
 
-      <div className={`relative z-base max-w-7xl mx-auto w-full h-full px-4 sm:px-6 lg:px-8 lg:pb-4 flex flex-col ${location.pathname === '/' ? 'pt-20 sm:pt-20' : 'pt-32 lg:pt-20'} ${isReady ? 'max-lg:pb-[144px]' : ''}`}>
-        {children}
+      {/* Main Workspace Wrapper */}
+      <div className={`relative z-base flex-1 px-4 lg:px-6 flex flex-col transition-[padding] duration-500 ease-in-out ${location.pathname === '/' ? 'pt-16' : (playerTop && isReady) ? 'pt-[224px]' : 'pt-20 lg:pt-[88px]'} ${isReady ? (playerTop ? 'pb-6' : 'max-lg:pb-[210px] lg:pb-[160px]') : 'lg:pb-6'}`}>
+        <div className="max-w-[1600px] mx-auto w-full flex-1 flex flex-col min-h-0">
+          {children}
+        </div>
       </div>
 
       <AppPlayer
@@ -106,6 +109,8 @@ export function AppLayout({ children, user, logout, appState, settingsState, lay
         lines={lines}
         playbackPosition={playbackPosition}
         syncMode={syncMode}
+        playerTop={playerTop}
+        lockLayout={lockLayout}
       />
 
       <AppMobileNav

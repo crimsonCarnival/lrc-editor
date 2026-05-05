@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { Section, SettingRow, Toggle } from '../shared';
 import { useInterfaceSettings } from '../hooks/useInterfaceSettings';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@ui/select';
-import { Monitor, Moon, Sparkles, Globe, ScrollText, AlignCenter, AlignLeft, Type, Rows2, LayoutList, ChevronDown, Columns, BookOpen } from 'lucide-react';
+import { Monitor, Moon, Sparkles, Globe, ScrollText, AlignCenter, AlignLeft, Type, Rows2, LayoutList, ChevronDown, Columns, BookOpen, Lock } from 'lucide-react';
 
 export default function InterfaceSettings({ settings, updateSetting, searchTerm }) {
   const { t } = useTranslation();
@@ -216,6 +216,13 @@ export default function InterfaceSettings({ settings, updateSetting, searchTerm 
             <SelectItem value="katakana">{t('editor.readingFormat.katakana')}</SelectItem>
           </SelectContent>
         </Select>
+      </SettingRow>
+      <SettingRow icon={Lock} label={t('settings.interface.lockLayout')} description={t('settings.interface.lockLayoutDesc')}>
+        <Toggle
+          id="toggle-lock-layout"
+          checked={settings.interface?.lockLayout ?? false}
+          onChange={(v) => updateSetting('interface.lockLayout', v)}
+        />
       </SettingRow>
     </Section>
   );

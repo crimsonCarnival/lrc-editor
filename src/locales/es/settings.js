@@ -141,7 +141,9 @@ export default {
     "fillEasingLinear": "Lineal (Preciso)",
     "fillEasingEaseInOut": "Suave (Ease In/Out)",
     "readingFormat": "Formato de lectura",
-    "readingFormatDesc": "Selecciona el sistema de escritura para ayudas de pronunciación"
+    "readingFormatDesc": "Selecciona el sistema de escritura para ayudas de pronunciación",
+    "lockLayout": "Bloquear diseño",
+    "lockLayoutDesc": "Fija los paneles y el reproductor para evitar reordenamientos o cambios de tamaño accidentales"
   },
 
   "shortcuts": {

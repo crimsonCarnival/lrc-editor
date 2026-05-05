@@ -60,7 +60,12 @@ export const DEFAULT_SETTINGS = {
     fontSize: 'normal',
     spacing: 'normal',
     previewAlignment: 'left',
-    focusMode: 'default'
+    focusMode: 'default',
+    layoutSwap: false,
+    playerTop: false,
+    editorWidth: 50,
+    lockLayout: false,
+    mobileTab: 'editor'
   },
   shortcuts: {
     mark: ['Enter'],
