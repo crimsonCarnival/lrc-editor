@@ -280,7 +280,7 @@ export default function SetupScreen({ onComplete, playerRef, onShowAllUploads, o
   };
 
   return (
-    <div className="flex-1 flex flex-col px-4 py-4 sm:py-6 animate-fade-in">
+    <div className="flex-1 flex flex-col px-4 pt-0 pb-4 sm:pb-6 animate-fade-in">
       <div className="w-full max-w-3xl mx-auto flex flex-col">
         {/* Title */}
         <div className="text-center mb-6 sm:mb-8 pt-4">
@@ -405,7 +405,7 @@ export default function SetupScreen({ onComplete, playerRef, onShowAllUploads, o
                         </button>
                       ) : (
                         <button
-                          onClick={() => onOpenSettings?.()}
+                          onClick={() => onOpenSettings?.('profile')}
                           className="flex items-center gap-4 px-4 py-3.5 rounded-2xl border border-primary/20 bg-primary/5 hover:bg-primary/10 hover:border-primary/40 transition-all group text-left"
                         >
                           <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">

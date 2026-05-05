@@ -81,6 +81,14 @@ export const uploadsService = {
     return request('/uploads/avatar-signature', { method: 'POST' });
   },
 
+  async uploadAvatar(file) {
+    const result = await this.uploadImage(file, this.getAvatarSignature.bind(this));
+    return {
+      url: result.secure_url,
+      publicId: result.public_id,
+    };
+  },
+
   /**
    * Upload an image to Cloudinary (for avatars).
    * Returns { secure_url, public_id }.

@@ -44,7 +44,7 @@ export function AppLayout({ children, user, logout, appState, settingsState, lay
   }, [mediaTitle, setMediaTitle, setProjectMetadata, navigate, activeProjectId, handleManualSave, location.pathname]);
 
   return (
-    <div className="min-h-screen lg:h-screen bg-zinc-950 relative overflow-x-hidden lg:overflow-y-hidden flex flex-col">
+    <div className="min-h-screen lg:h-screen bg-zinc-950 relative overflow-x-hidden lg:overflow-y-hidden">
       <AppBackground />
 
       {/* Drag overlay */}
@@ -81,7 +81,7 @@ export function AppLayout({ children, user, logout, appState, settingsState, lay
         i18n={i18n}
       />
 
-      <div className={`relative z-base max-w-7xl mx-auto w-full flex-1 min-h-0 px-2 sm:px-4 lg:px-6 lg:pb-4 flex flex-col ${isReady ? 'max-lg:pb-[144px]' : ''}`}>
+      <div className={`relative z-base max-w-7xl mx-auto w-full h-full px-4 sm:px-6 lg:px-8 lg:pb-4 flex flex-col ${location.pathname === '/' ? 'pt-20 sm:pt-20' : 'pt-32 lg:pt-20'} ${isReady ? 'max-lg:pb-[144px]' : ''}`}>
         {children}
       </div>
 

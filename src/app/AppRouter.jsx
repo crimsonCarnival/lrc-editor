@@ -11,6 +11,7 @@ const UploadDetailView = lazy(() => import('@features/projects/UploadDetailView'
 const SetupScreen = lazy(() => import('@features/editor/components/SetupScreen'));
 const Home = lazy(() => import('@features/projects/Home'));
 const AdminDashboard = lazy(() => import('@features/admin/AdminDashboard'));
+const ProfilePage = lazy(() => import('@features/profile/ProfilePage'));
 
 function EditorContainer({ loadProject, activeProjectId, children }) {
   const { id } = useParams();
@@ -116,7 +117,7 @@ export function AppRouter({
               <div className={`${previewColClass} flex flex-col`}><SkeletonPreview /></div>
             </div>
           ) : (
-          <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-4">
+          <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-4 pt-0 px-4 pb-4">
               {showEditor && (
                 <div className={`${editorColClass} flex flex-col min-h-0 gap-4 ${mobileTab !== 'editor' ? 'max-lg:hidden' : ''}`}>
                   <Suspense fallback={<SkeletonEditor />}>
@@ -155,6 +156,11 @@ export function AppRouter({
       <Route path="home" element={
         <Suspense fallback={<div className="flex-1 flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin" /></div>}>
           <Home />
+        </Suspense>
+      } />
+      <Route path="profile" element={
+        <Suspense fallback={<div className="flex-1 flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>}>
+          <ProfilePage />
         </Suspense>
       } />
       <Route path="*" element={<Navigate to="/home" replace />} />

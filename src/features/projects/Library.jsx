@@ -60,7 +60,7 @@ export default function Library({ onOpenProject, onBack }) {
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full pt-0 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto w-full">
       {/* Header */}
       <div className="flex items-center gap-3 mb-5">
         <Button

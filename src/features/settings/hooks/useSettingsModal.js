@@ -14,6 +14,10 @@ export function useSettingsModal(isOpen, onClose, globalSettings, updateAllSetti
     setPrevIsOpen(isOpen);
     if (isOpen) {
       setSettings(globalSettings);
+      // If isOpen is a string (tab ID), switch to that tab
+      if (typeof isOpen === 'string') {
+        setActiveTab(isOpen);
+      }
     }
   }
 

@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Music2, UploadCloud, Settings as SettingsIcon, LogOut, BookOpen, Pencil,
-  ShieldAlert, Eye, EyeOff,
+  ShieldAlert, Eye, EyeOff, User,
 } from 'lucide-react';
 import { Button } from '@ui/button';
 import { Input } from '@ui/input';
@@ -36,10 +36,8 @@ export function AppHeader({
   const navigate = useNavigate();
   const location = useLocation();
   const [editingProjectName, setEditingProjectName] = useState(false);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const goHomeOrWarn = () => {
-    setIsMenuOpen(false);
     if (location.pathname.startsWith('/project/') && hasUnsavedChanges()) {
       setUnsavedModalTarget('/home');
     } else {
@@ -48,7 +46,6 @@ export function AppHeader({
   };
 
   const navTo = (path) => {
-    setIsMenuOpen(false);
     const inProject = location.pathname.startsWith('/project/');
     if (inProject && hasUnsavedChanges()) {
       setUnsavedModalTarget(path);
@@ -64,7 +61,7 @@ export function AppHeader({
   const NAV_IDLE = `bg-zinc-800/80 border-zinc-700/60 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700`;
 
   return (
-    <header className="relative z-sticky flex flex-row items-center justify-between gap-2 w-full px-4 sm:px-6 lg:px-8 py-3 sm:py-5 animate-fade-in">
+    <header className="fixed top-0 left-0 right-0 z-[100] flex flex-row items-center justify-between gap-2 w-full px-4 sm:px-6 lg:px-8 py-3 sm:py-5 animate-fade-in bg-transparent">
       {/* ── Logo + breadcrumb ── */}
       <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-shrink">
         <button
@@ -141,47 +138,48 @@ export function AppHeader({
 
         {/* Unified User Profile Menu */}
 
-        <Popover open={isMenuOpen} onOpenChange={setIsMenuOpen}>
-          <PopoverTrigger asChild>
-            <Button variant="outline" className="p-0 sm:p-0 h-8 w-8 sm:h-9 sm:w-9 rounded-full overflow-hidden bg-zinc-800/80 hover:bg-zinc-700 border-zinc-700/60 flex-shrink-0 transition-all focus:ring-2 focus:ring-primary/50">
-              {user?.avatarUrl
-                ? <img src={user.avatarUrl} alt={user?.username || user?.email} className="w-full h-full object-cover" />
-                : <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/50 to-accent-purple/50 text-white font-bold text-sm">
-                  {(user?.username || user?.email || '?').charAt(0).toUpperCase()}
-                </div>}
-            </Button>
+        <Popover>
+          <PopoverTrigger className="relative z-[110] h-8 w-8 sm:h-9 sm:w-9 rounded-full overflow-hidden bg-zinc-800/80 hover:bg-zinc-700 border-zinc-700/60 flex-shrink-0 transition-all focus:ring-2 focus:ring-primary/50 cursor-pointer outline-none">
+            {user?.avatarUrl
+              ? <img src={user.avatarUrl} alt={user?.username || user?.email} className="w-full h-full object-cover" />
+              : <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/50 to-accent-purple/50 text-white font-bold text-sm">
+                {(user?.username || user?.email || '?').charAt(0).toUpperCase()}
+              </div>}
           </PopoverTrigger>
-          <PopoverContent className="w-56 p-0" align="end">
+          <PopoverContent className="w-[calc(100vw-32px)] sm:w-64 p-0" align="end" sideOffset={8}>
             <div className="px-3 py-3 border-b border-zinc-800/60 flex flex-col">
               <span className="text-sm font-bold text-zinc-100 truncate">{user?.username || 'User'}</span>
               <span className="text-xs text-zinc-400 truncate">{user?.email || ''}</span>
             </div>
 
             <div className="p-1 border-b border-zinc-800/60">
-              <PopoverItem onClick={() => navTo('/library')} className="flex items-center gap-2 cursor-pointer font-medium text-sm py-2">
+              <PopoverItem onClick={() => { navigate('/profile'); }} className="flex items-center gap-2 cursor-pointer font-medium text-sm py-3 sm:py-2">
+                <User className="w-4 h-4 text-zinc-400" />{t('profile.title') || 'View Profile'}
+              </PopoverItem>
+              <PopoverItem onClick={() => navTo('/library')} className="flex items-center gap-2 cursor-pointer font-medium text-sm py-3 sm:py-2">
                 <BookOpen className="w-4 h-4 text-zinc-400" />{t('library.title')}
               </PopoverItem>
-              <PopoverItem onClick={() => navTo('/uploads')} className="flex items-center gap-2 cursor-pointer font-medium text-sm py-2">
+              <PopoverItem onClick={() => navTo('/uploads')} className="flex items-center gap-2 cursor-pointer font-medium text-sm py-3 sm:py-2">
                 <UploadCloud className="w-4 h-4 text-zinc-400" />{t('uploads.title')}
               </PopoverItem>
             </div>
 
             <div className="p-1 border-b border-zinc-800/60">
               {user?.role === 'admin' && (
-                <PopoverItem onClick={() => { setIsMenuOpen(false); navigate('/admin'); }} className="flex items-center gap-2 cursor-pointer font-medium text-sm py-2 text-indigo-400 hover:text-indigo-300">
+                <PopoverItem onClick={() => { navigate('/admin'); }} className="flex items-center gap-2 cursor-pointer font-medium text-sm py-3 sm:py-2 text-indigo-400 hover:text-indigo-300">
                   <ShieldAlert className="w-4 h-4" />Admin Dashboard
                 </PopoverItem>
               )}
-              <PopoverItem onClick={() => { setIsMenuOpen(false); setShowSettings(true); }} className="flex items-center gap-2 cursor-pointer font-medium text-sm py-2">
+              <PopoverItem onClick={() => { setShowSettings(true); }} className="flex items-center gap-2 cursor-pointer font-medium text-sm py-3 sm:py-2">
                 <SettingsIcon className="w-4 h-4 text-zinc-400" />{t('settings.title')}
               </PopoverItem>
-              <PopoverItem onClick={() => { setIsMenuOpen(false); setShowKeyboardHelp(p => !p); }} className="flex items-center gap-2 cursor-pointer font-medium text-sm py-2">
+              <PopoverItem onClick={() => { setShowKeyboardHelp(p => !p); }} className="flex items-center gap-2 cursor-pointer font-medium text-sm py-3 sm:py-2">
                 <Kbd>?</Kbd><span className="ml-1">{t('shortcuts.title') || 'Shortcuts'}</span>
               </PopoverItem>
             </div>
 
             <div className="p-1">
-              <PopoverItem onClick={() => { setIsMenuOpen(false); logout(); }} className="flex items-center gap-2 cursor-pointer font-medium text-sm py-2 text-red-400 hover:text-red-300">
+              <PopoverItem onClick={() => { logout(); }} className="flex items-center gap-2 cursor-pointer font-medium text-sm py-3 sm:py-2 text-red-400 hover:text-red-300">
                 <LogOut className="w-4 h-4" />{t('auth.logout')}
               </PopoverItem>
             </div>
