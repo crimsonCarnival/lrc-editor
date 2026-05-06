@@ -1,6 +1,5 @@
 {
   "name": "ag-lyrics-syncer",
-  "homepage": "https://lrc-editor.agalvis.workers.dev",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -8,9 +7,7 @@
     "dev": "vite --host 127.0.0.1",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "npm run build && wrangler dev",
-    "deploy": "npm run build && wrangler deploy",
-    "postdeploy": "git checkout main"
+    "preview": "vite preview"
   },
   "dependencies": {
     "@crimson-carnival/ds-js": "^1.0.2",
@@ -38,7 +35,6 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@cloudflare/vite-plugin": "^1.30.3",
     "@eslint/js": "^9.39.4",
     "@tailwindcss/vite": "^4.2.2",
     "@types/node": "^25.5.2",
@@ -49,13 +45,10 @@
     "eslint": "^9.39.4",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.5.2",
-    "gh-pages": "^6.3.0",
     "globals": "^17.4.0",
     "postcss": "^8.5.8",
     "tailwindcss": "^4.2.2",
     "typescript": "^5.9.3",
-    "vite": "^8.0.1",
-    "vite-tsconfig-paths": "^6.1.1",
-    "wrangler": "^4.79.0"
+    "vite": "^8.0.1"
   }
 }
