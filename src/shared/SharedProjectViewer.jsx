@@ -5,6 +5,7 @@ import { SettingsProvider } from '@/contexts/SettingsContext';
 import { TooltipProvider } from '@ui/tooltip';
 import { Spinner } from '@ui/skeleton';
 import { Button } from '@ui/button';
+import toast from 'react-hot-toast';
 import { projects, getAccessToken } from '@/api';
 import Player from '@features/player/Player';
 import Preview from '@features/preview/Preview';
@@ -108,10 +109,12 @@ function SharedProjectViewerInner({ projectId }) {
       setIsCloning(true);
       try {
         const result = await projects.clone(projectId);
+        toast.success(t('project.cloneSuccess') || 'Project copied successfully!');
         // Redirect to the new project
         window.location.href = `/project/${result.projectId}`;
       } catch (err) {
         console.error('Failed to clone project:', err);
+        toast.error(t('project.cloneFailed') || 'Failed to copy project');
         setIsCloning(false);
       }
     } else {

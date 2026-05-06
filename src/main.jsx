@@ -51,6 +51,14 @@ function ProtectedRoute({ children }) {
 }
 
 // eslint-disable-next-line react-refresh/only-export-components
+function AuthRedirect({ defaultTo = '/home' }) {
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
+  const redirect = params.get('redirect') || defaultTo;
+  return <Navigate to={redirect} replace />;
+}
+
+// eslint-disable-next-line react-refresh/only-export-components
 function RootRoutes() {
   const { user, loading } = useAuthContext();
 
@@ -73,8 +81,8 @@ function RootRoutes() {
         <Route path="/share/:id" element={<SharedProjectRoute />} />
         
         {/* Auth routes */}
-        <Route path="/login" element={user ? <Navigate to="/home" replace /> : <AuthPage tab="login" />} />
-        <Route path="/register" element={user ? <Navigate to="/home" replace /> : <AuthPage tab="register" />} />
+        <Route path="/login" element={user ? <AuthRedirect /> : <AuthPage tab="login" />} />
+        <Route path="/register" element={user ? <AuthRedirect /> : <AuthPage tab="register" />} />
         
         {/* Protected app routes - App handles nested routing inside itself */}
         <Route path="/*" element={
