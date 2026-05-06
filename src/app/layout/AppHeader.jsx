@@ -154,11 +154,11 @@ export function AppHeader({
         {/* ── Center: Tips (Hidden on Home) ── */}
         {!isHomePage && hasTips && (
           <div className="hidden lg:flex flex-1 items-center justify-center px-8 animate-fade-in pointer-events-none">
-            <div className="flex items-center gap-3 px-4 py-1.5 bg-zinc-900/40 border border-zinc-800/60 rounded-full max-w-xl group pointer-events-auto cursor-help transition-all hover:bg-zinc-800/40 hover:border-zinc-700/60 shadow-inner">
+            <div className="flex items-center gap-3 px-4 py-1.5 bg-zinc-900/40 border border-zinc-800/60 rounded-full group pointer-events-auto cursor-help transition-all hover:bg-zinc-800/40 hover:border-zinc-700/60 shadow-inner">
               <div className="flex items-center gap-1.5 shrink-0">
                 <Lightbulb className="w-3 h-3 text-amber-400/80 group-hover:text-amber-400 transition-colors" />
               </div>
-              <p className="text-[11px] font-medium text-zinc-400 group-hover:text-zinc-300 transition-colors truncate">
+              <p className="text-[11px] font-medium text-zinc-400 group-hover:text-zinc-300 transition-colors whitespace-nowrap">
                 {tips[tipIndex]}
               </p>
             </div>
