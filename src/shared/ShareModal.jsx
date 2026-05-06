@@ -12,9 +12,6 @@ import { formatTime } from '@/utils/formatTime';
  */
 export function SharePanel({ 
   url: baseUrl, 
-  ytUrl, 
-  cloudinaryAudio,
-  spotifyTrackId,
   mediaSource = 'none',
   linesCount, 
   hasSynced, 

@@ -26,7 +26,7 @@ export function AppLayout({ children, user, logout, appState, settingsState, lay
   } = appState;
 
   const { settings, updateSetting } = settingsState;
-  const { focusMode, setFocusMode, hideEditor, setHideEditor, mobileTab, setMobileTab, isReady, isPlayerMounted, setUnsavedModalTarget, playerTop, lockLayout, showNamingModal, setShowNamingModal } = layoutState;
+  const { focusMode, setFocusMode, hideEditor, setHideEditor, mobileTab, setMobileTab, isReady, isPlayerMounted, setUnsavedModalTarget, playerTop, showNamingModal, setShowNamingModal } = layoutState;
 
   const handleProjectConfirm = useCallback(({ name, description, tags }) => {
     const newTitle = name || mediaTitle || '';

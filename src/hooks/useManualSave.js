@@ -77,7 +77,6 @@ export function useManualSave({
   duration,
   cloudinaryAudio,
   setCloudinaryAudio,
-  activeProjectId,
   isSharedProjectRef,
   activeProjectIdRef,
   isCreatingProjectRef,

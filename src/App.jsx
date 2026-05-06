@@ -144,6 +144,7 @@ function AppInner() {
   // Reset load errors when navigating
   useEffect(() => {
     if (appState.loadError) appState.setLoadError(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname, appState.loadError, appState.setLoadError]);
 
   // Reset project state when entering "New Project"

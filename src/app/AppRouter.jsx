@@ -72,7 +72,6 @@ export function AppRouter({
     pendingProject,
     projectMetadata,
     loadError,
-    setLoadError,
     handleSetupComplete,
     setShowSettings,
     setShowKeyboardHelp,

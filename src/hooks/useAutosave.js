@@ -17,7 +17,6 @@ export function useAutosave({
   pendingProject,
   isSharedProject,
   isSharedProjectRef,
-  activeProjectId,
   activeProjectIdRef,
   isCreatingProjectRef,
   sessionUploadIdRef,

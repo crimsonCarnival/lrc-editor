@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import { lyrics } from '@/api';
 import { matchKey } from '@/utils/keyboard';
-import { toHiragana, toKatakana, toRomaji, parseRubyMarkup, hasCJK } from '@/utils/furigana';
+import { parseRubyMarkup, hasCJK } from '@/utils/furigana';
 import { useTranslation } from 'react-i18next';
 import { useSettings } from '@/contexts/useSettings';
 import useConfirm from '@/hooks/useConfirm';

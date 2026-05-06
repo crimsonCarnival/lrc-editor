@@ -1,4 +1,4 @@
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@ui/button';
 import {
@@ -13,7 +13,6 @@ import {
 export default function NotFoundPage({ type = 'general' }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const location = useLocation();
 
   // Differentiate content based on type
   const config = {

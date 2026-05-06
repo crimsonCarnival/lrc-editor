@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@ui/button';
 import { ToggleGroup, ToggleGroupItem } from '@ui/toggle-group';
@@ -10,7 +10,7 @@ import {
   Trash2, ListChecks,
   Repeat, EyeOff, MoreHorizontal, Plus, X, Loader2, HelpCircle, TimerOff
 } from 'lucide-react';
-import { serializeToRubyMarkup, hasCJK } from '@/utils/furigana';
+import { serializeToRubyMarkup } from '@/utils/furigana';
 
 // Mobile-friendly dropdown for actions that overflow
 const ActionsDropdown = ({ children, icon: Icon = MoreHorizontal, label }) => (
@@ -33,27 +33,19 @@ export default function EditorToolbar({
   setEditorMode,
   updateSetting,
   settings,
-  isActiveLineLocked,
   syncMode,
-  undo,
-  redo,
-  canUndo,
-  canRedo,
   lines,
   setSelectedLines,
   selectedLines,
   handleClearTimestamps,
   handleClearAllWordTimestamps,
-  handleClearActiveLineWordTimestamps,
   requestConfirm,
-  setLines,
   setRawText,
   setSyncMode,
   handleManualSave,
   handleRemoveAllLyrics,
   isAutosaving,
   isSaving,
-  compact,
   overlappingLines,
   onNewProject,
   onShowKeyboardHelp,
