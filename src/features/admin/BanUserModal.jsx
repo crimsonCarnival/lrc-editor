@@ -35,7 +35,11 @@ export default function BanUserModal({ isOpen, user, onConfirm, onCancel }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onConfirm({ reason, bannedUntil: bannedUntil || null, banIp, banDevice });
+    let isoDate = null;
+    if (bannedUntil) {
+      isoDate = new Date(bannedUntil).toISOString();
+    }
+    onConfirm({ reason, bannedUntil: isoDate, banIp, banDevice });
   };
 
   return (
