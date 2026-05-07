@@ -1,8 +1,8 @@
-# Syncify — LRC Editor
-
+# LRC Studio
+ 
 A professional web application for synchronizing song lyrics with audio, with support for karaoke-style word-level timing, multi-language content, cloud projects, and more.
-
-**[syncify-lrc.vercel.app](https://syncify-lrc.vercel.app)** · [GitHub](https://github.com/crimsonCarnival/lrc-editor) · [Documentation (DeepWiki)](https://deepwiki.com/crimsonCarnival/lrc-editor)
+ 
+**[lrc-studio.vercel.app](https://lrc-studio.vercel.app)** · [GitHub](https://github.com/crimsonCarnival/lrc-studio) · [Documentation (DeepWiki)](https://deepwiki.com/crimsonCarnival/lrc-studio)
 
 > Translations: [Español (Spanish)](docs/translations/README.es.md) • [日本語 (Japanese)](docs/translations/README.ja.md)
 
@@ -241,8 +241,8 @@ The application is highly customizable via the Settings modal. Settings are grou
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/crimsonCarnival/lrc-editor.git
-   cd lrc-editor
+   git clone https://github.com/crimsonCarnival/lrc-studio.git
+   cd lrc-studio
    ```
 
 2. Install dependencies:

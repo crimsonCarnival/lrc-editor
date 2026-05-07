@@ -1,8 +1,8 @@
-# Syncify — LRCエディター
-
+# LRC Studio
+ 
 曲の歌詞とオーディオを同期させるためのプロフェッショナルなWebアプリケーションです。カラオケスタイルの単語レベルのタイミング機能、多言語コンテンツ、クラウドプロジェクトなどをサポートしています。
-
-**[syncify-lrc.vercel.app](https://syncify-lrc.vercel.app)** · [GitHub](https://github.com/crimsonCarnival/lrc-editor) · [ドキュメント (DeepWiki)](https://deepwiki.com/crimsonCarnival/lrc-editor)
+ 
+**[lrc-studio.vercel.app](https://lrc-studio.vercel.app)** · [GitHub](https://github.com/crimsonCarnival/lrc-studio) · [ドキュメント (DeepWiki)](https://deepwiki.com/crimsonCarnival/lrc-studio)
 
 > 言語: [English (英語)](../../README.md) • [Español (スペイン語)](README.es.md)
 
@@ -241,8 +241,8 @@
 1. リポジトリをクローンします:
 
    ```bash
-   git clone https://github.com/crimsonCarnival/lrc-editor.git
-   cd lrc-editor
+   git clone https://github.com/crimsonCarnival/lrc-studio.git
+   cd lrc-studio
    ```
 
 2. 依存関係をインストールします:
