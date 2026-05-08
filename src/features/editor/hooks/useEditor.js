@@ -564,10 +564,6 @@ export function useEditor({
       } else if (matchKey(e, settings.shortcuts?.deselect?.[0] || 'Escape') && focusedTimestampRef.current) {
         e.preventDefault();
         setFocusedTimestamp(null);
-      } else if (e.key === 'Tab') {
-        e.preventDefault();
-        const modes = ['lrc', 'srt', 'words'];
-        setEditorMode((prev) => modes[(modes.indexOf(prev) + 1) % modes.length]);
       }
     };
 
@@ -978,7 +974,7 @@ export function useEditor({
         } else {
           handleClearLine(activeLineIndex);
         }
-      } else if (matchKey(e, settings.shortcuts?.switchMode?.[0] || 'Tab')) {
+      } else if (matchKey(e, settings.shortcuts?.switchMode?.[0])) {
         e.preventDefault();
         const nextMode = editorMode === 'lrc' ? 'srt' : 'lrc';
         setEditorMode(nextMode);

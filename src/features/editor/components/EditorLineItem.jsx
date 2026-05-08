@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { serializeToRubyMarkup, isKanji, toHiragana, toKatakana, hasCJK } from '@/utils/furigana';
+import { serializeToRubyMarkup, isKanji, toHiragana, toKatakana, hasCJK, hasKanji } from '@/utils/furigana';
 import { formatTimestamp } from '@/utils/lrc';
 import { formatTime } from '@/utils/formatTime';
 import { Button } from '@ui/button';
@@ -32,9 +32,9 @@ function ReadingInput({ defaultValue, onCommit, onCancel, className, style, plac
     return () => { window.wanakana?.unbind(el); };
   }, [readingFormat]);
 
-  const commit = (val) => {
+  const commit = (val, direction = 0) => {
     if (!val) {
-      onCommit('');
+      onCommit('', direction);
       return;
     }
 
@@ -56,7 +56,7 @@ function ReadingInput({ defaultValue, onCommit, onCancel, className, style, plac
       return;
     }
 
-    onCommit(final);
+    onCommit(final, direction);
   };
 
   return (
@@ -65,10 +65,15 @@ function ReadingInput({ defaultValue, onCommit, onCancel, className, style, plac
       autoFocus
       type="text"
       defaultValue={defaultValue}
-      onBlur={(e) => commit(e.target.value)}
+      onBlur={(e) => commit(e.target.value, 0)}
       onKeyDown={(e) => {
-        if (e.key === 'Enter') commit(e.target.value);
-        if (e.key === 'Escape') onCancel();
+        if (e.key === 'Enter' || e.key === 'Tab') {
+          e.preventDefault();
+          commit(e.target.value, e.key === 'Tab' ? (e.shiftKey ? -1 : 1) : 0);
+        } else if (e.key === 'Escape') {
+          e.preventDefault();
+          onCancel();
+        }
         e.stopPropagation();
       }}
       onClick={(e) => e.stopPropagation()}
@@ -270,6 +275,23 @@ const EditorLineItem = React.memo(({
   const [justSynced, setJustSynced] = useState(false);
   const nudgeTimerRef = useRef(null);
   const justSyncedTimerRef = useRef(null);
+
+  const handleReadingCommit = useCallback((val, wi, direction) => {
+    handleSetWordReading?.(i, wi, val);
+    if (direction !== 0) {
+      const words = line.words || [];
+      let nextWi = wi + direction;
+      while (nextWi >= 0 && nextWi < words.length && !hasKanji(words[nextWi].word)) {
+        nextWi += direction;
+      }
+      if (nextWi >= 0 && nextWi < words.length) {
+        setEditingReadingWordIndex(nextWi);
+        return;
+      }
+    }
+    setEditingReadingWordIndex(null);
+  }, [i, line.words, handleSetWordReading, setEditingReadingWordIndex]);
+
   // Touch gesture refs
   const touchStartRef = useRef(null);
   const longPressTimerRef = useRef(null);
@@ -507,7 +529,7 @@ const EditorLineItem = React.memo(({
                   const isEditingReading = editingReadingWordIndex === wi;
                   const isFocusedWord = focusedTimestamp?.lineIndex === i && focusedTimestamp?.type === 'word' && focusedTimestamp?.wordIndex === wi;
                   const isActiveWord = wi === activeWordIndex;
-                  const canHaveReading = hasCJK(w.word || '');
+                  const canHaveReading = hasKanji(w.word || '');
                   const readingFmt = settings?.editor?.display?.readingFormat || 'hiragana';
                   const fmtReading = (r) => r ? (readingFmt === 'katakana' ? toKatakana(r) : toHiragana(r)) : r;
                   return (
@@ -516,7 +538,7 @@ const EditorLineItem = React.memo(({
                       {canHaveReading && (isEditingReading ? (
                         <ReadingInput
                           defaultValue={fmtReading(w.reading) || ''}
-                          onCommit={(val) => { handleSetWordReading?.(i, wi, val); setEditingReadingWordIndex(null); }}
+                          onCommit={(val, direction) => handleReadingCommit(val, wi, direction)}
                           onCancel={() => setEditingReadingWordIndex(null)}
                           readingFormat={readingFmt}
                           className="text-[9px] font-mono text-center bg-transparent border-b border-primary outline-none text-primary px-0 py-0.5"
@@ -843,7 +865,7 @@ const EditorLineItem = React.memo(({
                   })
                   : line.words?.length > 0
                     ? line.words.map((w, wi) => {
-                      const canHaveReading = hasCJK(w.word || '');
+                      const canHaveReading = hasKanji(w.word || '');
                       const isEditingThisReading = editingReadingWordIndex === wi;
                       const rubyFmt = settings?.editor?.display?.readingFormat || 'hiragana';
                       const fmtR = (r) => r ? (rubyFmt === 'katakana' ? toKatakana(r) : toHiragana(r)) : r;
@@ -856,7 +878,7 @@ const EditorLineItem = React.memo(({
                               <rt>
                                 <ReadingInput
                                   defaultValue={fmtR(w.reading) || ''}
-                                  onCommit={(val) => { handleSetWordReading?.(i, wi, val); setEditingReadingWordIndex(null); }}
+                                  onCommit={(val, direction) => handleReadingCommit(val, wi, direction)}
                                   onCancel={() => setEditingReadingWordIndex(null)}
                                   readingFormat={rubyFmt}
                                   className="text-[9px] font-mono text-center bg-transparent border-b border-primary outline-none text-primary px-0 py-0.5"
@@ -893,7 +915,7 @@ const EditorLineItem = React.memo(({
                                 <rt>
                                   <ReadingInput
                                     defaultValue=""
-                                    onCommit={(val) => { handleSetWordReading?.(i, wi, val); setEditingReadingWordIndex(null); }}
+                                    onCommit={(val, direction) => handleReadingCommit(val, wi, direction)}
                                     onCancel={() => setEditingReadingWordIndex(null)}
                                     readingFormat={rubyFmt}
                                     className="text-[9px] font-mono text-center bg-transparent border-b border-primary outline-none text-primary px-0 py-0.5"
