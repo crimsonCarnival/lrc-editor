@@ -4,7 +4,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation, useParams } from '
 
 // Auto-reload when a new deployment invalidates lazy-loaded chunks
 // window.addEventListener('vite:preloadError', () => {
-  // window.location.reload();
+// window.location.reload();
 // });
 import { Toaster } from 'react-hot-toast'
 import { TooltipProvider } from '@ui/tooltip'
@@ -80,14 +80,14 @@ function RootRoutes() {
       <Routes>
         <Route path="/" element={<Navigate to="/home" replace />} />
         <Route path="/share/:id" element={<SharedProjectRoute />} />
-        
+
         {/* Legacy redirects */}
         <Route path="/login" element={<Navigate to="/auth?action=signin" replace />} />
         <Route path="/register" element={<Navigate to="/auth?action=signup" replace />} />
 
         {/* Auth routes */}
         <Route path="/auth" element={user ? <AuthRedirect /> : <AuthPage />} />
-        
+
         {/* Protected app routes - App handles nested routing inside itself */}
         <Route path="/*" element={
           <ProtectedRoute>
@@ -102,7 +102,7 @@ function RootRoutes() {
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <ErrorBoundary>
-      <GoogleReCaptchaProvider reCaptchaKey={import.meta.env.VITE_RECAPTCHA_SITE_KEY}>
+      <GoogleReCaptchaProvider reCaptchaKey={import.meta.env.VITE_RECAPTCHA_KEY}>
         <AuthProvider>
           <AppProviders>
             <BrowserRouter>
