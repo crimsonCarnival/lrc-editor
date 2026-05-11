@@ -26,6 +26,7 @@ export function AppModals({
   handleRestoreProject,
   unsavedModalTarget,
   setUnsavedModalTarget,
+  sourceInfo,
 }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -56,6 +57,7 @@ export function AppModals({
         initialDescription={projectMetadata?.description}
         initialTags={projectMetadata?.tags}
         isEditing={true}
+        sourceInfo={sourceInfo}
       />
 
       {pendingProject && (
