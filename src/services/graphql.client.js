@@ -11,7 +11,7 @@ const GQL_ENDPOINT = (import.meta.env.VITE_API_URL || '/api') + '/graphql';
  * @param {object} variables - Query variables.
  * @returns {Promise<any>} The `data` field from the GraphQL response.
  */
-export async function gqlRequest(query, variables = {}) {
+export async function gqlRequest(query, variables = {}, { signal } = {}) {
   const deviceId = await getDeviceId();
   const headers = {
     'Content-Type': 'application/json',
@@ -23,6 +23,7 @@ export async function gqlRequest(query, variables = {}) {
     credentials: 'include', // Automatically send HttpOnly cookies
     headers,
     body: JSON.stringify({ query, variables }),
+    signal,
   });
 
   const json = await res.json().catch(() => ({}));
