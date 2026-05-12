@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import toast from 'react-hot-toast';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuthContext } from './contexts/useAuthContext';
 import { useAppState } from './hooks/useAppState';
@@ -6,6 +7,7 @@ import { useSettings } from './contexts/useSettings';
 import { useScrollLock } from './hooks/useScrollLock';
 import { useNetworkStatus } from './hooks/useNetworkStatus';
 import { matchKey } from './utils/keyboard';
+import { projects } from '@/api';
 import { useUrlParamsSync } from './hooks/useUrlParamsSync';
 import BannedScreen from '@shared/BannedScreen';
 
@@ -43,26 +45,40 @@ function AppInner() {
 
   // Promote /project/local → /project/:id once the server assigns a real ID
   useEffect(() => {
-    if (activeProjectId && location.pathname === '/project/local') {
+    if (user && activeProjectId && location.pathname === '/project/local') {
       navigate(`/project/${activeProjectId}`, { replace: true });
     }
-  }, [activeProjectId, location.pathname, navigate]);
+  }, [user, activeProjectId, location.pathname, navigate]);
 
-  // After a guest signs up/in, migrate their localStorage project to the server.
-  // The pendingGuestSave flag is set either from setup completion or when a guest
-  // clicks "Save" inside the editor and navigates to /auth from there.
-  const guestSavePendingRef = useRef(!!sessionStorage.getItem('pendingGuestSave'));
+  // After a guest pre-creates a project and authenticates, claim ownership.
+  // Triggered by ?claim=true in the URL (set by EditorToolbar's guest save handler).
   useEffect(() => {
-    if (!guestSavePendingRef.current) return;
+    const params = new URLSearchParams(location.search);
+    if (!params.has('claim')) return;
     if (!user) return;
-    if (appState.lines.length === 0) return;
-    if (appState.activeProjectId) return;
-    if (appState.isProjectLoading) return;
-
-    guestSavePendingRef.current = false;
+    const raw = sessionStorage.getItem('pendingGuestClaim');
+    if (!raw) return;
+    let projectId, claimToken;
+    try { ({ projectId, claimToken } = JSON.parse(raw)); } catch {
+      sessionStorage.removeItem('pendingGuestClaim');
+      sessionStorage.removeItem('pendingGuestSave');
+      return;
+    }
+    sessionStorage.removeItem('pendingGuestClaim');
     sessionStorage.removeItem('pendingGuestSave');
-    appState.handleManualSave();
-  }, [user, appState.lines.length, appState.activeProjectId, appState.isProjectLoading, appState.handleManualSave]);
+    const newUrl = new URL(window.location.href);
+    newUrl.searchParams.delete('claim');
+    navigate(newUrl.pathname + newUrl.search, { replace: true });
+    projects.claim(projectId, claimToken)
+      .then(() => appState.loadProject(projectId))
+      .catch((err) => {
+        if (err?.status === 409) { toast.success(appState.t('project.claimAlreadyClaimed')); appState.loadProject(projectId); return; }
+        if (err?.status === 404 && err?.body?.code === 'expired') toast.error(appState.t('project.claimExpired'));
+        else if (err?.status === 403) toast.error(appState.t('project.claimFailed'));
+        else toast.error(appState.t('project.claimNetworkError'));
+      });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, location.search]);
 
   const isProjectPage = location.pathname.startsWith('/project/') && location.pathname !== '/project/new';
   const isSetupPage = location.pathname === '/project/new';
@@ -129,10 +145,9 @@ function AppInner() {
     appState.setProjectMetadata(newMetadata);
 
     if (!user) {
-      // Guest: handleManualSave is already localStorage-only when no token exists.
-      // Set a flag so the post-login migration effect picks it up and syncs to DB.
-      await appState.handleManualSave({ title: finalTitle, metadata: newMetadata, isPublic });
-      sessionStorage.setItem('pendingGuestSave', '1');
+      // Guest: handleManualSave writes to localStorage only (no token).
+      // The editor's Save button uses the server-side claim flow instead.
+      await appState.handleManualSave({ title: finalTitle, metadata: newMetadata, isPublic, lines, editorMode, syncMode: true });
       navigate('/project/local');
       return;
     }
@@ -140,7 +155,10 @@ function AppInner() {
     await appState.handleManualSave({
       title: finalTitle,
       metadata: newMetadata,
-      isPublic
+      isPublic,
+      lines,
+      editorMode,
+      syncMode: true
     });
 
     navigate('/project/local');
