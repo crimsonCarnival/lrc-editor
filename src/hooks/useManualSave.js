@@ -1,8 +1,9 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
-import { projects, uploads, getAccessToken } from '@/api';
+import { projects, uploads, getAccessToken, auth } from '@/api';
 import { useGoogleReCaptcha } from 'react-google-recaptcha-v3';
+import { authEvents } from '../utils/authEvents.js';
 
 const PROJECT_KEY = 'lrc-syncer-project';
 const SHARED_PROJECT_KEY = 'lrc-syncer-shared-project';
@@ -48,17 +49,17 @@ export function buildProjectPatch({ prevSnapshot, title, metadata, state, upload
   if (lyricsPatch) patch.lyrics = lyricsPatch;
 
   const prevState = prevSnapshot?.state || {};
-  const isStateDirty = !prevSnapshot || 
-      prevState.syncMode !== state.syncMode ||
-      prevState.activeLineIndex !== state.activeLineIndex ||
-      prevState.playbackPosition !== state.playbackPosition ||
-      prevState.playbackSpeed !== state.playbackSpeed;
-      
+  const isStateDirty = !prevSnapshot ||
+    prevState.syncMode !== state.syncMode ||
+    prevState.activeLineIndex !== state.activeLineIndex ||
+    prevState.playbackPosition !== state.playbackPosition ||
+    prevState.playbackSpeed !== state.playbackSpeed;
+
   // If anything else changed, or the state itself changed, include the state patch (to update saveTime)
   if (isStateDirty || Object.keys(patch).length > 0) {
     patch.state = state;
   }
-  
+
   return patch;
 }
 
@@ -99,6 +100,7 @@ export function useManualSave({
   setIsAutosaving,
   setIsSaving,
   setActiveProjectId,
+  setForkedFrom,
   onSaveSuccess,
 }) {
   const { t } = useTranslation();
@@ -137,59 +139,86 @@ export function useManualSave({
   }, [lines, syncMode, activeLineIndex, editorMode, settings.advanced.timezone, projectYtUrl, playbackPosition, hasMedia, mediaTitle, projectMetadata, playerRef]);
 
   const handleManualSave = useCallback(async (overrides = {}) => {
+    if (isCreatingProjectRef.current) return;
     const key = isSharedProjectRef.current ? SHARED_PROJECT_KEY : PROJECT_KEY;
     const payload = buildProjectPayload();
     const finalMetadata = overrides.metadata !== undefined ? overrides.metadata : projectMetadata;
     let finalTitle = overrides.title !== undefined ? overrides.title : (mediaTitle || '');
+    if (overrides.isPublic !== undefined) payload.public = overrides.isPublic;
+    if (overrides.lines !== undefined) payload.lines = overrides.lines;
+    if (overrides.editorMode !== undefined) payload.editorMode = overrides.editorMode;
+    if (overrides.syncMode !== undefined) payload.syncMode = overrides.syncMode;
     payload.metadata = finalMetadata;
     payload.title = finalTitle;
-    localStorage.setItem(key, JSON.stringify(payload));
+    // Only persist to localStorage for guest users.
+    // Authenticated users save exclusively to the server (prevents stale local data).
+    if (!getAccessToken()) {
+      localStorage.setItem(key, JSON.stringify(payload));
+    }
     setIsAutosaving(true);
     setTimeout(() => setIsAutosaving(false), 1200);
 
     if (getAccessToken() && activeProjectIdRef.current && !isSharedProjectRef.current) {
       setIsSaving?.(true);
       try {
-      let uploadIdToSave = sessionUploadIdRef.current || null;
-      if (!uploadIdToSave && cloudinaryAudio) {
-        if (cloudinaryAudio.id) {
-          uploadIdToSave = cloudinaryAudio.id;
-          sessionUploadIdRef.current = cloudinaryAudio.id;
-        } else {
+        let uploadIdToSave = sessionUploadIdRef.current || null;
+        if (!uploadIdToSave && cloudinaryAudio) {
+          if (cloudinaryAudio.id) {
+            uploadIdToSave = cloudinaryAudio.id;
+            sessionUploadIdRef.current = cloudinaryAudio.id;
+          } else {
+            try {
+              const upload = await uploads.saveMedia({ source: 'cloudinary', cloudinaryUrl: cloudinaryAudio.cloudinaryUrl, publicId: cloudinaryAudio.publicId, fileName: cloudinaryAudio.fileName, title: overrides?.title ?? mediaTitle ?? '', duration: cloudinaryAudio.duration });
+              uploadIdToSave = upload.id;
+              sessionUploadIdRef.current = upload.id;
+              setCloudinaryAudio((prev) => ({ ...prev, id: upload.id }));
+            } catch (err) { console.error('Failed to save upload:', err); }
+          }
+        } else if (!uploadIdToSave && payload.ytUrl) {
           try {
-            const upload = await uploads.saveMedia({ source: 'cloudinary', cloudinaryUrl: cloudinaryAudio.cloudinaryUrl, publicId: cloudinaryAudio.publicId, fileName: cloudinaryAudio.fileName, title: overrides?.title ?? mediaTitle ?? '', duration: cloudinaryAudio.duration });
+            // Don't pass title - let backend fetch it from YouTube API
+            const upload = await uploads.saveMedia({ source: 'youtube', youtubeUrl: payload.ytUrl, fileName: '', title: undefined, duration: duration || null });
             uploadIdToSave = upload.id;
             sessionUploadIdRef.current = upload.id;
-            setCloudinaryAudio((prev) => ({ ...prev, id: upload.id }));
+            const isGeneric = ['Sin título', 'Untitled', '無題'].includes(finalTitle);
+            if (isGeneric && upload.title) {
+              finalTitle = upload.title;
+            }
           } catch (err) { console.error('Failed to save upload:', err); }
         }
-      } else if (!uploadIdToSave && payload.ytUrl) {
-        try {
-          const upload = await uploads.saveMedia({ source: 'youtube', youtubeUrl: payload.ytUrl, fileName: '', title: '', duration: duration || null });
-          uploadIdToSave = upload.id;
-          sessionUploadIdRef.current = upload.id;
-          const isGeneric = ['Sin título', 'Untitled', '無題'].includes(finalTitle);
-          if (isGeneric && upload.title) {
-            finalTitle = upload.title;
+
+        const patchState = { syncMode: payload.syncMode, activeLineIndex, playbackPosition: payload.playbackPosition, playbackSpeed: payload.playbackSpeed, saveTime: payload.saveTime, timezone: payload.timezone, utcOffset: payload.utcOffset };
+        const patchData = buildProjectPatch({ prevSnapshot: lastServerSnapshotRef.current, title: finalTitle, metadata: finalMetadata, state: patchState, uploadId: uploadIdToSave ?? undefined, editorMode: payload.editorMode, lines: payload.lines });
+        if (overrides.title !== undefined) patchData.title = overrides.title;
+        if (overrides.metadata !== undefined) patchData.metadata = overrides.metadata;
+        if (overrides.isPublic !== undefined) patchData.public = overrides.isPublic;
+
+        if (Object.keys(patchData).length > 0) {
+          try {
+            await projects.patch(activeProjectIdRef.current, patchData);
+            updateServerSnapshot(lastServerSnapshotRef, { title: finalTitle, metadata: finalMetadata, state: patchState, editorMode, lines: payload.lines, uploadId: uploadIdToSave ?? undefined });
+            toast.success(t('project.saved') || 'Project saved', { id: 'manual-save-ok', duration: 2000 });
+          } catch (err) {
+            // 401 / 403: access token expired — attempt one silent refresh then retry.
+            if (err?.status === 401 || err?.status === 403 || (err?.graphqlErrors && err.message?.includes('Not authorized'))) {
+              try {
+                await auth.refresh();
+                // Retry the save with the fresh token (cookies are sent automatically)
+                await projects.patch(activeProjectIdRef.current, patchData);
+                updateServerSnapshot(lastServerSnapshotRef, { title: finalTitle, metadata: finalMetadata, state: patchState, editorMode: payload.editorMode, lines: payload.lines, uploadId: uploadIdToSave ?? undefined });
+                toast.success(t('project.saved') || 'Project saved', { id: 'manual-save-ok', duration: 2000 });
+                return; // retry succeeded
+              } catch {
+                // Refresh also failed — emit expiry so useAuth handles logout + toast
+                authEvents.emit('token:expired');
+                return;
+              }
+            }
+            console.error('[Manual Save] Server error:', err);
+            toast.error(t('project.saveFailed') || 'Failed to save to server');
           }
-        } catch (err) { console.error('Failed to save upload:', err); }
-      }
-
-      const patchState = { syncMode, activeLineIndex, playbackPosition: payload.playbackPosition, playbackSpeed: payload.playbackSpeed, saveTime: payload.saveTime, timezone: payload.timezone, utcOffset: payload.utcOffset };
-      const patchData = buildProjectPatch({ prevSnapshot: lastServerSnapshotRef.current, title: finalTitle, metadata: finalMetadata, state: patchState, uploadId: uploadIdToSave ?? undefined, editorMode, lines: payload.lines });
-      if (overrides.title !== undefined) patchData.title = overrides.title;
-      if (overrides.metadata !== undefined) patchData.metadata = overrides.metadata;
-
-      if (Object.keys(patchData).length > 0) {
-        try {
-          await projects.patch(activeProjectIdRef.current, patchData);
-          updateServerSnapshot(lastServerSnapshotRef, { title: finalTitle, metadata: finalMetadata, state: patchState, editorMode, lines: payload.lines, uploadId: uploadIdToSave ?? undefined });
-        } catch (err) {
-          console.error('[Manual Save] Server error:', err);
-          toast.error(t('project.saveFailed') || 'Failed to save to server');
         }
-      }
-      onSaveSuccess?.();
+        onSaveSuccess?.();
       } finally { setIsSaving?.(false); }
     } else if (getAccessToken() && !activeProjectIdRef.current && !isSharedProjectRef.current && payload.lines?.length > 0) {
       if (isCreatingProjectRef.current) return;
@@ -199,16 +228,17 @@ export function useManualSave({
       else if (cloudinaryAudio) {
         try { const upload = await uploads.saveMedia({ source: 'cloudinary', cloudinaryUrl: cloudinaryAudio.cloudinaryUrl, publicId: cloudinaryAudio.publicId, fileName: cloudinaryAudio.fileName, title: cloudinaryAudio.fileName?.replace(/\.[^/.]+$/, '') || '', duration: cloudinaryAudio.duration }); uploadIdToSave = upload.id; setCloudinaryAudio((p) => ({ ...p, id: upload.id })); } catch (err) { console.error(err); }
       } else if (payload.ytUrl) {
-        try { 
-          const upload = await uploads.saveMedia({ source: 'youtube', youtubeUrl: payload.ytUrl, fileName: '', title: '', duration: duration || null }); 
-          uploadIdToSave = upload.id; 
+        try {
+          const upload = await uploads.saveMedia({ source: 'youtube', youtubeUrl: payload.ytUrl, fileName: '', title: '', duration: duration || null });
+          uploadIdToSave = upload.id;
           const isGeneric = ['Sin título', 'Untitled', '無題'].includes(finalTitle);
           if (isGeneric && upload.title) {
             finalTitle = upload.title;
           }
         } catch (err) { console.error(err); }
       }
-      const createData = { title: finalTitle, metadata: finalMetadata, lyrics: { editorMode, lines: payload.lines }, state: { syncMode, activeLineIndex, playbackPosition: payload.playbackPosition || 0, playbackSpeed: payload.playbackSpeed || 1, saveTime: payload.saveTime, timezone: payload.timezone, utcOffset: payload.utcOffset }, readOnly: false };
+      const createData = { title: finalTitle, metadata: finalMetadata, lyrics: { editorMode: payload.editorMode, lines: payload.lines }, state: { syncMode: payload.syncMode, activeLineIndex, playbackPosition: payload.playbackPosition || 0, playbackSpeed: payload.playbackSpeed || 1, saveTime: payload.saveTime, timezone: payload.timezone, utcOffset: payload.utcOffset }, readOnly: false };
+      if (overrides.isPublic !== undefined) createData.public = overrides.isPublic;
       if (uploadIdToSave) createData.uploadId = uploadIdToSave;
 
       const performCreate = async () => {
@@ -216,9 +246,10 @@ export function useManualSave({
           const recaptchaToken = executeRecaptcha ? await executeRecaptcha('create_project').catch(err => { console.warn('reCAPTCHA failed:', err); return undefined; }) : undefined;
           const res = await projects.create({ ...createData, recaptchaToken });
           const { projectId } = res;
+          setForkedFrom?.(null); // Creation from guest is never a fork
           setActiveProjectId(projectId);
           activeProjectIdRef.current = projectId;
-          updateServerSnapshot(lastServerSnapshotRef, { title: createData.title, metadata: createData.metadata, state: createData.state, editorMode, lines: payload.lines, uploadId: uploadIdToSave ?? undefined });
+          updateServerSnapshot(lastServerSnapshotRef, { title: createData.title, metadata: createData.metadata, state: createData.state, editorMode: payload.editorMode, lines: payload.lines, uploadId: uploadIdToSave ?? undefined });
           try { localStorage.setItem(ACTIVE_PROJECT_ID_KEY, projectId); } catch { /* ignore */ }
           onSaveSuccess?.();
           toast.success(t('project.created') || 'Project created');
@@ -231,9 +262,54 @@ export function useManualSave({
       };
       performCreate();
     }
-  }, [buildProjectPayload, mediaTitle, projectMetadata, editorMode, syncMode, activeLineIndex, cloudinaryAudio, duration, t, isSharedProjectRef, activeProjectIdRef, isCreatingProjectRef, sessionUploadIdRef, lastServerSnapshotRef, setIsAutosaving, setIsSaving, setActiveProjectId, setCloudinaryAudio, executeRecaptcha]);
+  }, [buildProjectPayload, mediaTitle, projectMetadata, editorMode, activeLineIndex, cloudinaryAudio, duration, t, isSharedProjectRef, activeProjectIdRef, isCreatingProjectRef, sessionUploadIdRef, lastServerSnapshotRef, setIsAutosaving, setIsSaving, setActiveProjectId, setCloudinaryAudio, executeRecaptcha, onSaveSuccess]);
 
-  // Save-after-import: fires after state settles
+  const handleGuestSave = useCallback(async () => {
+    setIsSaving?.(true);
+    try {
+      const payload = buildProjectPayload();
+      const recaptchaToken = executeRecaptcha
+        ? await executeRecaptcha('create_guest_project').catch(() => undefined)
+        : undefined;
+      const guestPayload = {
+        title: payload.title,
+        lyrics: { editorMode: payload.editorMode, lines: payload.lines },
+        state: {
+          syncMode: payload.syncMode,
+          activeLineIndex: payload.activeLineIndex,
+          playbackPosition: payload.playbackPosition,
+          playbackSpeed: payload.playbackSpeed,
+          saveTime: payload.saveTime,
+          timezone: payload.timezone,
+          utcOffset: payload.utcOffset,
+        },
+        metadata: payload.metadata,
+        ...(payload.ytUrl ? { ytUrl: payload.ytUrl } : {}),
+        ...(cloudinaryAudio?.cloudinaryUrl
+          ? {
+            cloudinaryUrl: cloudinaryAudio.cloudinaryUrl,
+            cloudinaryPublicId: cloudinaryAudio.publicId || null,
+            fileName: cloudinaryAudio.fileName || '',
+            duration: cloudinaryAudio.duration || null,
+          }
+          : {}),
+        recaptchaToken,
+      };
+      const res = await projects.createGuest(guestPayload);
+      const { projectId, claimToken } = res ?? {};
+      if (!projectId || !claimToken) throw new Error('Unexpected guest create response');
+      sessionStorage.setItem('pendingGuestClaim', JSON.stringify({ projectId, claimToken }));
+      sessionStorage.setItem('pendingGuestSave', '1');
+      return { projectId };
+    } catch (err) {
+      const key = err?.status === 429 ? 'project.guestCreateRateLimited' : 'project.guestCreateFailed';
+      toast.error(t(key) || 'Failed to save draft');
+      throw err;
+    } finally {
+      setIsSaving?.(false);
+    }
+  }, [buildProjectPayload, cloudinaryAudio, executeRecaptcha, t, setIsSaving]);
+
   const [importTick, setImportTick] = useState(0);
   const importPayloadRef = useRef(null);
   const manualSaveRef = useRef(null);
@@ -247,5 +323,5 @@ export function useManualSave({
     setImportTick((n) => n + 1);
   }, []);
 
-  return { handleManualSave, triggerImportSave, buildProjectPayload };
+  return { handleManualSave, triggerImportSave, buildProjectPayload, handleGuestSave };
 }
