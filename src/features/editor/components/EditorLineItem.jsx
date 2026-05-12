@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { serializeToRubyMarkup, isKanji, toHiragana, toKatakana, hasCJK, hasKanji } from '@/utils/furigana';
+import { serializeToRubyMarkup, parseRubyMarkup, isKanji, toHiragana, toKatakana, hasCJK, hasKanji } from '@/utils/furigana';
 import { formatTimestamp } from '@/utils/lrc';
 import { formatTime } from '@/utils/formatTime';
 import { Button } from '@ui/button';
@@ -161,12 +161,12 @@ function TimestampBadge({ value, isSynced, isFocused, isActive, precision, onCli
         onDoubleClick={onDoubleClick}
         onWheel={onWheel}
         className={`flex items-center rounded-md lg:rounded px-2 py-0.5 lg:px-1.5 lg:py-0.5 text-[9px] lg:text-[10px] font-mono tabular-nums transition-all duration-200 ease-out w-fit ${isFocused
-            ? 'bg-primary/25 ring-1 ring-primary/50 text-primary font-semibold'
-            : isSynced
-              ? `bg-zinc-900 lg:bg-zinc-800 border border-zinc-800 lg:border-zinc-700/50 text-primary hover:border-primary/40 hover:bg-zinc-700/60 transition-opacity ${!isActive ? 'opacity-50 hover:opacity-100' : 'opacity-100'}`
-              : isActive
-                ? 'text-zinc-500 lg:text-zinc-400 animate-pulse-glow hover:bg-zinc-800/50 border border-transparent'
-                : 'text-zinc-700 lg:text-zinc-600 hover:bg-zinc-800/50 border border-transparent'
+          ? 'bg-primary/25 ring-1 ring-primary/50 text-primary font-semibold'
+          : isSynced
+            ? `bg-zinc-900 lg:bg-zinc-800 border border-zinc-800 lg:border-zinc-700/50 text-primary hover:border-primary/40 hover:bg-zinc-700/60 transition-opacity ${!isActive ? 'opacity-50 hover:opacity-100' : 'opacity-100'}`
+            : isActive
+              ? 'text-zinc-500 lg:text-zinc-400 animate-pulse-glow hover:bg-zinc-800/50 border border-transparent'
+              : 'text-zinc-700 lg:text-zinc-600 hover:bg-zinc-800/50 border border-transparent'
           }`}
       >
         {isSynced ? formatTimestamp(value, precision) : '--:--.--'}
@@ -270,11 +270,61 @@ const EditorLineItem = React.memo(({
   const { t } = useTranslation();
   const [editingTimestamp, setEditingTimestamp] = useState(null); // null | 'start' | 'end'
   const [editingReadingWordIndex, setEditingReadingWordIndex] = useState(null);
-  const [inlineEditCharIdx, setInlineEditCharIdx] = useState(null); // char index in line.text for plain-text kanji reading
+  const [selection, setSelection] = useState({ start: null, end: null, range: null }); // { start: ci|null, end: ci|null, range: {s,e}|null }
   const [nudgeIndicator, setNudgeIndicator] = useState(null);
   const [justSynced, setJustSynced] = useState(false);
   const nudgeTimerRef = useRef(null);
   const justSyncedTimerRef = useRef(null);
+
+  const onCharClick = useCallback((ci) => {
+    setSelection(prev => {
+      if (prev.range) return prev;
+
+      const { plainText } = parseRubyMarkup(line.text || '♪');
+      const textChars = [...plainText];
+      const ch = textChars[ci];
+      if (!ch) return { start: null, end: null, range: null };
+      const isCharKanji = isKanji(ch);
+
+      // Initial click
+      if (prev.start === null) {
+        if (!isCharKanji) return { start: null, end: null, range: null };
+
+        let s = ci, e = ci;
+        while (s > 0 && isKanji(textChars[s - 1])) s--;
+        while (e < textChars.length - 1 && isKanji(textChars[e + 1])) e++;
+        return { start: s, end: (s === e ? null : e), range: null };
+      }
+
+      // Subsequent click
+      const s = prev.start;
+      const eRange = prev.end !== null ? prev.end : s;
+      const minS = Math.min(s, eRange);
+      const maxE = Math.max(s, eRange);
+
+      if (ci >= minS && ci <= maxE) {
+        // Clicked inside -> Confirm
+        return { start: null, end: null, range: { s: minS, e: maxE } };
+      }
+
+      // Clicked outside -> Replace if Kanji, else Clear
+      if (isCharKanji) {
+        let ns = ci, ne = ci;
+        while (ns > 0 && isKanji(textChars[ns - 1])) ns--;
+        while (ne < textChars.length - 1 && isKanji(textChars[ne + 1])) ne++;
+        return { start: ns, end: (ns === ne ? null : ne), range: null };
+      }
+      return { start: null, end: null, range: null };
+    });
+  }, [line.text]);
+
+  useEffect(() => {
+    if (!isActive) {
+      setSelection({ start: null, end: null, range: null });
+    } else {
+      activeLineRef?.current?.focus();
+    }
+  }, [isActive, activeLineRef]);
 
   const handleReadingCommit = useCallback((val, wi, direction) => {
     handleSetWordReading?.(i, wi, val);
@@ -295,6 +345,8 @@ const EditorLineItem = React.memo(({
   // Touch gesture refs
   const touchStartRef = useRef(null);
   const longPressTimerRef = useRef(null);
+  // Used to distinguish single-click from double-click on word chips/rubies in words mode
+  const wordClickTimerRef = useRef(null);
 
   const showNudge = useCallback((delta) => {
     const sign = delta > 0 ? '+' : '';
@@ -360,6 +412,7 @@ const EditorLineItem = React.memo(({
   useEffect(() => () => {
     clearTimeout(nudgeTimerRef.current);
     clearTimeout(longPressTimerRef.current);
+    clearTimeout(wordClickTimerRef.current);
   }, []);
 
   // Just-synced flash: trigger when line transitions from unsynced to synced
@@ -391,7 +444,19 @@ const EditorLineItem = React.memo(({
   return (
     <div
       ref={isActive ? activeLineRef : null}
-      onClick={(e) => handleLineClick(i, e)}
+      onClick={(e) => {
+        if (!selection.range) {
+          setSelection({ start: null, end: null, range: null });
+        }
+        handleLineClick(i, e);
+      }}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape' && (selection.start !== null || selection.range !== null)) {
+          e.stopPropagation();
+          setSelection({ start: null, end: null, range: null });
+        }
+      }}
+      tabIndex={isActive ? 0 : -1}
       onMouseEnter={() => handleLineHover(i)}
       onMouseLeave={handleLineHoverEnd}
       onTouchStart={handleTouchStart}
@@ -411,7 +476,7 @@ const EditorLineItem = React.memo(({
       onDragEnd={handleDragEnd}
       onDrop={(e) => handleDrop(e, i)}
       style={{ animationDelay: staggerDelay }}
-      className={`flex items-center gap-3 sm:gap-4 px-4 py-3 sm:px-3 sm:py-2 rounded-xl sm:rounded-lg transition-colors duration-300 ease-out cursor-pointer group relative overflow-hidden animate-preview-line-in ${selectedLines.has(i)
+      className={`outline-none flex items-center gap-3 sm:gap-4 px-4 py-3 sm:px-3 sm:py-2 rounded-xl sm:rounded-lg transition-colors duration-300 ease-out cursor-pointer group relative overflow-hidden animate-preview-line-in ${selectedLines.has(i)
         ? `bg-primary/15 border border-${isModified ? 'warning' : 'primary'}/40 ring-1 ring-${isModified ? 'warning' : 'primary'}/20`
         : isActive
           ? isLocked
@@ -427,8 +492,8 @@ const EditorLineItem = React.memo(({
       {/* Lock/unlock indicator */}
       {isActive && (
         <div className={`absolute left-0 inset-y-0 w-1 z-0 rounded-l-xl animate-bar-grow ${isLocked
-            ? `${isModified ? 'bg-warning shadow-[0_0_12px_rgba(245,158,11,0.6)]' : 'bg-primary shadow-[0_0_12px_rgba(29,185,84,0.6)]'} opacity-90`
-            : `${isModified ? 'bg-warning/60' : 'bg-primary/40'} opacity-60`
+          ? `${isModified ? 'bg-warning shadow-[0_0_12px_rgba(245,158,11,0.6)]' : 'bg-primary shadow-[0_0_12px_rgba(29,185,84,0.6)]'} opacity-90`
+          : `${isModified ? 'bg-warning/60' : 'bg-primary/40'} opacity-60`
           }`} />
       )}
       {/* Drag Handle & Line number */}
@@ -503,8 +568,8 @@ const EditorLineItem = React.memo(({
                       type="button"
                       onClick={(e) => { e.stopPropagation(); if (stampTarget !== 'main') handleStampTargetToggle?.(); }}
                       className={`inline-flex items-center justify-center text-[9px] px-1.5 py-0.5 rounded leading-none font-bold transition-all ${stampTarget === 'main'
-                          ? 'bg-primary text-zinc-900 shadow-sm'
-                          : 'text-zinc-600 hover:text-zinc-300'
+                        ? 'bg-primary text-zinc-900 shadow-sm'
+                        : 'text-zinc-600 hover:text-zinc-300'
                         }`}
                     >主</button>
                   </Tip>
@@ -513,8 +578,8 @@ const EditorLineItem = React.memo(({
                       type="button"
                       onClick={(e) => { e.stopPropagation(); if (stampTarget !== 'secondary') handleStampTargetToggle?.(); }}
                       className={`inline-flex items-center justify-center text-[9px] px-1.5 py-0.5 rounded leading-none font-bold transition-all ${stampTarget === 'secondary'
-                          ? 'bg-accent-blue text-zinc-900 shadow-sm'
-                          : 'text-zinc-600 hover:text-zinc-300'
+                        ? 'bg-accent-blue text-zinc-900 shadow-sm'
+                        : 'text-zinc-600 hover:text-zinc-300'
                         }`}
                     >ロ</button>
                   </Tip>
@@ -526,84 +591,54 @@ const EditorLineItem = React.memo(({
               <div className="flex flex-wrap gap-x-1 gap-y-1 w-full pr-2 min-h-[22px] items-end content-start">
                 {line.words?.map((w, wi) => {
                   const displayWord = w.word.replace(/^[()'"]+|[,;.!?()'"]+$/g, '');
-                  const isEditingReading = editingReadingWordIndex === wi;
                   const isFocusedWord = focusedTimestamp?.lineIndex === i && focusedTimestamp?.type === 'word' && focusedTimestamp?.wordIndex === wi;
                   const isActiveWord = wi === activeWordIndex;
-                  const canHaveReading = hasKanji(w.word || '');
-                  const readingFmt = settings?.editor?.display?.readingFormat || 'hiragana';
-                  const fmtReading = (r) => r ? (readingFmt === 'katakana' ? toKatakana(r) : toHiragana(r)) : r;
                   return (
                     <div key={wi} className="flex flex-col items-center gap-1">
-                      {/* Furigana reading row — only for kanji */}
-                      {canHaveReading && (isEditingReading ? (
-                        <ReadingInput
-                          defaultValue={fmtReading(w.reading) || ''}
-                          onCommit={(val, direction) => handleReadingCommit(val, wi, direction)}
-                          onCancel={() => setEditingReadingWordIndex(null)}
-                          readingFormat={readingFmt}
-                          className="text-[9px] font-mono text-center bg-transparent border-b border-primary outline-none text-primary px-0 py-0.5"
-                          style={{ width: `${Math.max(32, (w.reading?.length || 1) * 8, displayWord.length * 11)}px` }}
-                        />
-                      ) : (
-                        <Tip content={w.reading ? t('editor.wordReadingEdit', { reading: fmtReading(w.reading) }) : t('editor.wordReadingAdd')}>
-                          <span
-                            onClick={(e) => { e.stopPropagation(); setEditingReadingWordIndex(wi); }}
-                            className={`text-[9px] font-mono leading-none cursor-pointer select-none border-b-2 transition-all duration-200 min-h-[12px] flex items-center justify-center ${w.reading
-                                ? 'text-zinc-400 border-zinc-600/60 hover:text-primary hover:border-primary/50'
-                                : 'text-zinc-700/50 border-zinc-700/50 border-dashed hover:text-zinc-500 hover:border-zinc-600'
-                              }`}
-                            style={{ width: `${Math.max(24, (w.reading?.length || 1) * 8, displayWord.length * 11)}px`, textAlign: 'center' }}
-                          >
-                            {fmtReading(w.reading) || '　'}
-                          </span>
-                        </Tip>
-                      ))}
                       {/* Word chip */}
                       {w.time != null ? (
                         <div className="group/word flex items-center gap-0.5">
-                          <Tip content={canHaveReading ? t('editor.wordChipTitleReading', { word: w.word, time: formatTime(w.time) }) : t('editor.wordChipTitle', { word: w.word, time: formatTime(w.time) })}>
+                          <Tip content={t('editor.wordChipTitle', { word: w.word, time: formatTime(w.time) })}>
                             <StampedWordChip
                               time={w.time}
                               focusedTimestamp={focusedTimestamp}
                               lineIndex={i}
                               wi={wi}
                               onClick={(e) => handleWordClick(e, w, wi)}
-                              onDoubleClick={(e) => { e.stopPropagation(); if (canHaveReading) setEditingReadingWordIndex(wi); }}
                               className={`text-[11px] px-2.5 py-0.5 rounded-full border leading-none transition-all duration-200 cursor-pointer ${isActiveWord || isFocusedWord
-                                  ? 'bg-primary text-zinc-950 border-primary ring-2 ring-primary/40 shadow-[0_0_12px_rgba(var(--primary-rgb),0.5)] animate-pulse-glow'
-                                  : 'bg-zinc-800 border-primary/30 text-primary/70 hover:border-primary hover:bg-primary/20 hover:text-primary'
+                                ? 'bg-primary text-zinc-950 border-primary ring-2 ring-primary/40 shadow-[0_0_12px_rgba(var(--primary-rgb),0.5)] animate-pulse-glow'
+                                : 'bg-zinc-800 border-primary/30 text-primary/70 hover:border-primary hover:bg-primary/20 hover:text-primary'
                                 }`}
                             >
                               {displayWord}
                             </StampedWordChip>
                           </Tip>
-                            {!isMobile && (
-                              <button
-                                type="button"
-                                onClick={(e) => { e.stopPropagation(); handleClearWordTimestamp(i, wi); }}
-                                className="opacity-0 group-hover/word:opacity-100 text-zinc-600 hover:text-red-400 transition-all p-0.5 -ml-0.5"
-                              >
-                                <X className="size-2.5" />
-                              </button>
-                            )}
-                            {isMobile && isFocusedWord && (
-                              <button
-                                type="button"
-                                onClick={(e) => { e.stopPropagation(); onWordMenu?.(i, wi, w, false); }}
-                                className="text-primary-dim bg-primary/10 rounded-full p-1 -ml-1 animate-in fade-in zoom-in-50 duration-200"
-                              >
-                                <MoreHorizontal className="size-3" />
-                              </button>
-                            )}
+                          {!isMobile && (
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); handleClearWordTimestamp(i, wi); }}
+                              className="opacity-0 group-hover/word:opacity-100 text-zinc-600 hover:text-red-400 transition-all p-0.5 -ml-0.5"
+                            >
+                              <X className="size-2.5" />
+                            </button>
+                          )}
+                          {isMobile && isFocusedWord && (
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); onWordMenu?.(i, wi, w, false); }}
+                              className="text-primary-dim bg-primary/10 rounded-full p-1 -ml-1 animate-in fade-in zoom-in-50 duration-200"
+                            >
+                              <MoreHorizontal className="size-3" />
+                            </button>
+                          )}
                         </div>
                       ) : (
                         <div className="flex items-center gap-0.5">
                           <span
-                            onDoubleClick={(e) => { e.stopPropagation(); if (canHaveReading) setEditingReadingWordIndex(wi); }}
                             onClick={(e) => handleWordClick(e, w, wi)}
                             className={`text-[11px] px-2.5 py-0.5 rounded-full border leading-none transition-all cursor-pointer ${isActiveWord || isFocusedWord
-                                ? 'bg-primary text-zinc-950 border-primary ring-2 ring-primary/40 shadow-[0_0_12px_rgba(var(--primary-rgb),0.5)] animate-pulse-glow'
-                                : 'bg-zinc-800/50 border-zinc-700/30 text-zinc-600 hover:bg-zinc-800 hover:text-zinc-400'
+                              ? 'bg-primary text-zinc-950 border-primary ring-2 ring-primary/40 shadow-[0_0_12px_rgba(var(--primary-rgb),0.5)] animate-pulse-glow'
+                              : 'bg-zinc-800/50 border-zinc-700/30 text-zinc-600 hover:bg-zinc-800 hover:text-zinc-400'
                               }`}
                           >
                             {displayWord}
@@ -644,31 +679,31 @@ const EditorLineItem = React.memo(({
                           isSecondary={true}
                           onClick={(e) => handleWordClick(e, w, wi, true)}
                           className={`text-[11px] px-2.5 py-0.5 rounded-full border leading-none transition-colors cursor-pointer ${isActiveSecondaryWord || isFocusedSecondaryWord
-                              ? 'bg-accent-blue text-zinc-950 border-accent-blue ring-2 ring-accent-blue/40 shadow-[0_0_12px_rgba(var(--accent-blue-rgb),0.5)] animate-pulse-glow'
-                              : 'bg-accent-blue/10 border-accent-blue/30 text-accent-blue/70 hover:bg-accent-blue/20 hover:text-accent-blue hover:border-accent-blue'
+                            ? 'bg-accent-blue text-zinc-950 border-accent-blue ring-2 ring-accent-blue/40 shadow-[0_0_12px_rgba(var(--accent-blue-rgb),0.5)] animate-pulse-glow'
+                            : 'bg-accent-blue/10 border-accent-blue/30 text-accent-blue/70 hover:bg-accent-blue/20 hover:text-accent-blue hover:border-accent-blue'
                             }`}
                         >
                           {w.word}
                         </StampedWordChip>
                       </Tip>
-                        {!isMobile && (
-                          <button
-                            type="button"
-                            onClick={(e) => { e.stopPropagation(); handleClearWordTimestamp(i, wi, 'secondaryWords'); }}
-                            className="opacity-0 group-hover/sword:opacity-100 text-zinc-600 hover:text-red-400 transition-all p-0.5 -ml-0.5"
-                          >
-                            <X className="size-2.5" />
-                          </button>
-                        )}
-                        {isMobile && isFocusedSecondaryWord && (
-                          <button
-                            type="button"
-                            onClick={(e) => { e.stopPropagation(); onWordMenu?.(i, wi, w, true); }}
-                            className="text-accent-blue bg-accent-blue/10 rounded-full p-1 -ml-1 animate-in fade-in zoom-in-50 duration-200"
-                          >
-                            <MoreHorizontal className="size-3" />
-                          </button>
-                        )}
+                      {!isMobile && (
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); handleClearWordTimestamp(i, wi, 'secondaryWords'); }}
+                          className="opacity-0 group-hover/sword:opacity-100 text-zinc-600 hover:text-red-400 transition-all p-0.5 -ml-0.5"
+                        >
+                          <X className="size-2.5" />
+                        </button>
+                      )}
+                      {isMobile && isFocusedSecondaryWord && (
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); onWordMenu?.(i, wi, w, true); }}
+                          className="text-accent-blue bg-accent-blue/10 rounded-full p-1 -ml-1 animate-in fade-in zoom-in-50 duration-200"
+                        >
+                          <MoreHorizontal className="size-3" />
+                        </button>
+                      )}
                     </div>
                   ) : (
                     <div className="flex items-center gap-0.5">
@@ -676,8 +711,8 @@ const EditorLineItem = React.memo(({
                         key={wi}
                         onClick={(e) => handleWordClick(e, w, wi, true)}
                         className={`text-[11px] px-2.5 py-0.5 rounded-full border leading-none transition-all cursor-pointer ${isActiveSecondaryWord || isFocusedSecondaryWord
-                            ? 'bg-accent-blue text-zinc-900 border-accent-blue ring-2 ring-accent-blue/40 shadow-[0_0_12px_rgba(var(--accent-blue-rgb),0.5)] animate-pulse-glow'
-                            : 'bg-zinc-800/50 border-zinc-700/30 text-zinc-500 hover:bg-zinc-800 hover:text-zinc-400'
+                          ? 'bg-accent-blue text-zinc-900 border-accent-blue ring-2 ring-accent-blue/40 shadow-[0_0_12px_rgba(var(--accent-blue-rgb),0.5)] animate-pulse-glow'
+                          : 'bg-zinc-800/50 border-zinc-700/30 text-zinc-500 hover:bg-zinc-800 hover:text-zinc-400'
                           }`}
                       >
                         {w.word}
@@ -734,10 +769,10 @@ const EditorLineItem = React.memo(({
                 onClick={() => setFocusedTimestamp(focusedTimestamp?.lineIndex === i && focusedTimestamp?.type === 'end' ? null : { lineIndex: i, type: 'end' })}
                 onDoubleClick={(e) => { e.stopPropagation(); if (line.endTime != null) setEditingTimestamp('end'); }}
                 className={`flex items-center rounded px-1.5 py-0.5 text-[10px] font-mono tabular-nums transition-all w-fit ${focusedTimestamp?.lineIndex === i && focusedTimestamp?.type === 'end'
-                    ? 'bg-primary/25 ring-1 ring-primary/50 font-semibold'
-                    : line.endTime != null
-                      ? 'bg-zinc-800 border border-zinc-700/50 hover:border-accent-blue/40 hover:bg-zinc-700/60'
-                      : 'text-zinc-600 hover:bg-zinc-800/50 border border-transparent'
+                  ? 'bg-primary/25 ring-1 ring-primary/50 font-semibold'
+                  : line.endTime != null
+                    ? 'bg-zinc-800 border border-zinc-700/50 hover:border-accent-blue/40 hover:bg-zinc-700/60'
+                    : 'text-zinc-600 hover:bg-zinc-800/50 border border-transparent'
                   }`}
               >
                 {line.endTime != null
@@ -834,162 +869,232 @@ const EditorLineItem = React.memo(({
           <div className={`flex flex-col gap-1 group/text min-w-0 w-full ${editorMode === 'words' ? 'pt-0.5' : ''}`}>
             <div className="flex items-center gap-2">
               <p
-                className={`text-[13px] lg:text-xs transition-all duration-300 ease-out ${editorMode !== 'words' && (line.words?.some(w => w.reading) || editingReadingWordIndex != null || inlineEditCharIdx != null) ? 'overflow-hidden' : 'break-words whitespace-pre-wrap'} ${isActive
+                className={`text-[13px] lg:text-xs transition-all duration-300 ease-out ${editorMode !== 'words' && (line.words?.some(w => w.reading) || editingReadingWordIndex != null || selection.start != null || selection.range != null) ? 'overflow-hidden' : 'break-words whitespace-pre-wrap'} ${isActive
                   ? 'text-zinc-100 font-medium'
                   : isSynced
                     ? line.words?.some(w => w.time != null) ? 'text-zinc-300' : 'text-zinc-100'
                     : 'text-zinc-500'
                   }`}
-                style={editorMode !== 'words' && (line.words?.some(w => w.reading) || editingReadingWordIndex != null || inlineEditCharIdx != null)
+                style={editorMode !== 'words' && (line.words?.some(w => w.reading) || editingReadingWordIndex != null || selection.start != null || selection.range != null)
                   ? { lineHeight: '2.4' }
                   : { lineHeight: '1.6' }}
               >
-                {editorMode === 'words' && line.words?.length > 0
+                {line.words?.length > 0
                   ? line.words.map((w, wi) => {
-                    const isFocusedWord = focusedTimestamp?.lineIndex === i && focusedTimestamp?.type === 'word' && focusedTimestamp?.wordIndex === wi;
+                    const isFocusedWord = (focusedTimestamp?.lineIndex === i && focusedTimestamp?.type === 'word' && focusedTimestamp?.wordIndex === wi) || (focusedTimestamp?.lineIndex === i && focusedTimestamp?.type === 'secondaryWord' && focusedTimestamp?.wordIndex === wi);
                     const isActiveWord = isActive && wi === activeWordIndex;
-                    return (
-                      <span
-                        key={wi}
-                        onClick={(e) => handleWordClick(e, w, wi)}
-                        className={`transition-all px-0.5 rounded cursor-pointer ${isActiveWord || isFocusedWord
-                            ? 'text-primary [text-shadow:0_0_0.8px_currentColor] underline decoration-dotted underline-offset-2'
-                            : w.time != null
-                              ? 'text-primary/70 hover:bg-zinc-800'
-                              : isActive || isSynced ? 'text-zinc-100 hover:bg-zinc-800' : 'hover:bg-zinc-800'
-                          }`}
-                      >
-                        {w.word}{' '}
+                    const canHaveReading = hasKanji(w.word || '');
+                    const isEditing = editingReadingWordIndex === wi;
+                    const rubyFmt = settings?.editor?.display?.readingFormat || 'hiragana';
+                    const fmtR = (r) => r ? (rubyFmt === 'katakana' ? toKatakana(r) : toHiragana(r)) : r;
+                    const trailingSpace = /[a-zA-Z0-9]/.test(w.word) ? ' ' : null;
+
+                    const spanClass = editorMode === 'words'
+                      ? `transition-all px-0.5 rounded ${isActiveWord || isFocusedWord
+                        ? 'text-primary [text-shadow:0_0_0.8px_currentColor] underline decoration-dotted underline-offset-2'
+                        : w.time != null
+                          ? 'text-primary/70 hover:bg-zinc-800'
+                          : isActive || isSynced ? 'text-zinc-100 hover:bg-zinc-800' : 'hover:bg-zinc-800'
+                      }`
+                      : `transition-colors px-0.5 rounded ${isActiveWord || isFocusedWord ? 'bg-primary/20 text-primary' : 'hover:bg-white/5'}`;
+
+                    const content = (
+                      <span className={spanClass}>
+                        {w.word}
                       </span>
                     );
-                  })
-                  : line.words?.length > 0
-                    ? line.words.map((w, wi) => {
-                      const canHaveReading = hasKanji(w.word || '');
-                      const isEditingThisReading = editingReadingWordIndex === wi;
-                      const rubyFmt = settings?.editor?.display?.readingFormat || 'hiragana';
-                      const fmtR = (r) => r ? (rubyFmt === 'katakana' ? toKatakana(r) : toHiragana(r)) : r;
-                      const trailingSpace = /[a-zA-Z0-9]/.test(w.word) ? ' ' : null;
-                      if (isEditingThisReading) {
-                        return (
-                          <React.Fragment key={wi}>
-                            <ruby>
-                              {w.word}
-                              <rt>
-                                <ReadingInput
-                                  defaultValue={fmtR(w.reading) || ''}
-                                  onCommit={(val, direction) => handleReadingCommit(val, wi, direction)}
-                                  onCancel={() => setEditingReadingWordIndex(null)}
-                                  readingFormat={rubyFmt}
-                                  className="text-[9px] font-mono text-center bg-transparent border-b border-primary outline-none text-primary px-0 py-0.5"
-                                  style={{ width: `${Math.max(30, [...(w.reading || '')].length * 8, [...w.word].length * 9)}px` }}
-                                />
-                              </rt>
-                            </ruby>
-                            {trailingSpace}
-                          </React.Fragment>
-                        );
-                      }
-                      if (w.reading) {
-                        return (
-                          <React.Fragment key={wi}>
-                            <ruby
-                              onClick={(e) => { e.stopPropagation(); if (canHaveReading) setEditingReadingWordIndex(wi); }}
-                              className={canHaveReading ? 'cursor-pointer' : ''}
-                            >
-                              {w.word}
-                              <rt className="text-[10px] font-mono text-zinc-400 hover:text-primary transition-colors select-none">{fmtR(w.reading)}</rt>
-                            </ruby>
-                            {trailingSpace}
-                          </React.Fragment>
-                        );
-                      }
-                      if (canHaveReading) {
-                        const rubyFmt = settings?.editor?.display?.readingFormat || 'hiragana';
-                        const isEditing = editingReadingWordIndex === wi;
-                        if (isEditing) {
-                          return (
-                            <React.Fragment key={wi}>
-                              <ruby>
-                                {w.word}
-                                <rt>
-                                  <ReadingInput
-                                    defaultValue=""
-                                    onCommit={(val, direction) => handleReadingCommit(val, wi, direction)}
-                                    onCancel={() => setEditingReadingWordIndex(null)}
-                                    readingFormat={rubyFmt}
-                                    className="text-[9px] font-mono text-center bg-transparent border-b border-primary outline-none text-primary px-0 py-0.5"
-                                    style={{ width: `${Math.max(24, w.word.length * 10)}px` }}
-                                  />
-                                </rt>
-                              </ruby>
-                              {trailingSpace}
-                            </React.Fragment>
-                          );
-                        }
-                        return (
-                          <React.Fragment key={wi}>
-                            <ruby
-                              onClick={(e) => { e.stopPropagation(); setEditingReadingWordIndex(wi); }}
-                              className="cursor-pointer hover:text-primary transition-all duration-200 group/ruby"
-                            >
-                              {w.word}
-                              <rt className="border-b-2 border-zinc-700/50 border-dashed min-h-[4px] group-hover/ruby:border-primary/40">
-                                {'　'}
-                              </rt>
-                            </ruby>
-                            {trailingSpace}
-                          </React.Fragment>
-                        );
-                      }
+
+                    if (isEditing) {
                       return (
                         <React.Fragment key={wi}>
-                          <span className="cursor-default text-zinc-300/90">{w.word}</span>
+                          <ruby>
+                            {content}
+                            <rt>
+                              <ReadingInput
+                                defaultValue={fmtR(w.reading) || ''}
+                                onCommit={(val, direction) => handleReadingCommit(val, wi, direction)}
+                                onCancel={() => setEditingReadingWordIndex(null)}
+                                readingFormat={rubyFmt}
+                                className="text-[9px] font-mono text-center bg-transparent border-b border-primary outline-none text-primary px-0 py-0.5"
+                                style={{ width: `${Math.max(30, (w.reading || w.word).length * 10)}px` }}
+                              />
+                            </rt>
+                          </ruby>
                           {trailingSpace}
                         </React.Fragment>
                       );
-                    })
-                    : [...(line.text || '♪')].map((ch, ci) => {
-                      if (!hasCJK(ch)) return <span key={ci} className="text-zinc-300/90">{ch}</span>;
-                      const rubyFmt = settings?.editor?.display?.readingFormat || 'hiragana';
-                      if (inlineEditCharIdx === ci) {
+                    }
+
+                    return (
+                      <React.Fragment key={wi}>
+                        <ruby
+                          className={`group/ruby cursor-pointer ${canHaveReading ? 'hover:text-primary' : ''}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (editorMode === 'words') {
+                              handleWordClick(e, w, wi);
+                            } else if (canHaveReading) {
+                              setEditingReadingWordIndex(wi);
+                            }
+                          }}
+                          onDoubleClick={(e) => {
+                            if (editorMode !== 'words' && canHaveReading) {
+                              e.stopPropagation();
+                              e.preventDefault();
+                              clearTimeout(wordClickTimerRef.current);
+                              setEditingReadingWordIndex(wi);
+                            }
+                          }}
+                        >
+                          {content}
+                          {canHaveReading && editorMode !== 'words' && (
+                            <rt
+                              className={`select-none transition-colors ${w.reading ? 'text-[10px] font-mono text-zinc-400 group-hover/ruby:text-primary' : 'border-b-2 border-zinc-700/30 border-dashed min-h-[4px] group-hover/ruby:border-primary/40'}`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingReadingWordIndex(wi);
+                              }}
+                            >
+                              {w.reading ? fmtR(w.reading) : '　'}
+                            </rt>
+                          )}
+                        </ruby>
+                        {trailingSpace}
+                      </React.Fragment>
+                    );
+                  })
+                  : (() => {
+                    const { plainText, segments } = parseRubyMarkup(line.text || '♪');
+                    const textChars = [...plainText];
+                    const rubyFmt = settings?.editor?.display?.readingFormat || 'hiragana';
+
+                    let currentCi = 0;
+                    return segments.map((seg, si) => {
+                      const segmentChars = [...seg.text];
+                      const startCi = currentCi;
+                      currentCi += segmentChars.length;
+
+                      if (seg.reading) {
                         return (
-                          <ruby key={ci}>
-                            {ch}
-                            <rt>
-                              <ReadingInput
-                                defaultValue=""
-                                onCommit={(val) => {
-                                  if (val) {
-                                    const chars = [...(line.text || '')];
-                                    const before = chars.slice(0, ci).join('');
-                                    const after = chars.slice(ci + 1).join('');
-                                    handleSaveLineText?.(i, `${before}{${ch}|${val}}${after}`, line.secondary, line.translation);
-                                  }
-                                  setInlineEditCharIdx(null);
-                                }}
-                                onCancel={() => setInlineEditCharIdx(null)}
-                                readingFormat={rubyFmt}
-                                className="text-[9px] font-mono text-center bg-transparent border-b border-primary outline-none text-primary px-0 py-0.5"
-                                style={{ width: '30px' }}
-                              />
+                          <ruby
+                            key={`seg-${si}`}
+                            className="text-primary font-medium cursor-pointer group/ruby relative"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onCharClick(startCi);
+                            }}
+                          >
+                            {seg.text}
+                            <rt className="text-[10px] font-mono text-zinc-400 select-none group-hover/ruby:text-primary transition-colors">
+                              {rubyFmt === 'katakana' ? toKatakana(seg.reading) : toHiragana(seg.reading)}
                             </rt>
                           </ruby>
                         );
                       }
-                      return (
-                        <ruby
-                          key={ci}
-                          onClick={(e) => { e.stopPropagation(); setInlineEditCharIdx(ci); }}
-                          className="cursor-pointer hover:text-primary transition-all duration-200 group/ruby"
-                        >
-                          {ch}
-                          <rt className="border-b-2 border-zinc-700/50 border-dashed min-h-[4px] group-hover/ruby:border-primary/40">
-                            {'　'}
-                          </rt>
-                        </ruby>
-                      );
-                    })
+
+                      return segmentChars.map((ch, i) => {
+                        const ci = startCi + i;
+                        const isNonCJK = !hasCJK(ch);
+
+                        const handleCharClick = (e) => {
+                          e.stopPropagation();
+                          onCharClick(ci);
+                        };
+
+                        if (isNonCJK) return <span key={ci} onClick={handleCharClick} className="text-zinc-300/90">{ch}</span>;
+
+                        if (selection.range) {
+                          const { s, e } = selection.range;
+                          if (ci === s) {
+                            const selectedText = textChars.slice(s, e + 1).join('');
+                            return (
+                              <ruby key={ci} className="text-primary font-medium">
+                                {selectedText}
+                                <rt>
+                                  <ReadingInput
+                                    defaultValue=""
+                                    onCommit={(val) => {
+                                      // Rebuild character array with current readings
+                                      const charReadings = [];
+                                      segments.forEach(s2 => {
+                                        const chars = [...s2.text];
+                                        chars.forEach(c => charReadings.push({ char: c, reading: s2.reading }));
+                                      });
+
+                                      // Update readings for selected range [s, e]
+                                      for (let k = s; k <= e; k++) {
+                                        charReadings[k].reading = val || null;
+                                      }
+
+                                      // Serialize back to markup
+                                      let resultText = "";
+                                      let j = 0;
+                                      while (j < charReadings.length) {
+                                        const start = j;
+                                        const r = charReadings[j].reading;
+                                        j++;
+                                        if (r) {
+                                          while (j < charReadings.length && charReadings[j].reading === r) {
+                                            j++;
+                                          }
+                                          const groupText = charReadings.slice(start, j).map(x => x.char).join('');
+                                          resultText += `{${groupText}|${r}}`;
+                                        } else {
+                                          resultText += charReadings[start].char;
+                                        }
+                                      }
+
+                                      handleSaveLineText?.(i, resultText, line.secondary, line.translation);
+                                      setSelection({ start: null, end: null, range: null });
+                                    }}
+                                    onCancel={() => setSelection({ start: null, end: null, range: null })}
+                                    readingFormat={rubyFmt}
+                                    className="text-[9px] font-mono text-center bg-transparent border-b border-primary outline-none text-primary px-0 py-0.5"
+                                    style={{ width: `${Math.max(30, selectedText.length * 12)}px` }}
+                                  />
+                                </rt>
+                              </ruby>
+                            );
+                          }
+                          if (ci > s && ci <= e) return null;
+                        }
+
+                        const sIdx = selection.start;
+                        const eIdx = selection.end !== null ? selection.end : sIdx;
+                        const inSelection = sIdx !== null && ci >= Math.min(sIdx, eIdx) && ci <= Math.max(sIdx, eIdx);
+
+                        const isCharKanji = isKanji(ch);
+
+                        if (isNonCJK || !isCharKanji) {
+                          return (
+                            <span
+                              key={ci}
+                              className={`transition-colors px-0.5 ${inSelection ? 'bg-primary/20 text-primary rounded-sm' : 'text-zinc-400/80'}`}
+                            >
+                              {ch}
+                            </span>
+                          );
+                        }
+
+                        return (
+                          <ruby
+                            key={ci}
+                            onClick={handleCharClick}
+                            className={`cursor-pointer transition-all duration-200 group/ruby ${inSelection ? 'bg-primary/20 text-primary rounded-sm shadow-[0_1px_0_0_rgba(var(--primary-rgb),0.2)]' : 'hover:text-primary'
+                              }`}
+                          >
+                            {ch}
+                            <rt className={`min-h-[4px] text-[8px] ${inSelection
+                                ? 'border-b-2 border-primary/40 border-dashed'
+                                : 'border-b-2 border-zinc-700/30 border-dashed group-hover/ruby:border-primary/40'
+                              }`}>
+                              {'　'}
+                            </rt>
+                          </ruby>
+                        );
+                      });
+                    });
+                  })()
                 }
               </p>
               {editorMode !== 'words' && line.words?.some((w) => w.time != null) && (
@@ -1027,10 +1132,10 @@ const EditorLineItem = React.memo(({
               size="icon-sm"
               onClick={(e) => { e.stopPropagation(); handleMark(); }}
               className={`justify-center border font-semibold rounded-lg flex-shrink-0 text-xs shadow-md animate-in fade-in zoom-in-90 duration-200 ${editorMode === 'words' && line.timestamp != null
-                  ? stampTarget === 'secondary'
-                    ? 'bg-accent-blue/15 hover:bg-accent-blue/25 border-accent-blue/40 text-accent-blue'
-                    : 'bg-sky-500/15 hover:bg-sky-500/25 border-sky-500/40 text-sky-400'
-                  : 'bg-primary/20 hover:bg-primary/30 border-primary/40 text-primary'
+                ? stampTarget === 'secondary'
+                  ? 'bg-accent-blue/15 hover:bg-accent-blue/25 border-accent-blue/40 text-accent-blue'
+                  : 'bg-sky-500/15 hover:bg-sky-500/25 border-sky-500/40 text-sky-400'
+                : 'bg-primary/20 hover:bg-primary/30 border-primary/40 text-primary'
                 }`}
             >
               <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
