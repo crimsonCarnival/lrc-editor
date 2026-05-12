@@ -25,7 +25,7 @@ export function formatInTimezone(date, timezone, options = {}, locale = 'en') {
     try {
       // Try with just the locale if timezone is the issue
       return new Intl.DateTimeFormat(targetLocale, options).format(d);
-    } catch (innerErr) {
+    } catch {
       return d.toLocaleString(targetLocale);
     }
   }
