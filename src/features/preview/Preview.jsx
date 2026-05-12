@@ -48,8 +48,6 @@ export default function Preview(props) {
   const {
     t,
     settings,
-    containerRef,
-    activeRef,
     pastingType,
     setPastingType,
     pasteText,
@@ -93,7 +91,7 @@ export default function Preview(props) {
     handleCopy,
   } = usePreview(props);
 
-  const { lines, playbackPosition, duration, exportToUrl, isSharedProject, sharedReadOnly, setSharedReadOnly, editorMode, shareModal, setShareModal, hasMedia, viewerMode } = props;
+  const { lines, playbackPosition, duration, exportToUrl, isSharedProject, sharedReadOnly, setSharedReadOnly, editorMode, shareModal, setShareModal, hasMedia, viewerMode, isPlaying, playbackSpeed } = props;
 
   const shareTriggerRef = useRef(null);
   const sharePanelRef = useRef(null);
@@ -130,13 +128,15 @@ export default function Preview(props) {
     <>
       <div className="lg:glass relative lg:rounded-2xl rounded-none p-3 sm:p-5 flex flex-col flex-1 animate-fade-in min-h-0">
         {/* Header */}
-        <div className="flex items-center justify-between mb-2 sm:mb-4 gap-2 sm:gap-4 relative z-raised">
-          <h2 className="text-xs sm:text-sm font-semibold tracking-widest text-zinc-400 flex items-center gap-2 overflow-hidden flex-1 pb-1">
-            <span className="uppercase shrink-0 text-xs sm:text-sm flex items-center gap-1.5">
-              <Eye className="w-3.5 h-3.5" />
-              {t('preview.title')}
-            </span>
-          </h2>
+        <div className={`flex items-center ${viewerMode ? 'justify-end' : 'justify-between'} mb-2 sm:mb-4 gap-2 sm:gap-4 relative z-raised`}>
+          {!viewerMode && (
+            <h2 className="text-xs sm:text-sm font-semibold tracking-widest text-zinc-400 flex items-center gap-2 overflow-hidden flex-1 pb-1">
+              <span className="uppercase shrink-0 text-xs sm:text-sm flex items-center gap-1.5">
+                <Eye className="w-3.5 h-3.5" />
+                {t('preview.title')}
+              </span>
+            </h2>
+          )}
           {hasSyncedLines && (
             <div className="relative flex items-center gap-1 text-zinc-300">
               {hasFurigana && (
@@ -296,12 +296,10 @@ export default function Preview(props) {
           />
         ) : (
           <PreviewViewport
-            containerRef={containerRef}
             lines={lines}
             currentIndex={currentIndex}
             hasSyncedLines={hasSyncedLines}
             playbackPosition={playbackPosition}
-            activeRef={activeRef}
             handleLineClick={handleLineClick}
             showTranslationsInPreview={showTranslationsInPreview}
             showFuriganaInPreview={showFuriganaInPreview}
@@ -317,6 +315,8 @@ export default function Preview(props) {
             editorMode={editorMode}
             t={t}
             hasMedia={hasMedia}
+            isPlaying={isPlaying}
+            playbackSpeed={playbackSpeed}
           />
         )}
       </div>
@@ -348,14 +348,14 @@ export default function Preview(props) {
 
 // ────────────────────────────────────────────────────────
 // Virtualized preview viewport — handles both normal and dual-line modes
+// containerRef and activeRef are created HERE so they're non-null when
+// useVirtualizer mounts and sets up its ResizeObserver.
 // ────────────────────────────────────────────────────────
 function PreviewViewport({
-  containerRef,
   lines,
   currentIndex,
   hasSyncedLines,
   playbackPosition,
-  activeRef,
   handleLineClick,
   showTranslationsInPreview,
   showFuriganaInPreview,
@@ -373,6 +373,10 @@ function PreviewViewport({
   isPlaying,
   playbackSpeed,
 }) {
+  // Own the refs here — the virtualizer needs getScrollElement to return
+  // a non-null element on mount for its ResizeObserver to attach properly.
+  const containerRef = useRef(null);
+  const activeRef = useRef(null);
   const isDualLine = settings.editor?.display?.dualLine;
   const showNextLine = settings.editor?.display?.showNextLine !== false;
   const scrollAlignment = settings.editor?.scroll?.alignment || 'center';
@@ -428,14 +432,15 @@ function PreviewViewport({
   // Auto-scroll to active line (virtual)
   useEffect(() => {
     if (isDualLine || scrollAlignment === 'none' || currentIndex < 0 || settings.preview?.autoScroll === false) return;
-    
-    // Use queueMicrotask to ensure the virtualizer has measured items
-    queueMicrotask(() => {
+
+    // Use requestAnimationFrame to ensure the virtualizer has painted items before scrolling
+    const raf = requestAnimationFrame(() => {
       virtualizer.scrollToIndex(currentIndex, {
         align: scrollAlignment === 'start' ? 'start' : scrollAlignment === 'end' ? 'end' : 'center',
         behavior: scrollMode,
       });
     });
+    return () => cancelAnimationFrame(raf);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentIndex, isDualLine, scrollAlignment, scrollMode, settings.preview?.autoScroll]);
 
