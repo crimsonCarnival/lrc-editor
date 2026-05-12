@@ -1,9 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { auth, spotify as spotifyApi, setAccessToken, clearAccessToken } from '@/api';
+import { auth, spotify as spotifyApi, setAuthFlag } from '@/api';
 import { useGoogleReCaptcha } from 'react-google-recaptcha-v3';
-
-const ACCESS_TOKEN_KEY = 'lrc-syncer-access-token';
-const REFRESH_TOKEN_KEY = 'lrc-syncer-refresh-token';
+import toast from 'react-hot-toast';
+import { authEvents } from '../utils/authEvents.js';
 
 export function useAuth() {
   const [user, setUser] = useState(null);
@@ -11,14 +10,17 @@ export function useAuth() {
   const refreshTimerRef = useRef(null);
   const { executeRecaptcha } = useGoogleReCaptcha();
 
-  const doLogout = useCallback(() => {
-    localStorage.removeItem(ACCESS_TOKEN_KEY);
-    localStorage.removeItem(REFRESH_TOKEN_KEY);
+  const doLogout = useCallback(async () => {
+    try {
+      await auth.logout();
+    } catch (err) {
+      console.error('Logout failed:', err);
+    }
     // Clear project data so stale projects don't persist across accounts
     localStorage.removeItem('lrc-syncer-project');
     localStorage.removeItem('lrc-syncer-shared-project');
     localStorage.removeItem('lrc-syncer-active-project-id');
-    clearAccessToken();
+    setAuthFlag(false);
     setUser(null);
     if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
   }, []);
@@ -27,19 +29,16 @@ export function useAuth() {
   const scheduleRefresh = useCallback((expiresIn = 14 * 60 * 1000) => {
     if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
     refreshTimerRef.current = setTimeout(async () => {
-      const rt = localStorage.getItem(REFRESH_TOKEN_KEY);
-      if (!rt) return;
       try {
-        const result = await auth.refresh(rt);
-        localStorage.setItem(ACCESS_TOKEN_KEY, result.accessToken);
-        if (result.refreshToken) {
-          localStorage.setItem(REFRESH_TOKEN_KEY, result.refreshToken);
-        }
-        setAccessToken(result.accessToken);
+        await auth.refresh();
         scheduleRefresh();
       } catch {
-        // Refresh failed — token expired, force logout
-        doLogout();
+        // Refresh failed — session fully expired, force logout with feedback
+        await doLogout();
+        toast.error('Your session has expired. Please sign in again.', {
+          id: 'session-expired',
+          duration: 6000,
+        });
       }
     }, expiresIn);
   }, [doLogout]);
@@ -51,53 +50,32 @@ export function useAuth() {
     restoringRef.current = true;
 
     const restore = async () => {
-      const at = localStorage.getItem(ACCESS_TOKEN_KEY);
-      const rt = localStorage.getItem(REFRESH_TOKEN_KEY);
-      if (!at && !rt) {
+      try {
+        const user = await auth.me();
+        setAuthFlag(true);
+        setUser(user);
+        scheduleRefresh();
+      } catch (err) {
+        if (err?.status === 401) {
+          // Access token might be expired, try refreshing
+          try {
+            await auth.refresh();
+            const user = await auth.me();
+            setAuthFlag(true);
+            setUser(user);
+            scheduleRefresh();
+          } catch {
+            // Both tokens invalid or missing
+            setAuthFlag(false);
+            setUser(null);
+          }
+        } else {
+          setAuthFlag(false);
+          setUser(null);
+        }
+      } finally {
         setLoading(false);
-        return;
       }
-
-      if (at) {
-        setAccessToken(at);
-        try {
-          const user = await auth.me();
-          setUser(user);
-          scheduleRefresh();
-          setLoading(false);
-          return;
-        } catch (err) {
-          // Access token expired or user deleted — clear it so refresh can try
-          clearAccessToken();
-          if (err?.status === 404) {
-            // User no longer exists — clear all tokens
-            localStorage.removeItem(ACCESS_TOKEN_KEY);
-            localStorage.removeItem(REFRESH_TOKEN_KEY);
-            setLoading(false);
-            return;
-          }
-        }
-      }
-
-      if (rt) {
-        try {
-          const result = await auth.refresh(rt);
-          localStorage.setItem(ACCESS_TOKEN_KEY, result.accessToken);
-          if (result.refreshToken) {
-            localStorage.setItem(REFRESH_TOKEN_KEY, result.refreshToken);
-          }
-          setAccessToken(result.accessToken);
-          const user = await auth.me();
-          setUser(user);
-          scheduleRefresh();
-        } catch {
-          // Both tokens invalid
-          localStorage.removeItem(ACCESS_TOKEN_KEY);
-          localStorage.removeItem(REFRESH_TOKEN_KEY);
-          clearAccessToken();
-        }
-      }
-      setLoading(false);
     };
 
     restore();
@@ -106,15 +84,37 @@ export function useAuth() {
     };
   }, [scheduleRefresh]);
 
+  // ——— Global token-expiry handler ———
+  const isRefreshingRef = useRef(false);
+  useEffect(() => {
+    const unsub = authEvents.on('token:expired', async () => {
+      if (isRefreshingRef.current) return; // de-duplicate concurrent events
+      isRefreshingRef.current = true;
+      try {
+        await auth.refresh();
+        scheduleRefresh();
+      } catch {
+        // Both tokens are dead — force logout
+        await doLogout();
+        toast.error('Your session has expired. Please sign in again.', {
+          id: 'session-expired',
+          duration: 6000,
+        });
+      } finally {
+        isRefreshingRef.current = false;
+      }
+    });
+    return unsub;
+  }, [doLogout, scheduleRefresh]);
+
   const login = useCallback(async ({ identifier, password }) => {
     let recaptchaToken = undefined;
     if (executeRecaptcha) {
       recaptchaToken = await executeRecaptcha('login');
     }
     const result = await auth.login({ identifier, password, recaptchaToken });
-    localStorage.setItem(ACCESS_TOKEN_KEY, result.accessToken);
-    localStorage.setItem(REFRESH_TOKEN_KEY, result.refreshToken);
-    setAccessToken(result.accessToken);
+    // Cookies are automatically set by the server. Just update user state.
+    setAuthFlag(true);
     setUser(result.user);
     scheduleRefresh();
 
@@ -133,9 +133,8 @@ export function useAuth() {
       recaptchaToken = await executeRecaptcha('register');
     }
     const result = await auth.register({ username, email, password, recaptchaToken });
-    localStorage.setItem(ACCESS_TOKEN_KEY, result.accessToken);
-    localStorage.setItem(REFRESH_TOKEN_KEY, result.refreshToken);
-    setAccessToken(result.accessToken);
+    // Cookies are automatically set by the server. Just update user state.
+    setAuthFlag(true);
     setUser(result.user);
     scheduleRefresh();
 
