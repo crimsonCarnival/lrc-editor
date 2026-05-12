@@ -1,5 +1,4 @@
 import React from 'react';
-import { useTranslation } from 'react-i18next';
 import { useSettings } from '@/contexts/useSettings';
 import { toHiragana, toKatakana, parseRubyMarkup } from '@/utils/furigana';
 import { Tip } from '@ui/tip';
@@ -30,7 +29,6 @@ export default function PreviewLine({
   isPlaying,
   playbackSpeed = 1,
 }) {
-  const { t } = useTranslation();
   const { settings } = useSettings();
 
   const isActive = i === displayedActiveIndex || (isDualLine && i === displayLines[0].originalIndex);
