@@ -231,6 +231,29 @@ The application is highly customizable via the Settings modal. Settings are grou
 
 ## Getting Started
 
+### Using Docker (Recommended for easy setup)
+
+> [!IMPORTANT]
+> **Ensure Docker Desktop is running** before executing these commands. If you are on Windows, make sure the Docker engine has fully initialized.
+
+If you have Docker and Docker Compose installed, you can start the entire stack with a single command:
+
+```bash
+docker-compose up -d --build
+```
+
+This will:
+1. Build the client (Nginx + static files)
+2. Build the server (Node.js)
+3. Start a MongoDB instance
+4. Connect everything together
+
+The application will be available at [http://localhost](http://localhost).
+
+---
+
+### Manual Installation
+
 ### Prerequisites
 
 - Node.js v18 or higher
@@ -245,26 +268,47 @@ The application is highly customizable via the Settings modal. Settings are grou
    cd lrc-studio
    ```
 
-2. Install dependencies:
+2. Install dependencies for both client and server:
 
    ```bash
+   # Install client dependencies
+   cd client
+   npm install
+
+   # In a separate terminal, install server dependencies
+   cd ../server
    npm install
    ```
 
 3. Configure environment:
 
+   **Client (`client/.env`):**
    ```bash
    cp .env.example .env
-   # Edit .env and set VITE_API_URL to your backend server
+   # Ensure VITE_API_URL is set to http://localhost:3000 for local dev
    ```
 
-4. Start the development server:
-
+   **Server (`server/.env`):**
    ```bash
+   cp .env.example .env
+   # Set your MONGODB_URI and other required keys
+   ```
+
+4. Start the development servers:
+
+   **Server:**
+   ```bash
+   cd server
    npm run dev
    ```
 
-5. Open [http://localhost:5173](http://localhost:5173) in your browser.
+   **Client:**
+   ```bash
+   cd client
+   npm run dev
+   ```
+
+5. Open [http://127.0.0.1:5173](http://127.0.0.1:5173) in your browser.
 
 ### Available Scripts
 
