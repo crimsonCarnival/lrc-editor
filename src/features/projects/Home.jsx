@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuthContext } from '@/contexts/useAuthContext';
-import { projects, spotify as spotifyApi } from '@/api';
+import { projects } from '@/api';
 import { Music2, Video, Plus, Search, Play, FileText, ChevronRight, Activity, Lightbulb, Library as LibraryIcon } from 'lucide-react';
 import SpotifyIcon from '@shared/SpotifyIcon';
 import ProjectSetupModal from '@features/editor/components/ProjectSetupModal';
