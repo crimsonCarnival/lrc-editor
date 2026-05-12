@@ -43,8 +43,9 @@ export function useAutosave({
   const { executeRecaptcha } = useGoogleReCaptcha();
   // Keep a ref-snapshot of volatile values to avoid stale closures inside the
   // setInterval / doAutoSave callback.
-  // IMPORTANT: isProjectLoading is stored here so doAutoSave always reads the
-  // live value rather than a value frozen into the useCallback closure.
+  // Values stored here are read via autoSaveRef.current inside doAutoSave, so
+  // they do NOT appear in doAutoSave's dependency array — keeping it stable and
+  // preventing the [lines, doAutoSave] effect from firing on every playback tick.
   const autoSaveRef = useRef(null);
   useEffect(() => {
     autoSaveRef.current = {
@@ -53,11 +54,20 @@ export function useAutosave({
       timeInterval: settings.advanced?.autoSave?.timeInterval ?? 30,
       buildPayload: buildProjectPayload,
       isSharedProject,
+      // Volatile editing values — removed from doAutoSave deps to prevent flooding
+      mediaTitle,
+      projectMetadata,
+      editorMode,
+      syncMode,
+      activeLineIndex,
+      cloudinaryAudio,
+      duration,
     };
   });
 
   const lastSaveTimeRef = useRef(Date.now());
   const changeCountRef = useRef(0);
+  const saveControllerRef = useRef(null);
 
   const doAutoSave = useCallback(async () => {
     // 1. Guard against concurrent creates or loads (manual restore race)
@@ -66,8 +76,16 @@ export function useAutosave({
     const s = autoSaveRef.current;
     if (!s || s.pendingProject !== null || !s.enabled) return;
 
-    const payload = s.buildPayload();
-    const key = s.isSharedProject ? SHARED_PROJECT_KEY : PROJECT_KEY;
+    // Read all volatile values from the ref snapshot — none of these appear in
+    // the dep array below, which keeps doAutoSave stable across playback ticks.
+    const {
+      buildPayload, isSharedProject,
+      mediaTitle, projectMetadata, editorMode, syncMode,
+      activeLineIndex, cloudinaryAudio, duration,
+    } = s;
+
+    const payload = buildPayload();
+    const key = isSharedProject ? SHARED_PROJECT_KEY : PROJECT_KEY;
     // Only persist to localStorage for guest users.
     // Auth users persist exclusively to the server.
     if (!getAccessToken()) {
@@ -131,8 +149,12 @@ export function useAutosave({
       });
 
       if (Object.keys(patchData).length > 0) {
+        // Cancel any previous in-flight save — the current state supersedes it
+        saveControllerRef.current?.abort();
+        saveControllerRef.current = new AbortController();
+        const { signal } = saveControllerRef.current;
         try {
-          await projects.patch(activeProjectIdRef.current, patchData);
+          await projects.patch(activeProjectIdRef.current, patchData, { signal });
           updateServerSnapshot({
             title,
             metadata,
@@ -143,6 +165,7 @@ export function useAutosave({
           });
           onSaveSuccess?.();
         } catch (err) {
+          if (err?.name === 'AbortError') return; // superseded — ignore
           // Auth failure: token may have expired. Signal the global handler.
           if (err?.status === 401 || err?.status === 403) {
             authEvents.emit('token:expired');
@@ -238,19 +261,11 @@ export function useAutosave({
     changeCountRef.current = 0;
     setIsAutosaving(true);
     setTimeout(() => setIsAutosaving(false), 1200);
-  // NOTE: isProjectLoading is intentionally NOT in this dep array.
-  // It is read via autoSaveRef.current.isProjectLoading (always fresh).
-  // Including it would cause doAutoSave to be recreated on every loading
-  // state change, which triggers the [lines, doAutoSave] effect and
-  // increments changeCountRef — potentially causing premature saves.
+  // Volatile editing values (mediaTitle, projectMetadata, editorMode, syncMode,
+  // activeLineIndex, cloudinaryAudio, duration) are intentionally NOT listed here.
+  // They are read from autoSaveRef.current which is updated every render,
+  // ensuring freshness without recreating doAutoSave on every playback tick.
   }, [
-    mediaTitle,
-    projectMetadata,
-    editorMode,
-    syncMode,
-    activeLineIndex,
-    cloudinaryAudio,
-    duration,
     isSharedProjectRef,
     activeProjectIdRef,
     isCreatingProjectRef,
@@ -264,6 +279,12 @@ export function useAutosave({
     onSaveSuccess,
   ]);
 
+  // Keep a stable ref to doAutoSave so the action-count effect depends only on
+  // [lines] — not on doAutoSave identity — preventing false edit-count increments
+  // when doAutoSave is recreated by non-edit dep changes.
+  const doAutoSaveRef = useRef(doAutoSave);
+  useEffect(() => { doAutoSaveRef.current = doAutoSave; }, [doAutoSave]);
+
   // ——— Action-based trigger (every 5 line edits) ———
   const isFirstLinesRender = useRef(true);
   useEffect(() => {
@@ -274,9 +295,9 @@ export function useAutosave({
     if (!s?.enabled || s.isProjectLoading) return;
     changeCountRef.current += 1;
     if (changeCountRef.current >= 5) {
-      doAutoSave();
+      doAutoSaveRef.current();
     }
-  }, [lines, doAutoSave]);
+  }, [lines]); // doAutoSave intentionally omitted — read via doAutoSaveRef
 
   // ——— Time-based trigger ———
   useEffect(() => {
