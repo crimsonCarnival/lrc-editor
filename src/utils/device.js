@@ -1,6 +1,6 @@
 import FingerprintJS from '@fingerprintjs/fingerprintjs';
 
-const STORAGE_KEY = 'syncify_device_id';
+const STORAGE_KEY = 'lrc_studio_device_id';
 const FP_PREFIX = 'dv_fp_';
 const FALLBACK_PREFIX = 'dv_fallback_';
 
