@@ -63,9 +63,9 @@ export default function InterfaceSettings({ settings, updateSetting, searchTerm 
             <SelectValue />
           </SelectTrigger>
           <SelectContent className="bg-zinc-900 border-zinc-700">
-            <SelectItem value="en">English</SelectItem>
-            <SelectItem value="es">Español</SelectItem>
-            <SelectItem value="ja">日本語</SelectItem>
+            <SelectItem value="en">{t('common.language.en')}</SelectItem>
+            <SelectItem value="es">{t('common.language.es')}</SelectItem>
+            <SelectItem value="ja">{t('common.language.ja')}</SelectItem>
           </SelectContent>
         </Select>
       </SettingRow>
