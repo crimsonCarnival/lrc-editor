@@ -6,6 +6,7 @@ import { SkeletonList, SkeletonEditor, SkeletonPreview, SkeletonSetup } from '@u
 import { Loader2, GripVertical } from 'lucide-react';
 import { Reorder } from 'framer-motion';
 import { usePageTitle } from '@/hooks/usePageTitle';
+import { useAuthContext } from '@/contexts/useAuthContext';
 
 const Editor = lazy(() => import('@features/editor/components/Editor'));
 const Preview = lazy(() => import('@features/preview/Preview'));
@@ -22,12 +23,60 @@ function EditorContainer({ loadProject, activeProjectId, children }) {
   const { id } = useParams();
 
   useEffect(() => {
-    if (id && id !== 'new' && id !== 'local' && id !== activeProjectId) {
+    if (id && id !== 'new' && id !== 'local' && id !== 'fork' && id !== activeProjectId) {
       loadProject(id);
     }
   }, [id, activeProjectId, loadProject]);
 
   return children;
+}
+
+function ForkHandler({ appState, navigate }) {
+  const { id } = useParams();
+  const { user } = useAuthContext();
+  const { loadProject, t } = appState;
+  const ran = useRef(false);
+
+  useEffect(() => {
+    if (ran.current) return;
+    if (!id) return;
+
+    if (!user || user.isGuest) {
+      // Store intention and redirect to login
+      localStorage.setItem('lrc-syncer-redirect', `/project/fork/${id}`);
+      localStorage.setItem('cloneAfterAuth', id);
+      navigate(`/auth/signin?redirect=${encodeURIComponent(`/project/fork/${id}`)}`);
+      return;
+    }
+
+    ran.current = true;
+    import('@/api').then(({ projects }) => {
+      projects.clone(id)
+        .then((res) => {
+          loadProject(res.projectId);
+          navigate(`/project/${res.projectId}`);
+          import('react-hot-toast').then(({ default: toast }) => {
+            toast.success(t('project.cloneSuccess') || 'Project copied successfully!');
+          });
+        })
+        .catch((err) => {
+          console.error('Failed to clone project:', err);
+          navigate('/library');
+          import('react-hot-toast').then(({ default: toast }) => {
+            toast.error(t('project.cloneFailed') || 'Failed to copy project');
+          });
+        });
+    });
+  }, [id, user, navigate, loadProject, t]);
+
+  return (
+    <div className="flex-1 flex flex-col items-center justify-center gap-4 text-zinc-400">
+      <Loader2 className="w-10 h-10 animate-spin text-primary" />
+      <p className="text-sm font-medium animate-pulse">
+        {t('project.cloning') || 'Cloning project...'}
+      </p>
+    </div>
+  );
 }
 
 export function AppRouter({
@@ -56,6 +105,7 @@ export function AppRouter({
     duration,
     triggerImportSave,
     handleManualSave,
+    handleGuestSave,
     handleRemoveAllLyrics,
     isAutosaving,
     isSaving,
@@ -80,6 +130,7 @@ export function AppRouter({
 
   usePageTitle(mediaTitle);
 
+  const { user } = useAuthContext();
   const { editorColClass, previewColClass, showEditor, showPreview, mobileTab, layoutSwap, setLayoutSwap, editorWidth, setEditorWidth, lockLayout, focusMode } = layoutState;
   const [draggingItem, setDraggingItem] = useState(null);
   const [isResizing, setIsResizing] = useState(false);
@@ -185,6 +236,7 @@ export function AppRouter({
           <AdminDashboard />
         </Suspense>
       } />
+      <Route path="project/fork/:id" element={<ForkHandler appState={appState} navigate={navigate} />} />
       <Route path="project/:id" element={
         <EditorContainer loadProject={loadProject} activeProjectId={activeProjectId}>
           {loadError === 'project' ? (
@@ -238,12 +290,14 @@ export function AppRouter({
                           <Suspense fallback={isEditor ? <SkeletonEditor /> : <SkeletonPreview />}>
                             {isEditor ? (
                               <Editor
+                                user={user}
                                 lines={lines} setLines={setLines} syncMode={syncMode} setSyncMode={setSyncMode}
                                 activeLineIndex={activeLineIndex} setActiveLineIndex={setActiveLineIndex}
                                 playbackPosition={playbackPosition} playerRef={playerRef}
                                 undo={undo} redo={redo} canUndo={canUndo} canRedo={canRedo}
                                 editorMode={editorMode} setEditorMode={setEditorMode} duration={duration}
                                 onImport={triggerImportSave} handleManualSave={handleManualSave}
+                                handleGuestSave={handleGuestSave}
                                 handleRemoveAllLyrics={handleRemoveAllLyrics} isAutosaving={isAutosaving}
                                 isSaving={isSaving}
                                 onNewProject={() => navigate('/project/new')}
