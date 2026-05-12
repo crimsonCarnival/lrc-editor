@@ -26,5 +26,11 @@ export default {
   "errorTitle": "Error al cargar el proyecto",
   "errorDesc": "Se produjo un error inesperado al intentar cargar el proyecto.",
   "untitled": "Sin título",
-  "editMetadata": "Editar metadatos"
+  "editMetadata": "Editar metadatos",
+  "guestCreateFailed": "No se pudo guardar tu borrador. Por favor, inténtalo de nuevo.",
+  "guestCreateRateLimited": "Demasiadas solicitudes. Espera un momento e inténtalo de nuevo.",
+  "claimExpired": "Tu borrador expiró antes de que se completara el inicio de sesión. Tus ediciones siguen en el editor — guarda de nuevo para conservarlas.",
+  "claimAlreadyClaimed": "Proyecto ya guardado en tu cuenta.",
+  "claimFailed": "No se pudo vincular tu borrador a tu cuenta. Por favor, guarda de nuevo.",
+  "claimNetworkError": "Error de red al guardar tu borrador. Comprueba tu conexión e inténtalo de nuevo."
 };

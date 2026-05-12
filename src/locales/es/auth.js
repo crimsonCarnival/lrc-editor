@@ -23,6 +23,7 @@ export default {
   "registerAction": "Crear cuenta",
   "login": "Iniciar sesión",
   "register": "Crear una cuenta",
+  "guestMode": "Continuar como invitado",
   "noAccount": "¿No tienes cuenta?",
   "hasAccount": "¿Ya tienes cuenta?",
   "loginError": "Credenciales inválidas",
@@ -72,5 +73,18 @@ export default {
     "user_not_found": "Cuenta no encontrada.",
     "appeal_already_pending": "Ya tienes una apelación pendiente. Por favor espera una respuesta.",
     "recaptchaNotice": "Este sitio está protegido por reCAPTCHA y se aplican la <0>Política de Privacidad</0> y los <1>Términos de Servicio</1> de Google."
+  },
+  "context": {
+    "continuingTo": "Continuando a",
+    "project": "Proyecto",
+    "newProject": "Proyecto Nuevo",
+    "library": "Tu Biblioteca",
+    "home": "Inicio"
+  },
+  "message": {
+    "logout": "Has cerrado sesión correctamente.",
+    "sessionExpired": "Tu sesión ha expirado. Por favor inicia sesión de nuevo.",
+    "banned": "Tu cuenta ha sido restringida. Por favor contacta a soporte.",
+    "unauthorized": "Por favor inicia sesión para acceder a esta página."
   }
 };

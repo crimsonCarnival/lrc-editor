@@ -149,7 +149,9 @@ export default {
     "readingFormat": "読み方形式",
     "readingFormatDesc": "発音補助に使用する表記体系を選択",
     "lockLayout": "ワークスペースレイアウトをロック",
-    "lockLayoutDesc": "パネルとプレイヤーバーを固定し、誤った並べ替えやサイズ変更を防止"
+    "lockLayoutDesc": "パネルとプレイヤーバーを固定し、誤った並べ替えやサイズ変更を防止",
+    "toastPosition": "通知の表示位置",
+    "toastPositionDesc": "画面上の通知が表示される場所を制御します"
   },
 
   "shortcuts": {
@@ -257,6 +259,11 @@ export default {
     "formats": {
       "lrc": "LRC（.lrc）",
       "srt": "SubRip（.srt）"
+    },
+    "positions": {
+      "bottomLeft": "左下",
+      "bottomCenter": "下部中央",
+      "bottomRight": "右下"
     }
   }
 };

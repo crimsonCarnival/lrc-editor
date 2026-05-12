@@ -23,6 +23,7 @@ export default {
   "registerAction": "Create account",
   "login": "Sign in",
   "register": "Create an account",
+  "guestMode": "Continue as Guest",
   "noAccount": "Don't have an account?",
   "hasAccount": "Already have an account?",
   "loginError": "Invalid credentials",
@@ -72,5 +73,18 @@ export default {
     "user_not_found": "Account not found.",
     "appeal_already_pending": "You already have a pending appeal. Please wait for a response.",
     "recaptchaNotice": "This site is protected by reCAPTCHA and the Google <0>Privacy Policy</0> and <1>Terms of Service</1> apply."
+  },
+  "context": {
+    "continuingTo": "Continuing to",
+    "project": "Project",
+    "newProject": "New Project",
+    "library": "Your Library",
+    "home": "Home"
+  },
+  "message": {
+    "logout": "You have been signed out successfully.",
+    "sessionExpired": "Your session has expired. Please sign in again.",
+    "banned": "Your account has been restricted. Please contact support.",
+    "unauthorized": "Please sign in to access this page."
   }
 };

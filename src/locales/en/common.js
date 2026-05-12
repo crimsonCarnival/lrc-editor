@@ -15,6 +15,7 @@ export default {
   "discard": "Discard",
   "restore": "Restore",
   "language.en": "English",
-  "language.es": "Español",
-  "language.ja": "日本語"
-};
+    "language.es": "Español",
+    "language.ja": "日本語",
+    "or": "OR"
+  };

@@ -149,7 +149,9 @@ export default {
     "readingFormat": "Formato de lectura",
     "readingFormatDesc": "Selecciona el sistema de escritura para ayudas de pronunciación",
     "lockLayout": "Bloquear diseño",
-    "lockLayoutDesc": "Fija los paneles y el reproductor para evitar reordenamientos o cambios de tamaño accidentales"
+    "lockLayoutDesc": "Fija los paneles y el reproductor para evitar reordenamientos o cambios de tamaño accidentales",
+    "toastPosition": "Posición de notificaciones",
+    "toastPositionDesc": "Controla dónde aparecen las notificaciones en pantalla"
   },
 
   "shortcuts": {
@@ -257,6 +259,11 @@ export default {
     "formats": {
       "lrc": "LRC (.lrc)",
       "srt": "SubRip (.srt)"
+    },
+    "positions": {
+      "bottomLeft": "Abajo a la izquierda",
+      "bottomCenter": "Abajo al centro",
+      "bottomRight": "Abajo a la derecha"
     }
   }
 };

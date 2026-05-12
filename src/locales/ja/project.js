@@ -26,5 +26,11 @@ export default {
   "errorTitle": "プロジェクトの読み込みエラー",
   "errorDesc": "プロジェクトの読み込み中に予期しないエラーが発生しました。",
   "untitled": "無題",
-  "editMetadata": "メタデータを編集"
+  "editMetadata": "メタデータを編集",
+  "guestCreateFailed": "下書きを保存できませんでした。もう一度お試しください。",
+  "guestCreateRateLimited": "リクエストが多すぎます。少し待ってからもう一度お試しください。",
+  "claimExpired": "サインインが完了する前に下書きの有効期限が切れました。編集内容はエディターに残っています — 保存し直してください。",
+  "claimAlreadyClaimed": "プロジェクトはすでにアカウントに保存されています。",
+  "claimFailed": "下書きをアカウントに紐付けできませんでした。もう一度保存してください。",
+  "claimNetworkError": "下書きの保存中にネットワークエラーが発生しました。接続を確認してもう一度お試しください。"
 };

@@ -149,7 +149,9 @@ export default {
     "readingFormat": "Reading Format",
     "readingFormatDesc": "Select the preferred script for pronunciation aids",
     "lockLayout": "Lock Workspace Layout",
-    "lockLayoutDesc": "Freeze panels and the player bar in place to prevent accidental reordering or resizing"
+    "lockLayoutDesc": "Freeze panels and the player bar in place to prevent accidental reordering or resizing",
+    "toastPosition": "Notification Position",
+    "toastPositionDesc": "Controls where on-screen notifications appear"
   },
 
   "shortcuts": {
@@ -257,6 +259,11 @@ export default {
     "formats": {
       "lrc": "LRC (.lrc)",
       "srt": "SubRip (.srt)"
+    },
+    "positions": {
+      "bottomLeft": "Bottom Left",
+      "bottomCenter": "Bottom Center",
+      "bottomRight": "Bottom Right"
     }
   }
 };

@@ -26,5 +26,11 @@ export default {
   "errorTitle": "Error Loading Project",
   "errorDesc": "An unexpected error occurred while trying to load the project.",
   "untitled": "Untitled",
-  "editMetadata": "Edit Metadata"
+  "editMetadata": "Edit Metadata",
+  "guestCreateFailed": "Could not save your draft. Please try again.",
+  "guestCreateRateLimited": "Too many requests. Please wait a moment and try again.",
+  "claimExpired": "Your draft expired before sign-in completed. Your edits are still in the editor — save again to keep them.",
+  "claimAlreadyClaimed": "Project already saved to your account.",
+  "claimFailed": "Could not link your draft to your account. Please save again.",
+  "claimNetworkError": "Network error while saving your draft. Please check your connection and try again."
 };

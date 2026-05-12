@@ -23,6 +23,7 @@ export default {
   "registerAction": "アカウント作成",
   "login": "サインイン",
   "register": "アカウントを作成",
+  "guestMode": "ゲストとして続ける",
   "noAccount": "アカウントをお持ちでないですか？",
   "hasAccount": "すでにアカウントをお持ちですか？",
   "loginError": "認証情報が無効です",
@@ -72,5 +73,18 @@ export default {
     "user_not_found": "アカウントが見つかりません。",
     "appeal_already_pending": "既に不服申し請が保留中です。回答をお待ちください。",
     "recaptchaNotice": "このサイトは reCAPTCHA によって保護されており、Google の<0>プライバシーポリシー</0>と<1>利用規約</1>が適用されます。"
+  },
+  "context": {
+    "continuingTo": "移動先:",
+    "project": "プロジェクト",
+    "newProject": "新規プロジェクト",
+    "library": "ライブラリ",
+    "home": "ホーム"
+  },
+  "message": {
+    "logout": "サインアウトしました。",
+    "sessionExpired": "セッションの有効期限が切れました。再度サインインしてください。",
+    "banned": "アカウントが制限されています。サポートにお問い合わせください。",
+    "unauthorized": "このページにアクセスするにはサインインしてください。"
   }
 };

@@ -26,6 +26,8 @@ export default {
   "lyricsReady": "歌詞を読み込みました",
   "audioReady": "音声を読み込みました",
   "linesCount": "{{count}}行",
+  "linesCount_one": "{{count}}行",
+  "linesCount_other": "{{count}}行",
   "changeAudio": "変更",
   "changeLyrics": "変更",
   "yourMedia": "マイメディア",
