@@ -1,5 +1,5 @@
 import {
-  Suspense, lazy, useEffect, useState, useRef, useCallback, Fragment
+  Suspense, lazy, useEffect, useState, useRef, useCallback, useMemo, Fragment, memo
 } from 'react';
 import { Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { SkeletonList, SkeletonEditor, SkeletonPreview, SkeletonSetup } from '@ui/skeleton';
@@ -8,8 +8,14 @@ import { Reorder } from 'framer-motion';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useAuthContext } from '@/contexts/useAuthContext';
 
-const Editor = lazy(() => import('@features/editor/components/Editor'));
-const Preview = lazy(() => import('@features/preview/Preview'));
+const EditorLazy = lazy(() => import('@features/editor/components/Editor'));
+const PreviewLazy = lazy(() => import('@features/preview/Preview'));
+
+// Memo wrappers prevent Editor/Preview from re-rendering when AppRouter
+// re-renders due to hover/drag/resize layout state changes — which are
+// purely cosmetic and don't affect editor or preview content.
+const Editor = memo(EditorLazy);
+const Preview = memo(PreviewLazy);
 const Library = lazy(() => import('@features/projects/Library'));
 const UploadsLibrary = lazy(() => import('@features/projects/UploadsLibrary'));
 const UploadDetailView = lazy(() => import('@features/projects/UploadDetailView'));
@@ -146,25 +152,24 @@ export function AppRouter({
 
   // Reorder logic
   const items = layoutSwap ? ['preview', 'editor'] : ['editor', 'preview'];
-  const handleReorder = (newOrder) => {
+  const handleReorder = useCallback((newOrder) => {
     const isSwapped = newOrder[0] === 'preview';
     if (isSwapped !== layoutSwap) setLayoutSwap(isSwapped);
-  };
+  }, [layoutSwap, setLayoutSwap]);
 
-  const borderClass = (item) => {
-    if (draggingItem === item) return 'border-dashed border-primary/40 shadow-2xl scale-[1.01] z-50';
-    if (isResizing || isHoveringDivider) return 'border-primary/40 shadow-xl';
-    
-    // Apply active glow based on focusMode
-    const isFocused = (item === 'editor' && focusMode === 'sync') || 
-                      (item === 'preview' && focusMode === 'playback');
-                      
-    if (isFocused && !lockLayout) {
-      return 'border-primary/40 shadow-[0_0_20px_rgba(29,185,84,0.15)] ring-1 ring-primary/20 transition-all duration-300';
-    }
-    
-    return 'border-zinc-700/50 hover:border-zinc-600/50 transition-all duration-300';
-  };
+  const borderClasses = useMemo(() => {
+    const base = (item) => {
+      if (draggingItem === item) return 'border-dashed border-primary/40 shadow-2xl scale-[1.01] z-50';
+      if (isResizing || isHoveringDivider) return 'border-primary/40 shadow-xl';
+      const isFocused = (item === 'editor' && focusMode === 'sync') ||
+                        (item === 'preview' && focusMode === 'playback');
+      if (isFocused && !lockLayout) {
+        return 'border-primary/40 shadow-[0_0_20px_rgba(29,185,84,0.15)] ring-1 ring-primary/20 transition-all duration-300';
+      }
+      return 'border-zinc-700/50 hover:border-zinc-600/50 transition-all duration-300';
+    };
+    return { editor: base('editor'), preview: base('preview') };
+  }, [draggingItem, isResizing, isHoveringDivider, focusMode, lockLayout]);
 
   const handleResize = useCallback((e) => {
     if (!containerRef.current) return;
@@ -184,19 +189,25 @@ export function AppRouter({
     setEditorWidth(clampedEditorWidth);
   }, [layoutSwap, setEditorWidth]);
 
+  // Keep a ref so the mousemove listener always calls the current handleResize
+  // even if layoutSwap changes mid-drag (stale closure prevention).
+  const handleResizeRef = useRef(handleResize);
+  useEffect(() => { handleResizeRef.current = handleResize; }, [handleResize]);
+
   const startResizing = useCallback(() => {
     if (!isDesktop || lockLayout) return;
     setIsResizing(true);
     document.body.style.cursor = 'col-resize';
     document.body.style.userSelect = 'none'; // Prevent text selection while dragging
-    window.addEventListener('mousemove', handleResize);
+    const onMove = (e) => handleResizeRef.current(e);
+    window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', () => {
       setIsResizing(false);
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
-      window.removeEventListener('mousemove', handleResize);
+      window.removeEventListener('mousemove', onMove);
     }, { once: true });
-  }, [handleResize, isDesktop, lockLayout]);
+  }, [isDesktop, lockLayout]);
 
   return (
     <Routes>
@@ -278,7 +289,7 @@ export function AppRouter({
                           layout={false}
                           dragListener={isDesktop && !lockLayout}
                           whileDrag={{ scale: 1.01, zIndex: 50, boxShadow: "0px 20px 40px rgba(0,0,0,0.4)", opacity: 0.8 }}
-                          className={`flex-1 flex flex-col min-h-0 ${isEditor ? 'gap-4' : ''} ${mobileTab !== item ? 'max-lg:hidden' : ''} relative group/reorder lg:border-2 lg:rounded-2xl border-0 rounded-none ${borderClass(item)} transition-colors duration-200 overflow-hidden lg:bg-zinc-900/50 lg:backdrop-blur-sm bg-zinc-950`}
+                          className={`flex-1 flex flex-col min-h-0 ${isEditor ? 'gap-4' : ''} ${mobileTab !== item ? 'max-lg:hidden' : ''} relative group/reorder lg:border-2 lg:rounded-2xl border-0 rounded-none ${isEditor ? borderClasses.editor : borderClasses.preview} transition-colors duration-200 overflow-hidden lg:bg-zinc-900/50 lg:backdrop-blur-sm bg-zinc-950`}
                           onDragStart={() => setDraggingItem(item)}
                           onDragEnd={() => setDraggingItem(null)}
                         >
