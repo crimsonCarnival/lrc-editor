@@ -3,6 +3,7 @@ import { useSettings } from '@/contexts/useSettings';
 import { DEFAULT_SETTINGS } from '@/contexts/settingsDefaults';
 import { useSettingsModal } from '@features/settings/hooks/useSettingsModal';
 import { useScrollLock } from '@/hooks/useScrollLock';
+import { useAuthContext } from '@/contexts/useAuthContext';
 import PlaybackSettings from './panels/PlaybackSettings';
 import EditorSettings from './panels/EditorSettings';
 import ExportSettings from './panels/ExportSettings';
@@ -39,6 +40,8 @@ function contentWrapperClass(searchTerm) {
 
 export default function SettingsModal({ isOpen, onClose }) {
     const { t } = useTranslation();
+    const { user } = useAuthContext();
+    const isGuest = !user;
     const { settings: globalSettings, updateAllSettings } = useSettings();
     const {
         settings,
@@ -53,6 +56,12 @@ export default function SettingsModal({ isOpen, onClose }) {
         handleReset,
         handleApply,
     } = useSettingsModal(isOpen, onClose, globalSettings, updateAllSettings);
+
+    // Guests cannot access Profile settings; filter it out
+    const visibleTabs = isGuest ? TABS.filter((tab) => tab.id !== 'profile') : TABS;
+
+    // If the modal is opened to 'profile' tab but the user is a guest, fallback to 'playback'
+    if (isGuest && activeTab === 'profile') setActiveTab('playback');
 
     useScrollLock(isOpen);
 
@@ -105,7 +114,7 @@ export default function SettingsModal({ isOpen, onClose }) {
                         {/* Tabs */}
                         {!searchTerm && (
                             <div className="flex w-full border-b border-zinc-800 flex-shrink-0 overflow-x-auto no-scrollbar" role="tablist">
-                                {TABS.map((tab) => {
+                                {visibleTabs.map((tab) => {
                                     const label = t(tab.labelKey) || tab.fallback || tab.id;
                                     const isActive = activeTab === tab.id;
                                     return (
@@ -189,6 +198,7 @@ export default function SettingsModal({ isOpen, onClose }) {
                                         settings={settings}
                                         updateSetting={updateSetting}
                                         searchTerm={searchTerm}
+                                        isGuest={isGuest}
                                     />
                                 </div>
                             </div>
