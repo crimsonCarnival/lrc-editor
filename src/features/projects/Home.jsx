@@ -3,19 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuthContext } from '@/contexts/useAuthContext';
 import { projects, spotify as spotifyApi } from '@/api';
-import { Music2, Video, Plus, Search, Play, FileText, ChevronRight, Activity, Lightbulb } from 'lucide-react';
+import { Music2, Video, Plus, Search, Play, FileText, ChevronRight, Activity, Lightbulb, Library as LibraryIcon } from 'lucide-react';
 import SpotifyIcon from '@shared/SpotifyIcon';
 import ProjectSetupModal from '@features/editor/components/ProjectSetupModal';
-import YoutubeSearchPanel from './YoutubeSearchPanel';
 import { useSpotifyAuth } from '@/hooks/useSpotifyAuth';
-
-function YtIcon({ className }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-      <path d="M21.8 8.001a2.75 2.75 0 0 0-1.937-1.948C18.2 5.6 12 5.6 12 5.6s-6.2 0-7.863.453A2.75 2.75 0 0 0 2.2 8.001 28.8 28.8 0 0 0 1.75 12a28.8 28.8 0 0 0 .45 3.999 2.75 2.75 0 0 0 1.937 1.948C5.8 18.4 12 18.4 12 18.4s6.2 0 7.863-.453a2.75 2.75 0 0 0 1.937-1.948A28.8 28.8 0 0 0 22.25 12a28.8 28.8 0 0 0-.45-3.999ZM9.75 15V9l5.25 3-5.25 3Z" />
-    </svg>
-  );
-}
 
 function formatRelativeTime(dateStr, t, locale = 'en') {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -38,7 +29,6 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [editingProject, setEditingProject] = useState(null);
-  const [showYtSearch, setShowYtSearch] = useState(false);
 
   const [randomSeed, setRandomSeed] = useState({ greeting: 0, welcome: 0, search: 0, tip: 0 });
   useEffect(() => {
@@ -82,16 +72,9 @@ export default function Home() {
   const lastProject = items.length > 0 ? items[0] : null;
   const username = user?.username || 'Creator';
 
-  const handleYtSelect = ({ url, title }) => {
-    // Store selected YouTube URL in sessionStorage so the new project page can pick it up
-    sessionStorage.setItem('pendingYtUrl', url);
-    sessionStorage.setItem('pendingYtTitle', title || '');
-    navigate('/project/new');
-  };
-
   const renderActionCards = () => (
     <div className="flex flex-row gap-4 w-full max-w-2xl animate-fade-in">
-      <div className="flex flex-col gap-4 flex-1">
+      <div className="flex flex-col gap-4 flex-1 isolate">
         <div
           onClick={() => navigate('/project/new')}
           className="group cursor-pointer glass rounded-2xl p-5 text-left hover:border-primary/50 transition-all shadow-elevated flex items-center gap-5"
@@ -106,15 +89,15 @@ export default function Home() {
         </div>
 
         <div
-          onClick={() => setShowYtSearch(true)}
-          className="group cursor-pointer glass rounded-2xl p-5 text-left hover:border-red-500/40 transition-all shadow-elevated flex items-center gap-5"
+          onClick={() => navigate('/library')}
+          className="group cursor-pointer glass rounded-2xl p-5 text-left hover:border-accent-purple/40 transition-all shadow-elevated flex items-center gap-5"
         >
-          <div className="w-12 h-12 shrink-0 rounded-xl bg-red-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
-            <YtIcon className="w-6 h-6 text-red-400" />
+          <div className="w-12 h-12 shrink-0 rounded-xl bg-accent-purple/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+            <LibraryIcon className="w-6 h-6 text-accent-purple" />
           </div>
           <div>
-            <h3 className="text-lg font-bold text-zinc-100 mb-0.5">{t('home.searchYoutube')}</h3>
-            <p className="text-sm text-zinc-500 leading-snug">{t('home.searchYoutubePlaceholder')}</p>
+            <h3 className="text-lg font-bold text-zinc-100 mb-0.5">{t('home.viewLibrary')}</h3>
+            <p className="text-sm text-zinc-500 leading-snug">{t('home.viewLibraryDesc')}</p>
           </div>
         </div>
       </div>
@@ -122,7 +105,7 @@ export default function Home() {
       {!user?.spotify?.spotifyId && (
         <div
           onClick={handleSpotifyLogin}
-          className="group cursor-pointer glass rounded-2xl p-5 text-center hover:border-green-500/40 transition-all shadow-elevated w-48 flex flex-col items-center justify-center gap-3 shrink-0"
+          className="group cursor-pointer glass rounded-2xl p-5 text-center hover:border-green-500/40 transition-all shadow-elevated w-48 flex flex-col items-center justify-center gap-3 shrink-0 isolate"
         >
           <div className="w-16 h-16 rounded-2xl bg-green-500/10 flex items-center justify-center group-hover:scale-110 transition-transform mb-2">
             <SpotifyIcon className="w-10 h-10 text-green-500" />
@@ -147,20 +130,11 @@ export default function Home() {
 
       {/* Main Content Area */}
       <div className="relative flex-1 flex flex-col h-full overflow-hidden px-6 py-6 sm:px-10 lg:px-16">
-        {/* YouTube Search Slide-over */}
-        {showYtSearch && (
-          <div className="absolute inset-0 z-50 bg-zinc-950/95 backdrop-blur-sm flex flex-col animate-fade-in rounded-xl overflow-hidden">
-            <YoutubeSearchPanel
-              onSelect={handleYtSelect}
-              onClose={() => setShowYtSearch(false)}
-            />
-          </div>
-        )}
 
-        <div className="max-w-7xl mx-auto w-full h-full flex flex-col lg:flex-row gap-10 overflow-hidden">
+        <div className="max-w-7xl mx-auto w-full h-full flex flex-col lg:flex-row gap-10">
 
           {/* LEFT COLUMN: Welcome & Actions */}
-          <div className="flex-1 flex flex-col items-center lg:items-start text-center lg:text-left gap-8 overflow-y-auto scrollbar-none pb-10">
+          <div className="flex-1 flex flex-col items-center lg:items-start text-center lg:text-left gap-8 overflow-y-auto scrollbar-none pb-10 px-4 -mx-4">
             <div className="flex flex-col items-center lg:items-start animate-fade-in shrink-0 w-full">
               <h1 className="text-3xl sm:text-4xl font-bold text-zinc-100 tracking-tight mb-3">
                 {getRandStr('home.welcome', randomSeed.welcome, { name: username })}
@@ -204,23 +178,23 @@ export default function Home() {
             <div className="mt-auto w-full max-w-md pt-10 pb-4 border-t border-zinc-800/50 hidden lg:block">
               <div className="flex items-center gap-2 mb-2 text-zinc-500">
                 <Lightbulb className="w-3.5 h-3.5" />
-                <span className="text-[10px] font-bold uppercase tracking-wider">Pro Tip</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider">{t('home.proTip')}</span>
               </div>
               <p className="text-xs text-zinc-400 italic leading-relaxed">
                 "{getRandStr('home.tips', randomSeed.tip)}"
               </p>
             </div>
           </div>
- 
+
           {/* RIGHT COLUMN: Project Sidebar */}
-          <div className="w-full lg:w-[360px] flex flex-col gap-6 glass border border-white/10 shadow-elevated rounded-2xl p-6 h-[400px] lg:h-full overflow-hidden animate-slide-in-right">
+          <div className="w-full lg:w-[360px] flex flex-col gap-6 glass border border-white/10 shadow-elevated rounded-2xl p-6 h-[400px] lg:h-full animate-slide-in-right">
             <div className="flex items-center justify-between shrink-0">
               <h2 className="text-sm font-bold text-zinc-100 uppercase tracking-widest">{t('home.recentProjects')}</h2>
               {!loading && items.length > 0 && (
                 <span className="text-[10px] font-bold text-zinc-500 bg-zinc-800/50 px-2 py-0.5 rounded-full">{items.length}</span>
               )}
             </div>
- 
+
             {loading ? (
               <div className="flex flex-col gap-3 animate-pulse">
                 {[1, 2, 3, 4].map(i => (
@@ -247,7 +221,7 @@ export default function Home() {
                     className="w-full pl-9 pr-4 py-2 bg-zinc-950/50 border border-zinc-800/60 rounded-xl text-xs text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-primary/40 focus:ring-1 focus:ring-primary/30 transition-all"
                   />
                 </div>
- 
+
                 {/* Sidebar List */}
                 <div className="flex-1 overflow-y-auto scrollbar-thin pr-1 flex flex-col gap-2.5 min-h-0">
 
