@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useTranslation, Trans } from 'react-i18next';
 import { Button } from '@ui/button';
 import { Input } from '@ui/input';
 import { Copy, Check, AlertCircle, Clock, Calendar, Cloud, Share2 } from 'lucide-react';
@@ -271,6 +271,19 @@ export function SharePanel({
             {copied ? <Check className="w-4 h-4" strokeWidth={3} /> : <Copy className="w-4 h-4" />}
           </Button>
         </Tip>
+      </div>
+
+      {/* reCAPTCHA Notice */}
+      <div className="mt-2 text-center">
+        <p className="text-[9px] leading-relaxed text-zinc-600">
+          <Trans 
+            i18nKey="share.recaptchaNotice"
+            components={[
+              <a key="0" href="https://policies.google.com/privacy" target="_blank" rel="noreferrer" className="text-zinc-500 hover:text-zinc-400 underline transition-colors" />,
+              <a key="1" href="https://policies.google.com/terms" target="_blank" rel="noreferrer" className="text-zinc-500 hover:text-zinc-400 underline transition-colors" />
+            ]}
+          />
+        </p>
       </div>
     </div>
   );
