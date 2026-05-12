@@ -15,6 +15,7 @@ import { useEffect } from 'react';
 import App from './App.jsx'
 import ErrorBoundary from '@shared/ErrorBoundary.jsx'
 
+// eslint-disable-next-line react-refresh/only-export-components
 function LanguageSync() {
   const { i18n } = useTranslation();
   useEffect(() => {
@@ -26,6 +27,7 @@ import { AuthProvider } from './contexts/AuthContext.jsx'
 import { useAuthContext } from './contexts/useAuthContext.js'
 import { Spinner } from '@ui/skeleton'
 import { AppProviders } from './app/AppProviders';
+import { useSettings } from './contexts/useSettings';
 import { GoogleReCaptchaProvider } from 'react-google-recaptcha-v3';
 
 // eslint-disable-next-line react-refresh/only-export-components
@@ -60,7 +62,7 @@ function ProtectedRoute({ children }) {
   // Guests can access the setup / local project page without signing in.
   const isGuestAllowed = GUEST_ACCESSIBLE_PATHS.includes(location.pathname);
   if (!user && !isGuestAllowed) {
-    return <Navigate to={`/auth?action=signin&redirect=${encodeURIComponent(location.pathname + location.search)}`} replace />;
+    return <Navigate to={`/auth/signin?redirect=${encodeURIComponent(location.pathname + location.search)}`} replace />;
   }
 
   return children;
@@ -98,11 +100,12 @@ function RootRoutes() {
         <Route path="/share/:id" element={<SharedProjectRoute />} />
 
         {/* Legacy redirects */}
-        <Route path="/login" element={<Navigate to="/auth?action=signin" replace />} />
-        <Route path="/register" element={<Navigate to="/auth?action=signup" replace />} />
+        <Route path="/login" element={<Navigate to="/auth/signin" replace />} />
+        <Route path="/register" element={<Navigate to="/auth/signup" replace />} />
 
         {/* Auth routes */}
         <Route path="/auth" element={user ? <AuthRedirect /> : <AuthPage />} />
+        <Route path="/auth/:mode" element={user ? <AuthRedirect /> : <AuthPage />} />
 
         {/* Protected app routes - App handles nested routing inside itself */}
         <Route path="/*" element={
@@ -112,6 +115,37 @@ function RootRoutes() {
         } />
       </Routes>
     </Suspense>
+  );
+}
+
+// eslint-disable-next-line react-refresh/only-export-components
+function AppToaster() {
+  const { settings } = useSettings();
+  const position = settings.interface?.toastPosition || 'bottom-right';
+
+  return (
+    <Toaster
+      position={position}
+      toastOptions={{
+        style: {
+          background: '#18181b',
+          color: '#f4f4f5',
+          border: '1px solid rgba(255,255,255,0.1)',
+          borderRadius: '0.75rem',
+          fontSize: '0.8125rem',
+          fontFamily: 'Inter, system-ui, sans-serif',
+          padding: '0.625rem 1rem',
+        },
+        success: {
+          iconTheme: { primary: '#1DB954', secondary: '#09090b' },
+          duration: 2000,
+        },
+        error: {
+          iconTheme: { primary: '#ef4444', secondary: '#09090b' },
+          duration: 4000,
+        },
+      }}
+    />
   );
 }
 
@@ -125,31 +159,10 @@ createRoot(document.getElementById('root')).render(
             <BrowserRouter>
               <RootRoutes />
             </BrowserRouter>
+            <AppToaster />
           </AppProviders>
         </AuthProvider>
       </GoogleReCaptchaProvider>
-      <Toaster
-        position="bottom-center"
-        toastOptions={{
-          style: {
-            background: '#18181b',
-            color: '#f4f4f5',
-            border: '1px solid rgba(255,255,255,0.1)',
-            borderRadius: '0.75rem',
-            fontSize: '0.8125rem',
-            fontFamily: 'Inter, system-ui, sans-serif',
-            padding: '0.625rem 1rem',
-          },
-          success: {
-            iconTheme: { primary: '#1DB954', secondary: '#09090b' },
-            duration: 2000,
-          },
-          error: {
-            iconTheme: { primary: '#ef4444', secondary: '#09090b' },
-            duration: 4000,
-          },
-        }}
-      />
     </ErrorBoundary>
   </StrictMode>,
 )
