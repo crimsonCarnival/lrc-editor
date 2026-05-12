@@ -13,9 +13,11 @@ import {
 import { serializeToRubyMarkup } from '@/utils/furigana';
 
 // Mobile-friendly dropdown for actions that overflow
-const ActionsDropdown = ({ children, icon: Icon = MoreHorizontal, label }) => (
+const ActionsDropdown = ({ children, icon: Icon = MoreHorizontal, label }) => {
+  const { t } = useTranslation();
+  return (
   <Popover>
-    <Tip content={label || "More Actions"}>
+    <Tip content={label || t('editor.lineOptions')}>
       <PopoverTrigger asChild>
         <Button variant="ghost" size="icon" className="h-9 w-9 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800">
           <Icon className="w-4 h-4" />
@@ -26,7 +28,8 @@ const ActionsDropdown = ({ children, icon: Icon = MoreHorizontal, label }) => (
       {children}
     </PopoverContent>
   </Popover>
-);
+  );
+};
 
 export default function EditorToolbar({
   editorMode,
