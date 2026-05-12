@@ -113,5 +113,5 @@ export function useUrlParamsSync(appState, layoutState) {
       lastParamsRef.current = paramsString;
       setSearchParams(params, { replace: true });
     }
-  }, [i18n.language, editorMode, playbackSpeed, focusMode, mobileTab, layoutSwap, searchParams, setSearchParams]);
+  }, [i18n.language, editorMode, playbackSpeed, focusMode, mobileTab, layoutSwap, searchParams, setSearchParams, layoutState.isReady]);
 }
