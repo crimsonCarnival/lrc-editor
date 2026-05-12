@@ -1,6 +1,7 @@
 import { useRef, useCallback, useEffect } from 'react';
 import { uploads, projects, getAccessToken } from '@/api';
 import { useGoogleReCaptcha } from 'react-google-recaptcha-v3';
+import { authEvents } from '../utils/authEvents.js';
 
 const PROJECT_KEY = 'lrc-syncer-project';
 const SHARED_PROJECT_KEY = 'lrc-syncer-shared-project';
@@ -35,7 +36,8 @@ export function useAutosave({
   updateServerSnapshot,
   setActiveProjectId,
   setIsAutosaving,
-  isProjectLoading,
+  isProjectLoadingRef,
+  setForkedFrom,
   onSaveSuccess,
 }) {
   const { executeRecaptcha } = useGoogleReCaptcha();
@@ -51,23 +53,26 @@ export function useAutosave({
       timeInterval: settings.advanced?.autoSave?.timeInterval ?? 30,
       buildPayload: buildProjectPayload,
       isSharedProject,
-      isProjectLoading,
     };
   });
 
-  // eslint-disable-next-line react-hooks/purity
   const lastSaveTimeRef = useRef(Date.now());
   const changeCountRef = useRef(0);
 
   const doAutoSave = useCallback(async () => {
+    // 1. Guard against concurrent creates or loads (manual restore race)
+    if (isCreatingProjectRef.current || isProjectLoadingRef.current) return;
+
     const s = autoSaveRef.current;
-    // Always read isProjectLoading from the ref-snapshot so we never act on a
-    // stale closure value captured when doAutoSave was last recreated.
-    if (!s || s.pendingProject !== null || !s.enabled || s.isProjectLoading) return;
+    if (!s || s.pendingProject !== null || !s.enabled) return;
 
     const payload = s.buildPayload();
     const key = s.isSharedProject ? SHARED_PROJECT_KEY : PROJECT_KEY;
-    localStorage.setItem(key, JSON.stringify(payload));
+    // Only persist to localStorage for guest users.
+    // Auth users persist exclusively to the server.
+    if (!getAccessToken()) {
+      localStorage.setItem(key, JSON.stringify(payload));
+    }
 
     if (getAccessToken() && activeProjectIdRef.current && !isSharedProjectRef.current) {
       // Skip saveMedia if we already have an upload ID for this session
@@ -137,8 +142,12 @@ export function useAutosave({
             uploadId: uploadIdToSave ?? undefined,
           });
           onSaveSuccess?.();
-        } catch {
-          // silent fail for autosave path
+        } catch (err) {
+          // Auth failure: token may have expired. Signal the global handler.
+          if (err?.status === 401 || err?.status === 403) {
+            authEvents.emit('token:expired');
+          }
+          // All other errors: silent fail (autosave — user not waiting for feedback)
         }
       }
     } else if (
@@ -202,6 +211,7 @@ export function useAutosave({
         try {
           const recaptchaToken = executeRecaptcha ? await executeRecaptcha('autosave_create') : undefined;
           const { projectId } = await projects.create({ ...createData, recaptchaToken });
+          setForkedFrom?.(null); // Auto-creation from guest is never a fork
           setActiveProjectId(projectId);
           activeProjectIdRef.current = projectId;
           updateServerSnapshot({
@@ -216,7 +226,7 @@ export function useAutosave({
             localStorage.setItem(ACTIVE_PROJECT_ID_KEY, projectId);
           } catch { /* ignore */ }
           onSaveSuccess?.();
-        } catch { }
+        } catch { /* ignore — project create failed; isCreatingProjectRef reset in finally */ }
         finally {
           isCreatingProjectRef.current = false;
         }
@@ -251,6 +261,7 @@ export function useAutosave({
     setActiveProjectId,
     setIsAutosaving,
     executeRecaptcha,
+    onSaveSuccess,
   ]);
 
   // ——— Action-based trigger (every 5 line edits) ———
