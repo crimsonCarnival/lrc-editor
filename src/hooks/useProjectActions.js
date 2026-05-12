@@ -48,6 +48,7 @@ export function useProjectActions({
   setDuration,
   setIsProjectLoading,
   setPendingProject,
+  setForkedFrom,
   activeProjectId,
   activeProjectIdRef,
   lastServerSnapshotRef,
@@ -59,6 +60,7 @@ export function useProjectActions({
   t,
   toast,
   requestConfirm,
+  isCreatingProjectRef,
 }) {
   const { executeRecaptcha } = useGoogleReCaptcha();
   // ── Load a project from the library ──────────────────────────────────────
@@ -90,6 +92,7 @@ export function useProjectActions({
       if (project.state?.playbackPosition) setRestoredPosition(project.state.playbackPosition);
       if (project.state?.playbackSpeed) setRestoredSpeed(project.state.playbackSpeed);
       if (project.title) setMediaTitle(project.title);
+      setForkedFrom(project.forkedFrom || null);
       setActiveProjectId(projectId);
       activeProjectIdRef.current = projectId;
       updateServerSnapshot(lastServerSnapshotRef, {
@@ -107,15 +110,17 @@ export function useProjectActions({
     } finally {
       setIsProjectLoading(false);
     }
-  }, [setLines, setSyncMode, setActiveLineIndex, setEditorModeRaw, setMediaTitle, setRestoredYtUrl, setRestoredCloudinaryUpload, setRestoredPosition, setRestoredSpeed, setActiveProjectId, activeProjectIdRef, lastServerSnapshotRef, setIsProjectLoading]);
+  }, [setLines, setSyncMode, setActiveLineIndex, setEditorModeRaw, setMediaTitle, setForkedFrom, setRestoredYtUrl, setRestoredCloudinaryUpload, setRestoredPosition, setRestoredSpeed, setActiveProjectId, activeProjectIdRef, lastServerSnapshotRef, setIsProjectLoading]);
 
   // ── Restore pending (localStorage) project ────────────────────────────────
   const handleRestoreProject = useCallback(() => {
-    if (!pendingProject) return;
+    if (!pendingProject || isCreatingProjectRef.current) return;
     const validLines = sanitizeLines(pendingProject.lines);
     if (!validLines.length) { setPendingProject(null); return; }
 
+    isCreatingProjectRef.current = true;
     setLines(validLines);
+    setForkedFrom(pendingProject.forkedFrom || null); 
     setSyncMode(true);
     const idx = pendingProject.activeLineIndex;
     if (typeof idx === 'number' && idx >= 0 && idx < validLines.length) setActiveLineIndex(idx);
@@ -128,46 +133,69 @@ export function useProjectActions({
     if (getAccessToken()) {
       const persist = async () => {
         setIsProjectLoading(true);
-        let uploadIdToSave = null;
-        if (pendingProject.ytUrl) {
-          try {
-            const upload = await uploads.saveMedia({
-              source: 'youtube',
-              youtubeUrl: pendingProject.ytUrl,
-              fileName: '',
-              title: mediaTitle || '',
-              duration: duration || null,
-            });
-            uploadIdToSave = upload.id;
-          } catch (err) {
-            console.error(err);
-          }
-        }
-        const serverPayload = { title: mediaTitle || pendingProject.title || '', metadata: projectMetadata, lyrics: { editorMode: restoredMode, lines: validLines }, state: { syncMode: true, activeLineIndex: idx || 0, playbackPosition: pendingProject.playbackPosition || 0, playbackSpeed: pendingProject.playbackSpeed || 1 }, readOnly: false };
-        if (uploadIdToSave) serverPayload.uploadId = uploadIdToSave;
-
-        const existingId = activeProjectId || pendingProject.projectId;
-        if (existingId) {
-          try {
-            await projects.update(existingId, serverPayload);
-            if (!activeProjectId) { setActiveProjectId(existingId); activeProjectIdRef.current = existingId; localStorage.setItem(ACTIVE_PROJECT_ID_KEY, existingId); }
-            setIsProjectLoading(false);
-            return;
-          } catch { /* fall through to create */ }
-        }
         try {
+          let uploadIdToSave = null;
+          if (pendingProject.ytUrl) {
+            try {
+              const upload = await uploads.saveMedia({
+                source: 'youtube',
+                youtubeUrl: pendingProject.ytUrl,
+                fileName: '',
+                title: mediaTitle || pendingProject.title || '',
+                duration: duration || null,
+              });
+              uploadIdToSave = upload.id;
+            } catch (err) {
+              console.error(err);
+            }
+          }
+          const serverPayload = { 
+            title: mediaTitle || pendingProject.title || '', 
+            metadata: projectMetadata, 
+            lyrics: { editorMode: restoredMode, lines: validLines }, 
+            state: { 
+              syncMode: true, 
+              activeLineIndex: idx || 0, 
+              playbackPosition: pendingProject.playbackPosition || 0, 
+              playbackSpeed: pendingProject.playbackSpeed || 1 
+            }, 
+            readOnly: false,
+            forkedFrom: pendingProject.forkedFrom || undefined
+          };
+          if (uploadIdToSave) serverPayload.uploadId = uploadIdToSave;
+
+          const existingId = activeProjectId || pendingProject.projectId || activeProjectIdRef.current;
+          if (existingId) {
+            try {
+              await projects.update(existingId, serverPayload);
+              if (!activeProjectId) { 
+                setActiveProjectId(existingId); 
+                activeProjectIdRef.current = existingId; 
+                localStorage.setItem(ACTIVE_PROJECT_ID_KEY, existingId); 
+              }
+              return;
+            } catch { /* fall through to create */ }
+          }
+          
           const recaptchaToken = executeRecaptcha ? await executeRecaptcha('restore_project') : undefined;
           const res = await projects.create({ ...serverPayload, recaptchaToken });
           setActiveProjectId(res.projectId);
           activeProjectIdRef.current = res.projectId;
           localStorage.setItem(ACTIVE_PROJECT_ID_KEY, res.projectId);
-        } catch { /* ignore */ }
-        setIsProjectLoading(false);
+        } catch (err) {
+          console.error('[Restore] Project persistence failed:', err);
+        } finally {
+          isCreatingProjectRef.current = false;
+          setIsProjectLoading(false);
+          setPendingProject(null);
+        }
       };
       persist();
+    } else {
+      isCreatingProjectRef.current = false;
+      setPendingProject(null);
     }
-    setPendingProject(null);
-  }, [pendingProject, setPendingProject, setLines, setSyncMode, setActiveLineIndex, setEditorModeRaw, setRestoredYtUrl, setRestoredPosition, setRestoredSpeed, setIsProjectLoading, activeProjectId, activeProjectIdRef, setActiveProjectId, mediaTitle, projectMetadata, duration, executeRecaptcha]);
+  }, [pendingProject, setPendingProject, setLines, setForkedFrom, setSyncMode, setActiveLineIndex, setEditorModeRaw, setRestoredYtUrl, setRestoredPosition, setRestoredSpeed, setIsProjectLoading, activeProjectId, activeProjectIdRef, setActiveProjectId, mediaTitle, projectMetadata, duration, executeRecaptcha, isCreatingProjectRef]);
 
   // ── Discard pending project ───────────────────────────────────────────────
   const handleDiscardProject = useCallback(() => {
@@ -193,6 +221,7 @@ export function useProjectActions({
     setActiveLineIndex(0);
     setMediaTitle('');
     setProjectMetadata({ description: '', tags: [] });
+    setForkedFrom(null);
     setProjectYtUrl('');
     setRestoredYtUrl('');
     setRestoredPosition(0);
@@ -205,7 +234,7 @@ export function useProjectActions({
     localStorage.removeItem(SHARED_PROJECT_KEY);
     lastServerSnapshotRef.current = null;
     sessionUploadIdRef.current = null;
-  }, [setLines, setSyncMode, setActiveLineIndex, setMediaTitle, setProjectMetadata, setProjectYtUrl, setRestoredYtUrl, setRestoredPosition, setRestoredSpeed, setActiveProjectId, activeProjectIdRef, setCloudinaryAudio, lastServerSnapshotRef, sessionUploadIdRef]);
+  }, [setLines, setSyncMode, setActiveLineIndex, setMediaTitle, setProjectMetadata, setForkedFrom, setProjectYtUrl, setRestoredYtUrl, setRestoredPosition, setRestoredSpeed, setActiveProjectId, activeProjectIdRef, setCloudinaryAudio, lastServerSnapshotRef, sessionUploadIdRef]);
 
   // ── Media change handlers ─────────────────────────────────────────────────
   const handleMediaChange = useCallback((loaded) => {
