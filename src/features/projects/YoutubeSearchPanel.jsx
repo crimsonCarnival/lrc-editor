@@ -52,7 +52,7 @@ export default function YoutubeSearchPanel({ onSelect, onClose }) {
     } finally {
       setLoading(false);
     }
-  }, [onSelect]);
+  }, [onSelect, t]);
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter') runSearch(query);
