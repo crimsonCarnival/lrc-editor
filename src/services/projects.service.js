@@ -1,4 +1,5 @@
 import { gqlRequest } from './graphql.client.js';
+import { request } from './api.client.js';
 
 const GET_PROJECTS = `
   query GetProjects($limit: Int, $offset: Int) {
@@ -11,8 +12,17 @@ const GET_PROJECTS = `
       public
       createdAt
       updatedAt
+      forkedFrom {
+        projectId
+        userId
+        username
+      }
       lineCount
       syncedLineCount
+      metadata {
+        description
+        tags
+      }
       upload {
         id
         fileName
@@ -39,6 +49,11 @@ const GET_PROJECT = `
       public
       createdAt
       updatedAt
+      forkedFrom {
+        projectId
+        userId
+        username
+      }
       state {
         syncMode
         activeLineIndex
@@ -128,8 +143,16 @@ export const projectsService = {
   },
 
   async get(id) {
-    const data = await gqlRequest(GET_PROJECT, { id });
-    return data.project;
+    try {
+      const data = await gqlRequest(GET_PROJECT, { id });
+      return data.project;
+    } catch (err) {
+      if (err.graphqlErrors?.some(e => e.message.includes('Cannot query field'))) {
+        const restData = await request(`/projects/${id}`);
+        return restData.project;
+      }
+      throw err;
+    }
   },
 
   async update(id, input) {
@@ -148,45 +171,76 @@ export const projectsService = {
   },
 
   async getShare(id) {
-    const data = await gqlRequest(`
-      query GetShare($id: ID!) {
-        getShare(id: $id) {
-          id
-          projectId
-          title
-          createdAt
-          user {
-            username
-          }
-          upload {
+    try {
+      const data = await gqlRequest(`
+        query GetShare($id: ID!) {
+          getShare(id: $id) {
             id
-            source
-            fileName
+            projectId
             title
-            youtubeUrl
-            cloudinaryUrl
-            duration
-          }
-          lyrics {
-            editorMode
-            lines {
-              text
-              timestamp
-              endTime
-              secondary
-              translation
-              words { word time reading }
-              secondaryWords { word time }
+            public
+            readOnly
+            createdAt
+            forkedFrom {
+              projectId
+              userId
+              username
+            }
+            metadata {
+              description
+              tags
+            }
+            user {
+              id
+              username
+              avatarUrl
+            }
+            upload {
+              id
+              source
+              fileName
+              title
+              youtubeUrl
+              cloudinaryUrl
+              publicId
+              spotifyTrackId
+              artist
+              duration
+            }
+            uploadId
+            lyrics {
+              id
+              projectId
+              editorMode
+              lines {
+                text
+                timestamp
+                endTime
+                secondary
+                translation
+                words { word time reading }
+                secondaryWords { word time }
+              }
+            }
+            metadata {
+              description
+              tags
             }
           }
-          metadata {
-            description
-            tags
-          }
         }
+      `, { id });
+      return { project: data.getShare };
+    } catch (err) {
+      // Fallback to REST for any GraphQL error (schema issues, etc.)
+      console.warn('GraphQL getShare failed, falling back to REST:', err.message);
+      try {
+        const restData = await request(`/projects/share/${id}`);
+        return restData;
+      } catch (restErr) {
+        console.error('REST fallback also failed:', restErr);
+        throw err; // Throw original GraphQL error
       }
-    `, { id });
-    return { project: data.getShare };
+    }
   },
 
   async clone(id) {
@@ -199,5 +253,19 @@ export const projectsService = {
       }
     `, { id });
     return data.cloneProject;
+  },
+
+  async createGuest(data) {
+    return request('/projects/guest', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async claim(projectId, claimToken) {
+    return request(`/projects/${projectId}/claim`, {
+      method: 'POST',
+      body: JSON.stringify({ claimToken }),
+    });
   },
 };
