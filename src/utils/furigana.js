@@ -59,34 +59,6 @@ const ROMAJI_MAP = {
   'っ': ' ', 'ー': '-'
 };
 
-/**
- * Basic Romaji converter for common syllables.
- */
-export function toRomaji(text) {
-  if (!text) return '';
-  let hiragana = toHiragana(text);
-  let result = '';
-  let i = 0;
-  while (i < hiragana.length) {
-    let found = false;
-    // Check for 2-char combinations first
-    if (i + 1 < hiragana.length) {
-      const combo = hiragana.substring(i, i + 2);
-      if (ROMAJI_MAP[combo]) {
-        result += ROMAJI_MAP[combo];
-        i += 2;
-        found = true;
-      }
-    }
-    if (!found) {
-      const char = hiragana[i];
-      result += ROMAJI_MAP[char] || char;
-      i++;
-    }
-  }
-  // Handle double consonants (っ)
-  return result.replace(/ (([a-z]))/g, '$2$2').trim();
-}
 
 /**
  * Check if a character is kanji (CJK Unified Ideograph).
@@ -95,19 +67,6 @@ export function isKanji(ch) {
   return KANJI_RE.test(ch);
 }
 
-/**
- * Check if a character is hiragana.
- */
-export function isHiragana(ch) {
-  return HIRAGANA_RE.test(ch);
-}
-
-/**
- * Check if a character is katakana.
- */
-export function isKatakana(ch) {
-  return KATAKANA_RE.test(ch);
-}
 
 /**
  * Check if a string contains any CJK characters.
@@ -123,9 +82,22 @@ export function hasKanji(text) {
   return KANJI_RE.test(text);
 }
 
+export function isHiragana(ch) {
+  return HIRAGANA_RE.test(ch);
+}
+
+export function isKatakana(ch) {
+  return KATAKANA_RE.test(ch);
+}
+
 /**
  * Parse {word|reading} ruby markup into plain text and annotated segments.
  * Supports single-char ({字|じ}) and multi-char ({二人|ふたり}) annotations.
+ *
+ * Readings are only applied when the word portion contains at least one kanji
+ * character. A {kana|reading} block like {う|いっとうしょう} is treated as
+ * plain text (the reading is discarded) because furigana only makes sense
+ * over kanji.
  *
  * @param {string} input  e.g. "{二人|ふたり}で{歌|うた}いましょう"
  * @returns {{ plainText: string, segments: Array<{text: string, reading: string|null}> }}
@@ -134,35 +106,29 @@ export function parseRubyMarkup(input) {
   if (!input) return { plainText: '', segments: [] };
   const segments = [];
   let plainText = '';
-  let i = 0;
-  while (i < input.length) {
-    if (input[i] === '{') {
-      const close = input.indexOf('}', i + 1);
-      if (close === -1) {
-        const raw = input.slice(i);
-        plainText += raw;
-        if (raw) segments.push({ text: raw, reading: null });
-        break;
-      }
-      const inner = input.slice(i + 1, close);
-      const pipeIdx = inner.indexOf('|');
-      if (pipeIdx === -1) {
+  
+  const regex = /\{([^}]+)\}|([^{]+)/g;
+  let match;
+  while ((match = regex.exec(input)) !== null) {
+    if (match[1]) {
+      const inner = match[1];
+      const pipeMatch = inner.match(/^(.*?)\|(.*)$/);
+      if (pipeMatch) {
+        const word = pipeMatch[1];
+        const reading = pipeMatch[2].trim();
+        plainText += word;
+        // Only attach a reading when the word contains at least one kanji.
+        // Non-kanji tokens (kana, latin, …) inside {word|reading} blocks are
+        // treated as plain text — the reading is silently dropped.
+        const hasKanjiInWord = word && KANJI_RE.test(word);
+        if (word) segments.push({ text: word, reading: (hasKanjiInWord && reading) ? reading : null });
+      } else {
         plainText += inner;
         if (inner) segments.push({ text: inner, reading: null });
-      } else {
-        const word = inner.slice(0, pipeIdx);
-        const reading = inner.slice(pipeIdx + 1).trim();
-        plainText += word;
-        if (word) segments.push({ text: word, reading: reading || null });
       }
-      i = close + 1;
-    } else {
-      let j = i;
-      while (j < input.length && input[j] !== '{') j++;
-      const raw = input.slice(i, j);
-      plainText += raw;
-      if (raw) segments.push({ text: raw, reading: null });
-      i = j;
+    } else if (match[2]) {
+      plainText += match[2];
+      segments.push({ text: match[2], reading: null });
     }
   }
   return { plainText, segments };

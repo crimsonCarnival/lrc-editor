@@ -69,16 +69,6 @@ export function formatTimestamp(seconds, precision = 'hundredths') {
   return `${mm}:${ss}`;
 }
 
-/**
- * Parses an LRC timestamp string like "[01:23.45]" or "[01:23.456]" into seconds
- * @param {string} str
- * @returns {number|null}
- */
-export function parseTimestamp(str) {
-  const match = str.match(/\[(\d{2}):(\d{2}\.\d{2,3})\]/);
-  if (!match) return null;
-  return parseInt(match[1], 10) * 60 + parseFloat(match[2]);
-}
 
 /**
  * Sanitizes a string for use inside LRC bracket tags.
@@ -153,7 +143,7 @@ export function compileLRC(lines, includeTranslations = false, precision = 'hund
  * @param {string} text
  * @returns {Array<{word: string, time: number}>}
  */
-export function parseWordTimestamps(text) {
+function parseWordTimestamps(text) {
   const re = /<(\d{1,2}):(\d{2}\.\d{2,3})>([^<]*)/g;
   const words = [];
   let match;
@@ -234,7 +224,7 @@ export function downloadLRC(content, filename = 'lyrics.lrc') {
  * @param {number} seconds
  * @returns {string}
  */
-export function formatSrtTimestamp(seconds) {
+function formatSrtTimestamp(seconds) {
   if (seconds == null || isNaN(seconds) || seconds < 0) return '00:00:00,000';
   const hrs = Math.floor(seconds / 3600);
   const mins = Math.floor((seconds % 3600) / 60);
@@ -402,11 +392,14 @@ export function parseLrcSrtFile(content, filename) {
           
           if (!existing.words?.length) {
             // Case 1: No word timestamps on primary line — use segments directly as words
-            existing.words = segments.map(s => ({
-              word: s.text,
-              reading: s.reading || undefined,
-              time: null
-            })).filter(w => w.word.trim());
+            existing.words = segments.flatMap(s => {
+              if (!s.text.trim()) return [];
+              return [{
+                word: s.text,
+                reading: s.reading || undefined,
+                time: null
+              }];
+            });
           } else {
             // Case 2: Primary line has word timestamps — align segments with existing words
             const oldWords = [...existing.words];
