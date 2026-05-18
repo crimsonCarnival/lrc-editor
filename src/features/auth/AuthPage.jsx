@@ -12,7 +12,8 @@ import LoginIdentifierStep from './LoginIdentifierStep';
 import LoginPasswordStep from './LoginPasswordStep';
 import SignUpForm from './SignUpForm';
 import ForgotPasswordTab from './ForgotPasswordTab.jsx';
-import { Background, LangSwitcher } from './auth-shared';
+import { LangSwitcher } from './auth-shared';
+import SmoothWavyCanvas from '@features/landing/SmoothWavyCanvas';
 
 // ─── Main AuthPage ──────────────────────────────────────────────────────────
 
@@ -147,7 +148,7 @@ export default function AuthPage() {
   return (
     <LazyMotion features={domAnimation}>
       <div className="size-screen flex relative overflow-hidden font-sans">
-      <Background />
+      <SmoothWavyCanvas />
 
       {/* Language switcher — top right */}
       <div className="fixed top-4 right-4 z-raised">
@@ -155,7 +156,7 @@ export default function AuthPage() {
       </div>
 
       {/* ── Left branding panel (hidden on mobile) ─────────────────────── */}
-      <div className="hidden lg:flex flex-col w-[420px] xl:w-[460px] shrink-0 relative border-r border-zinc-800/50 p-8 h-screen overflow-hidden">
+      <div className="hidden lg:flex flex-col w-[420px] xl:w-[460px] shrink-0 relative p-8 h-screen overflow-hidden">
         {/* Subtle left-side glow */}
         <div className="absolute inset-0 bg-gradient-to-br from-primary/4 via-transparent to-accent-purple/3 pointer-events-none" />
 
