@@ -1,24 +1,24 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import toast from 'react-hot-toast';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuthContext } from './contexts/useAuthContext';
 import { useAppState } from './hooks/useAppState';
 import { useSettings } from './contexts/useSettings';
 import { useScrollLock } from './hooks/useScrollLock';
 import { useNetworkStatus } from './hooks/useNetworkStatus';
 import { matchKey } from './utils/keyboard';
-import { projects } from '@/api';
 import { useUrlParamsSync } from './hooks/useUrlParamsSync';
 import BannedScreen from '@shared/BannedScreen';
+import GuestProjectSaveGate from '@features/editor/components/core/GuestProjectSaveGate';
 
-import { AppProviders } from './app/AppProviders';
 import { AppLayout } from './app/AppLayout';
 import { AppRouter } from './app/AppRouter';
 
 function AppInner() {
+  const { t } = useTranslation();
   const { user, logout } = useAuthContext();
   const navigate = useNavigate();
-  const location = useLocation();
+  const routerLocation = useLocation();
   const { settings, updateSetting, syncFromServer } = useSettings();
 
   const appState = useAppState();
@@ -33,6 +33,8 @@ function AppInner() {
     setMediaTitle,
     handleYtUrlChange,
     handleCloudinaryUpload,
+    noMediaSetupData,
+    setNoMediaSetupData,
   } = appState;
 
   useScrollLock(!!pendingProject);
@@ -45,43 +47,13 @@ function AppInner() {
 
   // Promote /project/local → /project/:id once the server assigns a real ID
   useEffect(() => {
-    if (user && activeProjectId && location.pathname === '/project/local') {
+    if (user && activeProjectId && routerLocation.pathname === '/project/local') {
       navigate(`/project/${activeProjectId}`, { replace: true });
     }
-  }, [user, activeProjectId, location.pathname, navigate]);
+  }, [user, activeProjectId, routerLocation.pathname, navigate]);
 
-  // After a guest pre-creates a project and authenticates, claim ownership.
-  // Triggered by ?claim=true in the URL (set by EditorToolbar's guest save handler).
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    if (!params.has('claim')) return;
-    if (!user) return;
-    const raw = sessionStorage.getItem('pendingGuestClaim');
-    if (!raw) return;
-    let projectId, claimToken;
-    try { ({ projectId, claimToken } = JSON.parse(raw)); } catch {
-      sessionStorage.removeItem('pendingGuestClaim');
-      sessionStorage.removeItem('pendingGuestSave');
-      return;
-    }
-    sessionStorage.removeItem('pendingGuestClaim');
-    sessionStorage.removeItem('pendingGuestSave');
-    const newUrl = new URL(window.location.href);
-    newUrl.searchParams.delete('claim');
-    navigate(newUrl.pathname + newUrl.search, { replace: true });
-    projects.claim(projectId, claimToken)
-      .then(() => appState.loadProject(projectId))
-      .catch((err) => {
-        if (err?.status === 409) { toast.success(appState.t('project.claimAlreadyClaimed')); appState.loadProject(projectId); return; }
-        if (err?.status === 404 && err?.body?.code === 'expired') toast.error(appState.t('project.claimExpired'));
-        else if (err?.status === 403) toast.error(appState.t('project.claimFailed'));
-        else toast.error(appState.t('project.claimNetworkError'));
-      });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, location.search]);
-
-  const isProjectPage = location.pathname.startsWith('/project/') && location.pathname !== '/project/new';
-  const isSetupPage = location.pathname === '/project/new';
+  const isProjectPage = routerLocation.pathname.startsWith('/project/') && routerLocation.pathname !== '/project/new';
+  const isSetupPage = routerLocation.pathname === '/project/new';
   const isReady = isProjectPage;
   const isPlayerMounted = isProjectPage || isSetupPage;
 
@@ -94,11 +66,21 @@ function AppInner() {
   const lockLayout = settings.interface?.lockLayout || false;
   const mobileTab = settings.interface?.mobileTab || 'editor';
 
-  const [hideEditor, setHideEditor] = useState(false);
-  const [unsavedModalTarget, setUnsavedModalTarget] = useState(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [playbackSpeed, setPlaybackSpeed] = useState(1);
-  const [showNamingModal, setShowNamingModal] = useState(false);
+  // Layout-specific state
+  const [ui, setUi] = useState({
+    hideEditor: false,
+    unsavedModalTarget: null,
+    isPlaying: false,
+    playbackSpeed: 1,
+    showNamingModal: false,
+  });
+
+  const { hideEditor, unsavedModalTarget, isPlaying, playbackSpeed, showNamingModal } = ui;
+  const setHideEditor = useCallback((val) => setUi(prev => ({ ...prev, hideEditor: typeof val === 'function' ? val(prev.hideEditor) : val })), []);
+  const setUnsavedModalTarget = useCallback((val) => setUi(prev => ({ ...prev, unsavedModalTarget: val })), []);
+  const setIsPlaying = useCallback((val) => setUi(prev => ({ ...prev, isPlaying: val })), []);
+  const setPlaybackSpeed = useCallback((val) => setUi(prev => ({ ...prev, playbackSpeed: val })), []);
+  const setShowNamingModal = useCallback((val) => setUi(prev => ({ ...prev, showNamingModal: val })), []);
 
   // Called by SetupScreen when user finishes the 3-step setup
   const handleSetupComplete = useCallback(async ({
@@ -111,7 +93,11 @@ function AppInner() {
     name,
     description,
     tags,
-    isPublic
+    isPublic,
+    songName,
+    songArtist,
+    songAlbum,
+    songYear
   }) => {
     setLines(lines);
     setEditorMode(editorMode);
@@ -141,7 +127,7 @@ function AppInner() {
 
     setMediaTitle(finalTitle);
 
-    const newMetadata = { description: description || '', tags: tags || [] };
+    const newMetadata = { description: description || '', tags: tags || [], songName: songName || '', songArtist: songArtist || '', songAlbum: songAlbum || '', songYear: songYear || '' };
     appState.setProjectMetadata(newMetadata);
 
     if (!user) {
@@ -203,27 +189,34 @@ function AppInner() {
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [settings.shortcuts, focusMode, setFocusMode]);
+  }, [settings.shortcuts, focusMode, setFocusMode, setHideEditor]);
 
   // Pause player when navigating away
   useEffect(() => {
-    if (!location.pathname.startsWith('/project/')) {
+    if (!routerLocation.pathname.startsWith('/project/')) {
       playerRef.current?.pause?.();
     }
-  }, [location.pathname, playerRef]);
+  }, [routerLocation.pathname, playerRef]);
 
   // Reset load errors when navigating
   useEffect(() => {
     if (appState.loadError) appState.setLoadError(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.pathname, appState.loadError, appState.setLoadError]);
+  }, [routerLocation.pathname, appState.loadError, appState.setLoadError]);
 
-  // Reset project state when entering "New Project"
+  // Redirect to setup when a loaded project has no media, carrying all project data for pre-fill
   useEffect(() => {
-    if (location.pathname === '/project/new') {
+    if (!noMediaSetupData) return;
+    setNoMediaSetupData(null);
+    navigate('/project/new', { state: { prefill: noMediaSetupData }, replace: true });
+  }, [noMediaSetupData, setNoMediaSetupData, navigate]);
+
+  // Reset project state when entering "New Project" — but not when coming from no-media rollback
+  useEffect(() => {
+    if (routerLocation.pathname === '/project/new' && !routerLocation.state?.prefill) {
       resetAppState();
     }
-  }, [location.pathname, resetAppState]);
+  }, [routerLocation.pathname, routerLocation.state?.prefill, resetAppState]);
 
   // Grid column classes
   const editorColClass = useMemo(() => (({
@@ -281,19 +274,22 @@ function AppInner() {
   if (user?.isBanned) return <BannedScreen />;
 
   return (
-    <AppLayout
-      user={user}
-      logout={logout}
-      appState={enhancedAppState}
-      settingsState={{ settings, updateSetting }}
-      layoutState={layoutState}
-    >
-      <AppRouter
+    <>
+      <GuestProjectSaveGate />
+      <AppLayout
+        user={user}
+        logout={logout}
         appState={enhancedAppState}
+        settingsState={{ settings, updateSetting }}
         layoutState={layoutState}
-        navigate={navigate}
-      />
-    </AppLayout>
+      >
+        <AppRouter
+          appState={enhancedAppState}
+          layoutState={layoutState}
+          navigate={navigate}
+        />
+      </AppLayout>
+    </>
   );
 }
 
