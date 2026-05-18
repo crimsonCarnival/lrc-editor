@@ -212,8 +212,6 @@ export function SettingsProvider({ children }) {
   const updateSetting = useCallback((keyPath, value) => {
     setSettings((prev) => {
       const keys = keyPath.split('.');
-      // Shallow-clone only the touched branch rather than deep-cloning the full
-      // settings tree on every keystroke or mode switch.
       const next = { ...prev };
       let cursor = next;
       for (let i = 0; i < keys.length - 1; i++) {
@@ -221,6 +219,23 @@ export function SettingsProvider({ children }) {
         cursor = cursor[keys[i]];
       }
       cursor[keys[keys.length - 1]] = value;
+      return next;
+    });
+  }, []);
+
+  const updateSettings = useCallback((updates) => {
+    setSettings((prev) => {
+      let next = { ...prev };
+      for (const [keyPath, value] of Object.entries(updates)) {
+        const keys = keyPath.split('.');
+        let cursor = next;
+        // We need to ensure each branch is cloned
+        for (let i = 0; i < keys.length - 1; i++) {
+          cursor[keys[i]] = { ...cursor[keys[i]] };
+          cursor = cursor[keys[i]];
+        }
+        cursor[keys[keys.length - 1]] = value;
+      }
       return next;
     });
   }, []);
@@ -260,7 +275,7 @@ export function SettingsProvider({ children }) {
   }, []);
 
   return (
-    <SettingsContext.Provider value={{ settings, updateSetting, updateAllSettings, resetSettings, syncFromServer }}>
+    <SettingsContext.Provider value={{ settings, updateSetting, updateSettings, updateAllSettings, resetSettings, syncFromServer }}>
       {children}
     </SettingsContext.Provider>
   );
