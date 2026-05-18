@@ -17,7 +17,7 @@ export default function NotFoundPage({ type = 'general' }) {
   // Differentiate content based on type
   const config = {
     project: {
-      icon: <FolderSearch className="w-16 h-16 text-amber-400" />,
+      icon: <FolderSearch className="size-16 text-amber-400" />,
       title: t('error.projectNotFoundTitle', 'Project Not Found'),
       description: t('error.projectNotFoundDesc', "The project you're looking for doesn't exist or has been deleted."),
       primaryAction: {
@@ -26,7 +26,7 @@ export default function NotFoundPage({ type = 'general' }) {
       }
     },
     upload: {
-      icon: <FileQuestion className="w-16 h-16 text-blue-400" />,
+      icon: <FileQuestion className="size-16 text-blue-400" />,
       title: t('error.uploadNotFoundTitle', 'Media Not Found'),
       description: t('error.uploadNotFoundDesc', "We couldn't find the audio or video file you're trying to access."),
       primaryAction: {
@@ -35,7 +35,7 @@ export default function NotFoundPage({ type = 'general' }) {
       }
     },
     user: {
-      icon: <UserX className="w-16 h-16 text-rose-400" />,
+      icon: <UserX className="size-16 text-rose-400" />,
       title: t('error.userNotFoundTitle', 'User Not Found'),
       description: t('error.userNotFoundDesc', "The profile you're looking for doesn't exist in our records."),
       primaryAction: {
@@ -44,7 +44,7 @@ export default function NotFoundPage({ type = 'general' }) {
       }
     },
     general: {
-      icon: <Ghost className="w-16 h-16 text-zinc-500" />,
+      icon: <Ghost className="size-16 text-zinc-500" />,
       title: t('error.pageNotFoundTitle', 'Lost in Space?'),
       description: t('error.pageNotFoundDesc', "The page you're looking for moved, changed, or never existed in the first place."),
       primaryAction: {
@@ -59,14 +59,14 @@ export default function NotFoundPage({ type = 'general' }) {
   return (
     <div className="min-h-[80vh] flex flex-col items-center justify-center p-6 text-center animate-fade-in">
       {/* Decorative background element */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-primary/5 blur-[120px] rounded-full pointer-events-none" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-96 bg-primary/5 blur-[120px] rounded-full pointer-events-none" />
 
       <div className="relative z-10 flex flex-col items-center max-w-md">
         <div className="mb-8 p-6 bg-zinc-900/50 backdrop-blur-xl rounded-3xl border border-zinc-800/50 shadow-elevated animate-slide-up-fade">
           {current.icon}
         </div>
 
-        <h1 className="text-3xl sm:text-4xl font-bold text-zinc-100 mb-4 tracking-tight font-heading">
+        <h1 className="text-3xl sm:text-4xl font-semibold text-zinc-100 mb-4 tracking-tight font-heading">
           {current.title}
         </h1>
 
@@ -81,7 +81,7 @@ export default function NotFoundPage({ type = 'general' }) {
             onClick={current.primaryAction.onClick}
             className="w-full sm:flex-1 h-12 text-base font-semibold glow-primary"
           >
-            <HomeIcon className="w-5 h-5 mr-2" />
+            <HomeIcon className="size-5 mr-2" />
             {current.primaryAction.label}
           </Button>
 
@@ -91,7 +91,7 @@ export default function NotFoundPage({ type = 'general' }) {
             onClick={() => navigate(-1)}
             className="w-full sm:flex-1 h-12 text-base text-zinc-400 hover:text-zinc-100 border border-zinc-800 hover:bg-zinc-800/50"
           >
-            <ArrowLeft className="w-5 h-5 mr-2" />
+            <ArrowLeft className="size-5 mr-2" />
             {t('app.goBack', 'Go Back')}
           </Button>
         </div>

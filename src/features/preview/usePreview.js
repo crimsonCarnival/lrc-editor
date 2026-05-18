@@ -168,7 +168,7 @@ export function usePreview({ lines, setLines, playbackPosition, playerRef, durat
       result = result.filter(l => l.text.trim() !== '');
     }
     if (settings.export?.normalizeTimestamps) {
-      result = [...result].sort((a, b) => {
+      result = result.toSorted((a, b) => {
         if (a.timestamp == null && b.timestamp == null) return 0;
         if (a.timestamp == null) return 1;
         if (b.timestamp == null) return -1;

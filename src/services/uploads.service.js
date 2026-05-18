@@ -134,7 +134,7 @@ export const uploadsService = {
         }
       }
     `, { id });
-    return data.upload;
+    return { upload: data.upload };
   },
 
   async saveMedia(input) {
@@ -150,7 +150,7 @@ export const uploadsService = {
         }
       `, { input });
       // Return upload directly (both GraphQL and normalized REST response)
-      return data.saveMedia;
+      return { upload: data.saveMedia };
     } catch (err) {
       // Fallback to REST for unauthenticated requests or GraphQL errors
       console.warn('GraphQL saveMedia failed, falling back to REST:', err.message);
@@ -160,7 +160,7 @@ export const uploadsService = {
           body: JSON.stringify(input),
         });
         // REST returns { upload }, extract just the upload for consistency
-        return restData.upload;
+        return { upload: restData.upload };
       } catch (restErr) {
         console.error('REST fallback also failed:', restErr);
         throw err;

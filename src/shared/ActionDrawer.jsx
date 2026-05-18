@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion'; // eslint-disable-line no-unused-vars
+// eslint-disable-next-line no-unused-vars
+import { m, LazyMotion, domAnimation, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 import { createPortal } from 'react-dom';
 
@@ -26,11 +27,11 @@ export default function ActionDrawer({
   }, [isOpen]);
 
   return createPortal(
-    <AnimatePresence>
+    <LazyMotion features={domAnimation}><AnimatePresence>
       {isOpen && (
         <>
           {/* Backdrop */}
-          <motion.div
+          <m.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -39,7 +40,7 @@ export default function ActionDrawer({
           />
           
           {/* Drawer */}
-          <motion.div
+          <m.div
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
@@ -51,13 +52,13 @@ export default function ActionDrawer({
             
             <div className="px-6 pb-8 pt-2">
               <div className="flex items-center justify-between mb-6">
-                {title && <h3 className="text-lg font-bold text-zinc-100">{title}</h3>}
+                {title && <h3 className="text-lg font-semibold text-zinc-100">{title}</h3>}
                 {showClose && (
                   <button 
                     onClick={onClose}
                     className="p-2 -mr-2 text-zinc-400 hover:text-zinc-200 bg-zinc-900 rounded-full transition-colors"
                   >
-                    <X className="w-5 h-5" />
+                    <X className="size-5" />
                   </button>
                 )}
               </div>
@@ -66,10 +67,10 @@ export default function ActionDrawer({
                 {children}
               </div>
             </div>
-          </motion.div>
+          </m.div>
         </>
       )}
-    </AnimatePresence>,
+    </AnimatePresence></LazyMotion>,
     document.body
   );
 }
@@ -78,7 +79,7 @@ export default function ActionDrawer({
  * Standardized drawer item component
  */
 export function DrawerItem({ icon: Icon, label, onClick, variant = 'default' }) {
-  const baseClasses = "w-full flex items-center gap-4 px-4 py-4 rounded-2xl transition-all active:scale-[0.98]";
+  const baseClasses = "w-full flex items-center gap-4 p-4 rounded-2xl transition-all active:scale-[0.98]";
   const variants = {
     default: "text-zinc-300 hover:bg-zinc-900 active:bg-zinc-900",
     danger: "text-red-400 hover:bg-red-500/10 active:bg-red-500/15",
@@ -87,7 +88,7 @@ export function DrawerItem({ icon: Icon, label, onClick, variant = 'default' }) 
 
   return (
     <button onClick={onClick} className={`${baseClasses} ${variants[variant]}`}>
-      {Icon && <Icon className="w-5 h-5" />}
+      {Icon && <Icon className="size-5" />}
       <span className="text-base font-medium">{label}</span>
     </button>
   );

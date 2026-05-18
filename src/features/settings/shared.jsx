@@ -20,7 +20,7 @@ export function SettingRow({ label, description, icon: Icon, children }) {
     <div className="flex items-center justify-between gap-4 py-2.5">
       <div className="flex-1 min-w-0">
         <p className="text-sm text-zinc-200 flex items-center gap-1.5">
-          {Icon && <Icon className="w-3.5 h-3.5 text-zinc-500 shrink-0" />}
+          {Icon && <Icon className="size-3.5 text-zinc-500 shrink-0" />}
           {label}
         </p>
         {description && <p className="text-xs text-zinc-500 mt-0.5">{description}</p>}
@@ -65,7 +65,7 @@ export function Section({ title, icon: Icon, children, searchTerm }) {
   return (
     <div className={`flex flex-col min-h-0 mb-5 ${searchTerm ? 'animate-fade-in' : ''}`}>
       <h4 className="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-3 px-1 flex items-center gap-1.5 flex-shrink-0">
-        {Icon && <Icon className="w-3.5 h-3.5" />}
+        {Icon && <Icon className="size-3.5" />}
         {title}
       </h4>
       <div className="bg-zinc-800/40 rounded-xl px-4 divide-y divide-zinc-700/40">
@@ -191,7 +191,7 @@ export function ShortcutInput({ value, onChange, onValidate, conflict }) {
           <span className="text-primary text-xs animate-pulse font-medium">{t('settings.shortcuts.input.pressKey')}</span>
         ) : value ? (
           value.split(/(?<=.)\+/).map((part, idx) => (
-            <React.Fragment key={idx}>
+            <React.Fragment key={part}>
               {idx > 0 && <span className="text-zinc-600 text-[10px] mx-0.5">+</span>}
               <Kbd className="bg-zinc-700/60 text-zinc-200 border border-zinc-600/50 h-auto px-1.5 py-0.5 text-xs">
                 {KEY_SYMBOLS[part] ?? part}

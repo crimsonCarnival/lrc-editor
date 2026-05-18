@@ -31,7 +31,7 @@ export function detectDuplicateTimestamps(lines, threshold = 0.05) {
 /**
  * Computes the next active line index after marking, respecting skipBlank.
  */
-export function computeNextIndex(lines, fromIndex, skipBlank) {
+function computeNextIndex(lines, fromIndex, skipBlank) {
   let nextIndex = fromIndex + 1;
   if (skipBlank) {
     while (nextIndex < lines.length) {
@@ -139,7 +139,7 @@ function stampBlanks(lines, fromIndex, time, isSrt) {
  *   nextActiveLineIndex is null if unchanged, nextAwaitingEndMark is null to clear or an object to set.
  *   nextActiveWordIndex is only present in 'words' mode.
  */
-export function applyMark({ lines, activeLineIndex, time, editorMode, activeWordIndex = 0, stampTarget = 'main', awaitingEndMark, focusedTimestamp, settings }) {
+export function applyMark({ lines, activeLineIndex, time, editorMode, activeWordIndex = 0, stampTarget = 'main', awaitingEndMark, focusedTimestamp, settings, forceAdvance = false }) {
   if (activeLineIndex >= lines.length) {
     return { nextLines: lines, nextActiveLineIndex: null, nextAwaitingEndMark: undefined };
   }
@@ -176,7 +176,7 @@ export function applyMark({ lines, activeLineIndex, time, editorMode, activeWord
       updated[activeLineIndex] = { ...line, timestamp: time };
       // If no words to stamp, immediately advance
       if (!words.length) {
-        const nextIdx = autoAdvance ? computeNextIndex(lines, activeLineIndex, skipBlank) : null;
+        const nextIdx = (autoAdvance || forceAdvance) ? computeNextIndex(lines, activeLineIndex, skipBlank) : null;
         return { nextLines: updated, nextActiveLineIndex: nextIdx, nextAwaitingEndMark: null, nextActiveWordIndex: 0 };
       }
       return { nextLines: updated, nextActiveLineIndex: null, nextAwaitingEndMark: null, nextActiveWordIndex: 0 };
@@ -191,7 +191,7 @@ export function applyMark({ lines, activeLineIndex, time, editorMode, activeWord
       const nextWordIdx = clampedIdx + 1;
       if (nextWordIdx >= words.length) {
         // All words stamped — advance line
-        const nextIdx = autoAdvance ? computeNextIndex(lines, activeLineIndex, skipBlank) : null;
+        const nextIdx = (autoAdvance || forceAdvance) ? computeNextIndex(lines, activeLineIndex, skipBlank) : null;
         return { nextLines: updated, nextActiveLineIndex: nextIdx, nextAwaitingEndMark: null, nextActiveWordIndex: 0 };
       }
       return { nextLines: updated, nextActiveLineIndex: null, nextAwaitingEndMark: null, nextActiveWordIndex: nextWordIdx };

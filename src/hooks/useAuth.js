@@ -1,12 +1,16 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { auth, spotify as spotifyApi, setAuthFlag } from '@/api';
+import { auth, spotify as spotifyApi, google as googleApi, setAuthFlag } from '@/api';
 import { useGoogleReCaptcha } from 'react-google-recaptcha-v3';
 import toast from 'react-hot-toast';
 import { authEvents } from '../utils/authEvents.js';
+import { STORAGE_KEYS, storage } from '@/services/storage.service';
 
 export function useAuth() {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [state, setState] = useState({ user: null, loading: true });
+  const user = state.user;
+  const loading = state.loading;
+  const setUser = useCallback((u) => setState(s => ({ ...s, user: typeof u === 'function' ? u(state.user) : u })), [state.user]);
+  
   const refreshTimerRef = useRef(null);
   const { executeRecaptcha } = useGoogleReCaptcha();
 
@@ -17,11 +21,12 @@ export function useAuth() {
       console.error('Logout failed:', err);
     }
     // Clear project data so stale projects don't persist across accounts
-    localStorage.removeItem('lrc-syncer-project');
-    localStorage.removeItem('lrc-syncer-shared-project');
-    localStorage.removeItem('lrc-syncer-active-project-id');
+    storage.remove(STORAGE_KEYS.PROJECT);
+    storage.remove(STORAGE_KEYS.SHARED_PROJECT);
+    storage.remove(STORAGE_KEYS.ACTIVE_PROJECT_ID);
+    storage.remove(STORAGE_KEYS.HAS_SESSION);
     setAuthFlag(false);
-    setUser(null);
+    setState({ user: null, loading: false });
     if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
   }, []);
 
@@ -50,10 +55,19 @@ export function useAuth() {
     restoringRef.current = true;
 
     const restore = async () => {
+      // Skip the round-trip entirely when no session was previously established.
+      // The httpOnly cookie is still the auth authority — this is only a hint to
+      // avoid a guaranteed-null GraphQL request on cold load for guests.
+      if (!storage.get(STORAGE_KEYS.HAS_SESSION)) {
+        setState({ user: null, loading: false });
+        return;
+      }
+
       try {
         const user = await auth.me();
+        storage.set(STORAGE_KEYS.HAS_SESSION, '1');
         setAuthFlag(true);
-        setUser(user);
+        setState({ user, loading: false });
         scheduleRefresh();
       } catch (err) {
         if (err?.status === 401) {
@@ -61,20 +75,21 @@ export function useAuth() {
           try {
             await auth.refresh();
             const user = await auth.me();
+            storage.set(STORAGE_KEYS.HAS_SESSION, '1');
             setAuthFlag(true);
-            setUser(user);
+            setState({ user, loading: false });
             scheduleRefresh();
           } catch {
             // Both tokens invalid or missing
+            storage.remove(STORAGE_KEYS.HAS_SESSION);
             setAuthFlag(false);
-            setUser(null);
+            setState({ user: null, loading: false });
           }
         } else {
+          storage.remove(STORAGE_KEYS.HAS_SESSION);
           setAuthFlag(false);
-          setUser(null);
+          setState({ user: null, loading: false });
         }
-      } finally {
-        setLoading(false);
       }
     };
 
@@ -108,46 +123,50 @@ export function useAuth() {
     return unsub;
   }, [doLogout, scheduleRefresh]);
 
+  const handlePostAuthClone = useCallback(() => {
+    const cloneProjectId = storage.get(STORAGE_KEYS.CLONE_AFTER_AUTH);
+    if (cloneProjectId) {
+      storage.remove(STORAGE_KEYS.CLONE_AFTER_AUTH);
+      window.location.href = `/share/${cloneProjectId}?clone=1`;
+    }
+  }, []);
+
   const login = useCallback(async ({ identifier, password }) => {
     let recaptchaToken = undefined;
     if (executeRecaptcha) {
       recaptchaToken = await executeRecaptcha('login');
     }
+
     const result = await auth.login({ identifier, password, recaptchaToken });
     // Cookies are automatically set by the server. Just update user state.
+    storage.set(STORAGE_KEYS.HAS_SESSION, '1');
     setAuthFlag(true);
-    setUser(result.user);
+    setState({ user: result.user, loading: false });
     scheduleRefresh();
 
-    const cloneProjectId = localStorage.getItem('cloneAfterAuth');
-    if (cloneProjectId) {
-      localStorage.removeItem('cloneAfterAuth');
-      window.location.href = `/share/${cloneProjectId}?clone=1`;
-    }
+    handlePostAuthClone();
 
     return result;
-  }, [scheduleRefresh, executeRecaptcha]);
+  }, [scheduleRefresh, executeRecaptcha, handlePostAuthClone]);
 
   const register = useCallback(async ({ username, email, password }) => {
     let recaptchaToken = undefined;
     if (executeRecaptcha) {
       recaptchaToken = await executeRecaptcha('register');
     }
+
     const result = await auth.register({ username, email, password, recaptchaToken });
     // Cookies are automatically set by the server. Just update user state.
+    storage.set(STORAGE_KEYS.HAS_SESSION, '1');
     setAuthFlag(true);
-    setUser(result.user);
+    setState({ user: result.user, loading: false });
     scheduleRefresh();
 
     // Handle post-auth continuation (e.g., after cloning a project)
-    const cloneProjectId = localStorage.getItem('cloneAfterAuth');
-    if (cloneProjectId) {
-      localStorage.removeItem('cloneAfterAuth');
-      window.location.href = `/share/${cloneProjectId}?clone=1`;
-    }
+    handlePostAuthClone();
 
     return result;
-  }, [scheduleRefresh, executeRecaptcha]);
+  }, [scheduleRefresh, executeRecaptcha, handlePostAuthClone]);
 
   // ——— Spotify connect / disconnect ———
 
@@ -157,44 +176,166 @@ export function useAuth() {
     const width = 500, height = 700;
     const left = window.screenX + (window.outerWidth - width) / 2;
     const top = window.screenY + (window.outerHeight - height) / 2;
-    const popup = window.open(url, 'spotify-auth', `width=${width},height=${height},left=${left},top=${top}`);
+    window.open(url, 'spotify-auth', `width=${width},height=${height},left=${left},top=${top}`);
 
     return new Promise((resolve, reject) => {
+      let cleaned = false;
+      const cleanup = () => {
+        if (cleaned) return;
+        cleaned = true;
+        window.removeEventListener('message', onMessage);
+        clearTimeout(timeout);
+      };
+
       const onMessage = async (event) => {
         let data = event.data;
         if (typeof data === 'string') try { data = JSON.parse(data); } catch { return; }
         if (data?.type !== 'spotify-callback') return;
-        window.removeEventListener('message', onMessage);
-        clearInterval(interval);
+        cleanup();
 
         if (!data.success) { reject(new Error(data.error || 'Spotify connection failed')); return; }
 
-        // Refresh user to get updated spotify status
         const me = await auth.me();
-        setUser(me.user);
-        resolve(me.user);
+        setState(s => ({ ...s, user: me }));
+        resolve(me);
       };
+
       window.addEventListener('message', onMessage);
-      // Fallback: poll for popup close
-      const interval = setInterval(() => {
-        if (popup?.closed) {
-          clearInterval(interval);
-          window.removeEventListener('message', onMessage);
-        }
-      }, 500);
+      // Fallback timeout: if no message after 60s, assume popup was closed
+      const timeout = setTimeout(() => {
+        cleanup();
+        reject(new Error('Spotify auth popup was closed'));
+      }, 60000);
     });
   }, []);
 
   const disconnectSpotify = useCallback(async () => {
     await spotifyApi.disconnect();
     const me = await auth.me();
-    setUser(me.user);
+    setState(s => ({ ...s, user: me }));
   }, []);
+
+  // ——— Google connect / disconnect / login ———
+
+  const connectGoogle = useCallback(async () => {
+    const url = await googleApi.getAuthUrl();
+    const width = 500, height = 700;
+    const left = window.screenX + (window.outerWidth - width) / 2;
+    const top = window.screenY + (window.outerHeight - height) / 2;
+    window.open(url, 'google-auth', `width=${width},height=${height},left=${left},top=${top}`);
+
+    return new Promise((resolve, reject) => {
+      let cleaned = false;
+      const cleanup = () => {
+        if (cleaned) return;
+        cleaned = true;
+        window.removeEventListener('message', onMessage);
+        clearTimeout(timeout);
+      };
+
+      const onMessage = async (event) => {
+        let data = event.data;
+        if (typeof data === 'string') try { data = JSON.parse(data); } catch { return; }
+        if (data?.type !== 'google-callback') return;
+        cleanup();
+
+        if (!data.success) {
+          reject(new Error(data.error || 'Google connection failed'));
+          return;
+        }
+
+        const me = await auth.me();
+        setState(s => ({ ...s, user: me }));
+        resolve(me);
+      };
+
+      window.addEventListener('message', onMessage);
+      const timeout = setTimeout(() => {
+        cleanup();
+        reject(new Error('Google auth popup was closed'));
+      }, 60000);
+    });
+  }, []);
+
+  const disconnectGoogle = useCallback(async () => {
+    try {
+      await googleApi.disconnect();
+      const me = await auth.me();
+      setState(s => ({ ...s, user: me }));
+    } catch (err) {
+      if (err?.status === 409 && err?.error === 'last_auth_method') {
+        throw new Error('Cannot disconnect Google — it is your only sign-in method. Set a password first.');
+      }
+      throw err;
+    }
+  }, []);
+
+  const loginWithGoogle = useCallback(async () => {
+    const url = await googleApi.getLoginUrl();
+    const width = 500, height = 700;
+    const left = window.screenX + (window.outerWidth - width) / 2;
+    const top = window.screenY + (window.outerHeight - height) / 2;
+    const popup = window.open(url, 'google-login', `width=${width},height=${height},left=${left},top=${top}`);
+    console.log('[AUTH] Google popup opened:', popup !== null, url);
+
+    return new Promise((resolve, reject) => {
+      let cleaned = false;
+      const cleanup = () => {
+        if (cleaned) return;
+        cleaned = true;
+        window.removeEventListener('message', onMessage);
+        clearTimeout(timeout);
+      };
+
+      const onMessage = async (event) => {
+        console.log('[AUTH] Received message:', event.data?.type);
+        let data = event.data;
+        if (typeof data === 'string') try { data = JSON.parse(data); } catch { return; }
+        if (data?.type !== 'google-callback') return;
+        cleanup();
+
+        if (!data.success) {
+          console.error('[AUTH] Google callback failed:', data.error);
+          reject(new Error(data.error || 'Google login failed'));
+          return;
+        }
+
+        const me = await auth.me();
+        storage.set(STORAGE_KEYS.HAS_SESSION, '1');
+        setAuthFlag(true);
+        setState({ user: me, loading: false });
+        scheduleRefresh();
+        console.log('[AUTH] Google login successful');
+        resolve(me);
+      };
+
+      window.addEventListener('message', onMessage);
+      console.log('[AUTH] Message listener attached');
+      const timeout = setTimeout(() => {
+        console.warn('[AUTH] Google popup timeout after 60s - no message received');
+        cleanup();
+        reject(new Error('Google login popup was closed'));
+      }, 60000);
+    });
+  }, [scheduleRefresh]);
 
   const clearUnbanMessage = useCallback(async () => {
     await auth.clearUnbanMessage();
-    setUser(prev => prev ? { ...prev, showUnbanMessage: false } : null);
+    setState(prev => ({ ...prev, user: prev.user ? { ...prev.user, showUnbanMessage: false } : null }));
   }, []);
 
-  return { user, setUser, loading, login, register, logout: doLogout, connectSpotify, disconnectSpotify, clearUnbanMessage };
+  return {
+    user,
+    setUser,
+    loading,
+    login,
+    register,
+    logout: doLogout,
+    connectSpotify,
+    disconnectSpotify,
+    connectGoogle,
+    disconnectGoogle,
+    loginWithGoogle,
+    clearUnbanMessage,
+  };
 }

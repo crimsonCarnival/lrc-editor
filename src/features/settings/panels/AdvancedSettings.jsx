@@ -27,7 +27,7 @@ export default function AdvancedSettings({ settings, updateSetting, searchTerm, 
         /* Guests: show Auto Save row as locked with a note */
         <SettingRow icon={Save} label={t('settings.advanced.autoSave')} description={t('settings.advanced.autoSaveDesc')}>
           <div className="flex items-center gap-2">
-            <Lock className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
+            <Lock className="size-3.5 text-zinc-500 shrink-0" />
             <span className="text-[11px] text-zinc-500 italic">
               {t('settings.advanced.autoSaveGuestNote', 'Requires an account')}
             </span>

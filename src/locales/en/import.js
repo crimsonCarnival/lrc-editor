@@ -1,11 +1,16 @@
 export default {
-  "success": "Imported {{count}} lines",
-  "failed": "Failed to parse lyrics file",
-  "noLines": "No lyrics found in file",
-  "tooLarge": "File too large (max 5 MB)",
-  "unsupportedFormat": "Unsupported file type. Use .lrc, .srt, or .txt files.",
-  "fromUrl": "Import from URL",
-  "urlPlaceholder": "https://example.com/lyrics.lrc",
-  "fetchError": "Failed to fetch. The server may not allow cross-origin requests.",
-  "invalidUrl": "Invalid URL. Use http:// or https://"
+  success: [
+    "Successfully imported {{count}} lines.",
+    "{{count}} lines ready to sync.",
+    "Loaded {{count}} lines perfectly.",
+    "Import complete. {{count}} lines added."
+  ],
+  failed: "Couldn't parse this lyrics file. Please check the formatting and try again.",
+  noLines: "We couldn't detect any text in this file. Make sure it's not empty.",
+  tooLarge: "This file is too large (Maximum size: 5MB).",
+  unsupportedFormat: "Unsupported file type. Please use standard .lrc, .srt, or .txt formats.",
+  fromUrl: "Import from URL",
+  urlPlaceholder: "https://example.com/lyrics.lrc",
+  fetchError: "Failed to fetch. Check if the URL is correct and the file is accessible.",
+  invalidUrl: "Invalid link format. Make sure it starts with http:// or https://"
 };

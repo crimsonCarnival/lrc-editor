@@ -1,27 +1,44 @@
 export default {
-  "title": "Subidas",
-  "count_one": "{{count}} archivo",
-  "count_other": "{{count}} archivos",
-  "empty": "No hay subidas aún",
-  "emptyHint": "Sube archivos de audio o enlaza URLs de YouTube para verlos aquí",
-  "untitled": "Sin título",
-  "selectFromUploads": "Seleccionar de subidas",
-  "titleRequired": "El título es obligatorio",
-  "titleUpdated": "Título actualizado",
-  "updateFailed": "Error al actualizar el título",
-  "associatedProjects": "Proyectos asociados",
-  "details": "Detalles del contenido",
-  "unnamed": "Audio sin nombre",
-  "errorLoading": "Error al cargar el contenido",
-  "notFound": "Contenido no encontrado",
-  "source": "Fuente",
-  "duration": "Duración",
-  "unknown": "Desconocido",
-  "unknownFile": "Archivo desconocido",
-  "noProjects": "Ningún proyecto está usando este contenido todavía.",
-  "startNewProject": "Inicia un nuevo proyecto desde la pantalla de Configuración.",
-  "youtube": "YouTube",
-  "audioFile": "Archivo de audio",
-  "cloudinary": "Nube",
-  "spotify": "Spotify"
+  title: "Subidas",
+  count_one: "{{count}} archivo",
+  count_other: "{{count}} archivos",
+  // Dynamic Empty States
+  empty: [
+    "No hay subidas aún",
+    "Tu biblioteca de contenido está vacía",
+    "No se encontraron archivos"
+  ],
+  emptyHint: [
+    "Los archivos de audio y las URLs enlazadas aparecerán aquí cuando inicies un proyecto.",
+    "Sube una pista o enlaza un video en la pantalla de Configuración para verlos aquí."
+  ],
+  untitled: "Sin título",
+  selectFromUploads: "Seleccionar de subidas",
+  titleRequired: "El título es obligatorio",
+  titleUpdated: "Título actualizado",
+  updateFailed: "Error al actualizar el título",
+  associatedProjects: "Proyectos asociados",
+  details: "Detalles del contenido",
+  unnamed: "Audio sin nombre",
+  errorLoading: "Error al cargar el contenido",
+  // Dynamic Errors
+  notFound: [
+    "Contenido no encontrado",
+    "Este archivo parece estar perdido o eliminado."
+  ],
+  source: "Fuente",
+  duration: "Duración",
+  unknown: "Desconocido",
+  unknownFile: "Archivo desconocido",
+  // Dynamic Project States
+  noProjects: [
+    "Ningún proyecto está usando este contenido todavía.",
+    "No hay proyectos asociados a este archivo.",
+    "Listo para sincronizar. Sin proyectos aún."
+  ],
+  startNewProject: "Inicia un nuevo proyecto desde la pantalla de Configuración.",
+  youtube: "YouTube",
+  audioFile: "Archivo de audio",
+  cloudinary: "Nube",
+  spotify: "Spotify"
 };

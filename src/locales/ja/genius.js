@@ -1,0 +1,19 @@
+export default {
+  searchPlaceholder: '曲名またはアーティストで検索…',
+  searchFor: '検索：',
+  findLyrics: 'Geniusで歌詞を検索',
+  useLyrics: 'この歌詞を使用',
+  preview: '歌詞プレビュー',
+  previewDesc: 'インポート前に歌詞を確認してください',
+  searching: '検索中…',
+  extracting: '歌詞を読み込み中…',
+  noResults: '結果が見つかりませんでした',
+  orPasteUrl: 'またはGenius URLを貼り付け',
+  extractUrl: '抽出',
+  urlPlaceholder: 'https://genius.com/…',
+  error: {
+    rateLimited: 'リクエストが多すぎます — しばらく待ってください',
+    lyricsUnavailable: 'この曲の歌詞を取得できませんでした。ページ構造が変更された可能性があります。',
+    generic: 'エラーが発生しました。もう一度お試しください。',
+  },
+};

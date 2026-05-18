@@ -31,7 +31,7 @@ export function useEditor({
   onImport,
 }) {
   const { t } = useTranslation();
-  const { settings, updateSetting } = useSettings();
+  const { settings, updateSetting, updateSettings } = useSettings();
   const [rawText, setRawText] = useState('');
   const [editingLineIndex, setEditingLineIndex] = useState(null);
   const [editingText, setEditingText] = useState('');
@@ -82,131 +82,118 @@ export function useEditor({
     stampTargetRef.current = stampTarget;
   });
 
-  useEffect(() => {
-    if (editorMode !== 'words') {
-      setActiveWordIndex(0);
-      activeWordIndexRef.current = 0;
-      return;
-    }
-
-    // When the active line changes or we enter Words mode, 
-    // find the first unstamped word as a starting point.
-    const words = stampTarget === 'secondary'
-      ? lines[activeLineIndex]?.secondaryWords
-      : lines[activeLineIndex]?.words;
-    
-    if (!words?.length) {
-      setActiveWordIndex(0);
-      activeWordIndexRef.current = 0;
-      return;
-    }
-    const idx = words.findIndex((w) => w.time == null);
-    const newIdx = idx === -1 ? words.length : idx;
-    setActiveWordIndex(newIdx);
-    activeWordIndexRef.current = newIdx;
-  }, [activeLineIndex, editorMode, stampTarget]); // Only re-initialize on structural changes
-
-  // Reset stampTarget when the active line changes
-  useEffect(() => {
+  const [prevActiveLineIndex, setPrevActiveLineIndex] = useState(activeLineIndex);
+  const [prevEditorMode, setPrevEditorMode] = useState(editorMode);
+  if (activeLineIndex !== prevActiveLineIndex || editorMode !== prevEditorMode) {
+    setPrevActiveLineIndex(activeLineIndex);
+    setPrevEditorMode(editorMode);
     setStampTarget('main');
-    stampTargetRef.current = 'main';
-  }, [activeLineIndex]);
+
+    let newWordIdx = 0;
+    if (editorMode === 'words') {
+      const words = lines[activeLineIndex]?.words;
+      if (words?.length) {
+        const idx = words.findIndex((w) => w.time == null);
+        newWordIdx = idx === -1 ? words.length : idx;
+      }
+    }
+    setActiveWordIndex(newWordIdx);
+  }
 
   useEffect(() => {
-    if (editorMode === 'words') {
-      setLines((prev) =>
-        prev.map((line) => {
-          const rawValue = (line.text || '').trim();
-          if (!rawValue) return line;
+    if (editorMode !== 'words') return;
 
-          const { plainText, segments } = parseRubyMarkup(rawValue);
-          const hasMarkup = segments.some(s => s.reading);
+    setLines((prev) =>
+      prev.map((line) => {
+        const rawValue = (line.text || '').trim();
+        if (!rawValue) return line;
 
-          // If no markup and already has words that match the current text, skip
-          if (!hasMarkup && line.words?.length) {
-            const existingText = line.words.map(w => w.word).join('');
-            if (existingText === plainText) return line;
-          }
+        const { plainText, segments } = parseRubyMarkup(rawValue);
+        const hasMarkup = segments.some(s => s.reading);
 
-          // Build a map from old char positions so timestamps survive edits if text didn't change too much
-          const oldWordAtPos = new Map();
-          // Text→reading fallback for when position-based matching misses (e.g. 々 boundary shifts)
-          const oldReadingByText = new Map();
-          let flat = 0;
-          for (const w of line.words || []) {
-            for (let k = 0; k < [...w.word].length; k++) oldWordAtPos.set(flat + k, w);
-            flat += [...w.word].length;
-            if (w.reading) oldReadingByText.set(w.word, w.reading);
-          }
+        // If no markup and already has words that match the current text, skip
+        if (!hasMarkup && line.words?.length) {
+          const existingText = line.words.map(w => w.word).join('');
+          if (existingText === plainText) return line;
+        }
 
-          let charPos = 0;
-          const newWords = [];
-          const isCJKText = hasCJK(plainText);
+        // Build a map from old char positions so timestamps survive edits if text didn't change too much
+        const oldWordAtPos = new Map();
+        // Text→reading fallback for when position-based matching misses (e.g. 々 boundary shifts)
+        const oldReadingByText = new Map();
+        let flat = 0;
+        for (const w of line.words || []) {
+          for (let k = 0; k < [...w.word].length; k++) oldWordAtPos.set(flat + k, w);
+          flat += [...w.word].length;
+          if (w.reading) oldReadingByText.set(w.word, w.reading);
+        }
 
-          for (const seg of segments) {
-            const segChars = [...seg.text];
-            if (seg.reading) {
-              // Annotated segment — store as one word with the reading
-              const anchor = oldWordAtPos.get(charPos);
-              newWords.push({ word: seg.text, time: anchor?.time ?? null, reading: seg.reading });
-              charPos += segChars.length;
-            } else if (isCJKText) {
-              // Mixed CJK+Latin: group contiguous Kanji, split other CJK chars, keep Latin runs
-              let ci = 0;
-              while (ci < segChars.length) {
-                const ch = segChars[ci];
-                if (!ch.trim()) { charPos++; ci++; continue; }
+        let charPos = 0;
+        const newWords = [];
+        const isCJKText = hasCJK(plainText);
+
+        for (const seg of segments) {
+          const segChars = [...seg.text];
+          if (seg.reading) {
+            // Annotated segment — store as one word with the reading
+            const anchor = oldWordAtPos.get(charPos);
+            newWords.push({ word: seg.text, time: anchor?.time ?? null, reading: seg.reading });
+            charPos += segChars.length;
+          } else if (isCJKText) {
+            // Mixed CJK+Latin: group contiguous Kanji, split other CJK chars, keep Latin runs
+            let ci = 0;
+            while (ci < segChars.length) {
+              const ch = segChars[ci];
+              if (!ch.trim()) { charPos++; ci++; continue; }
+              
+              if (isKanji(ch)) {
+                let j = ci;
+                while (j < segChars.length && isKanji(segChars[j])) j++;
+                const kanjiGroup = segChars.slice(ci, j).join('');
                 
-                if (isKanji(ch)) {
-                  let j = ci;
-                  while (j < segChars.length && isKanji(segChars[j])) j++;
-                  const kanjiGroup = segChars.slice(ci, j).join('');
-                  
-                  const old = oldWordAtPos.get(charPos);
-                  const w = { word: kanjiGroup, time: old?.time ?? null };
-                  if (old?.reading && old.word === kanjiGroup) w.reading = old.reading;
-                  if (!w.reading && oldReadingByText.has(kanjiGroup)) w.reading = oldReadingByText.get(kanjiGroup);
-                  newWords.push(w);
-                  
-                  charPos += [...kanjiGroup].length;
-                  ci = j;
-                } else if (/[\u3000-\u9FFF\uF900-\uFAFF]/.test(ch)) {
-                  const old = oldWordAtPos.get(charPos);
-                  const w = { word: ch, time: old?.time ?? null };
-                  if (old?.reading) w.reading = old.reading;
-                  if (!w.reading && oldReadingByText.has(ch)) w.reading = oldReadingByText.get(ch);
-                  newWords.push(w);
-                  charPos++; ci++;
-                } else {
-                  let j = ci;
-                  while (j < segChars.length && !/[\u3000-\u9FFF\uF900-\uFAFF]/.test(segChars[j]) && segChars[j].trim()) j++;
-                  const latinToken = segChars.slice(ci, j).join('');
-                  const old = oldWordAtPos.get(charPos);
-                  newWords.push({ word: latinToken, time: old?.time ?? null });
-                  charPos += [...latinToken].length;
-                  ci = j;
-                }
-              }
-            } else {
-              // Pure Latin
-              const tokens = seg.text.split(/\s+/).filter(Boolean);
-              for (const token of tokens) {
                 const old = oldWordAtPos.get(charPos);
-                newWords.push({ word: token, time: old?.time ?? null });
-                charPos += [...token].length;
+                const w = { word: kanjiGroup, time: old?.time ?? null };
+                if (old?.reading && old.word === kanjiGroup) w.reading = old.reading;
+                if (!w.reading && oldReadingByText.has(kanjiGroup)) w.reading = oldReadingByText.get(kanjiGroup);
+                newWords.push(w);
+                
+                charPos += [...kanjiGroup].length;
+                ci = j;
+              } else if (/[\u3000-\u9FFF\uF900-\uFAFF]/.test(ch)) {
+                const old = oldWordAtPos.get(charPos);
+                const w = { word: ch, time: old?.time ?? null };
+                if (old?.reading) w.reading = old.reading;
+                if (!w.reading && oldReadingByText.has(ch)) w.reading = oldReadingByText.get(ch);
+                newWords.push(w);
+                charPos++; ci++;
+              } else {
+                let j = ci;
+                while (j < segChars.length && !/[\u3000-\u9FFF\uF900-\uFAFF]/.test(segChars[j]) && segChars[j].trim()) j++;
+                const latinToken = segChars.slice(ci, j).join('');
+                const old = oldWordAtPos.get(charPos);
+                newWords.push({ word: latinToken, time: old?.time ?? null });
+                charPos += [...latinToken].length;
+                ci = j;
               }
             }
+          } else {
+            // Pure Latin
+            const tokens = seg.text.split(/\s+/).filter(Boolean);
+            for (const token of tokens) {
+              const old = oldWordAtPos.get(charPos);
+              newWords.push({ word: token, time: old?.time ?? null });
+              charPos += [...token].length;
+            }
           }
+        }
 
-          const filteredWords = newWords.filter(w => w.word.trim());
-          if (filteredWords.length === 0) return line;
+        const filteredWords = newWords.filter(w => w.word.trim());
+        if (filteredWords.length === 0) return line;
 
-          return { ...line, text: plainText, words: filteredWords };
-        })
-      );
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editorMode]);
+        return { ...line, text: plainText, words: filteredWords };
+      })
+    );
+  }, [editorMode, setLines]);
 
   const displayedActiveIndex = isActiveLineLocked
     ? activeLineIndex
@@ -430,7 +417,8 @@ export function useEditor({
     [playerRef, setLines, focusedTimestamp, editorMode],
   );
 
-  const handleMark = useCallback(() => {
+  const handleMark = useCallback((opts = {}) => {
+    const forceAdvance = opts?.forceAdvance ?? false;
     const currentLines = linesRef.current;
     const idx = activeLineIndexRef.current;
     if (idx >= currentLines.length) return;
@@ -450,6 +438,7 @@ export function useEditor({
       awaitingEndMark,
       focusedTimestamp: focusedTimestampRef.current,
       settings: settings.editor || {},
+      forceAdvance,
     });
 
     setModifiedLines(prev => new Set(prev).add(idx));
@@ -502,6 +491,9 @@ export function useEditor({
       if (matchKey(e, settings.shortcuts?.mark?.[0] || 'Space')) {
         e.preventDefault();
         handleMark();
+      } else if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        e.preventDefault();
+        handleMark({ forceAdvance: true });
       } else if (matchKey(e, settings.shortcuts?.nudgeLeftFine?.[0] || 'Shift+ArrowLeft')) {
         e.preventDefault();
         handleNudge(-(settings.editor?.nudge?.fine || 0.01));
@@ -895,8 +887,10 @@ export function useEditor({
         e.preventDefault();
         const nextMode = editorMode === 'lrc' ? 'srt' : 'lrc';
         setEditorMode(nextMode);
-        updateSetting('export.copyFormat', nextMode);
-        updateSetting('export.downloadFormat', nextMode);
+        updateSettings({
+          'export.copyFormat': nextMode,
+          'export.downloadFormat': nextMode
+        });
       }
     };
 
@@ -918,7 +912,7 @@ export function useEditor({
     handleClearLine,
     editorMode,
     setEditorMode,
-    updateSetting,
+    updateSettings,
     setLines,
     setActiveLineIndex,
   ]);

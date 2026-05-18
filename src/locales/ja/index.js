@@ -17,6 +17,8 @@ import settings from './settings.js';
 import setup from './setup.js';
 import uploads from './uploads.js';
 import spotify from './spotify.js';
+import genius from './genius.js';
+import landing from './landing.js';
 import admin from './admin.js';
 import profile from './profile.js';
 import errorLocale from './error.js';
@@ -42,6 +44,8 @@ export default {
     setup,
     uploads,
     spotify,
+    genius,
+    landing,
     admin,
     profile,
     error: errorLocale

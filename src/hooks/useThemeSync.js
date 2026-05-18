@@ -16,16 +16,16 @@ export function useThemeSync() {
     
     const updateDOM = () => {
       const activeTheme = settings.interface?.theme || 'dark';
-      root.classList.remove('dark', 'theme-dracula', 'theme-alucard', 'theme-alucardlight');
+      root.classList.remove('dark', 'theme-cobalt', 'theme-velvet', 'theme-sage');
 
       if (activeTheme === 'light') {
         // no classes needed
-      } else if (activeTheme === 'dracula') {
-        root.classList.add('dark', 'theme-dracula');
-      } else if (activeTheme === 'alucard') {
-        root.classList.add('dark', 'theme-alucard');
-      } else if (activeTheme === 'alucardlight') {
-        root.classList.add('theme-alucardlight'); // light — no dark class
+      } else if (activeTheme === 'cobalt') {
+        root.classList.add('dark', 'theme-cobalt');
+      } else if (activeTheme === 'velvet') {
+        root.classList.add('dark', 'theme-velvet');
+      } else if (activeTheme === 'sage') {
+        root.classList.add('dark', 'theme-sage');
       } else if (activeTheme === 'system') {
         if (mediaQuery.matches) {
           root.classList.add('dark');

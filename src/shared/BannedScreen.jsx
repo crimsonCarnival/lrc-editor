@@ -41,7 +41,7 @@ function Countdown({ targetDate }) {
 
   return (
     <div className="flex items-center gap-1.5 text-red-400 font-mono text-xs mt-1">
-      <Clock className="w-3 h-3" />
+      <Clock className="size-3" />
       <span>{t('admin.banned.remainingTime') || 'Remaining'}: {timeLeft}</span>
     </div>
   );
@@ -53,6 +53,13 @@ export default function BannedScreen() {
   const [appealText, setAppealText] = useState('');
   const [loading, setLoading] = useState(false);
   const [localSubmitted, setLocalSubmitted] = useState(false);
+  const [formattedDate, setFormattedDate] = useState('');
+
+  useEffect(() => {
+    if (user?.bannedUntil) {
+      setFormattedDate(new Date(user.bannedUntil).toLocaleString());
+    }
+  }, [user?.bannedUntil]);
 
   if (!user || !user.isBanned) return null;
 
@@ -79,11 +86,11 @@ export default function BannedScreen() {
       <div className="max-w-md w-full bg-zinc-900 border border-red-500/30 rounded-2xl p-6 shadow-[0_0_50px_rgba(239,68,68,0.1)] text-center relative overflow-hidden">
         <div className="absolute top-0 left-0 right-0 h-1 bg-red-500" />
         
-        <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-500/20">
-          <Ban className="w-8 h-8 text-red-500" />
+        <div className="size-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-500/20">
+          <Ban className="size-8 text-red-500" />
         </div>
         
-        <h2 className="text-2xl font-bold text-zinc-100 mb-2">{t('admin.banned.title')}</h2>
+        <h2 className="text-2xl font-semibold text-zinc-100 mb-2">{t('admin.banned.title')}</h2>
         
         {user.banReason && (
           <div className="bg-red-500/5 border border-red-500/10 rounded-xl p-3 mb-4 text-left">
@@ -101,7 +108,7 @@ export default function BannedScreen() {
             </span>
             <div className="flex flex-col gap-1">
               <span className="text-zinc-200 font-semibold text-sm">
-                {new Date(user.bannedUntil).toLocaleString()}
+                {formattedDate || '...'}
               </span>
               <Countdown targetDate={user.bannedUntil} />
             </div>
@@ -114,8 +121,8 @@ export default function BannedScreen() {
 
         {currentStatus === 'pending' ? (
           <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-2xl p-6 mb-6">
-            <div className="w-12 h-12 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto mb-3">
-              <CheckCircle2 className="w-6 h-6 text-emerald-500" />
+            <div className="size-12 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto mb-3">
+              <CheckCircle2 className="size-6 text-emerald-500" />
             </div>
             <p className="text-emerald-400 text-sm font-bold uppercase tracking-widest mb-1">{t('admin.banned.underReview')}</p>
             <p className="text-zinc-500 text-xs">{t('admin.banned.reviewSoon')}</p>
@@ -131,8 +138,8 @@ export default function BannedScreen() {
           </div>
         ) : currentStatus === 'rejected' ? (
           <div className="bg-red-500/5 border border-red-500/10 rounded-2xl p-6 mb-6">
-            <div className="w-12 h-12 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-3">
-              <XCircle className="w-6 h-6 text-red-500" />
+            <div className="size-12 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-3">
+              <XCircle className="size-6 text-red-500" />
             </div>
             <p className="text-red-400 text-sm font-bold uppercase tracking-widest mb-1">{t('admin.banned.appealRejected')}</p>
             <p className="text-zinc-500 text-xs leading-relaxed">{t('admin.banned.appealRejectedSub')}</p>
@@ -172,11 +179,11 @@ export default function BannedScreen() {
             >
               {loading ? (
                 <div className="flex items-center gap-2">
-                  <RefreshCw className="w-4 h-4 animate-spin" /> {t('admin.banned.submitting')}
+                  <RefreshCw className="size-4 animate-spin" /> {t('admin.banned.submitting')}
                 </div>
               ) : (
                 <span className="flex items-center justify-center gap-2">
-                  <Send className="w-4 h-4" /> {t('admin.banned.submitBtn')}
+                  <Send className="size-4" /> {t('admin.banned.submitBtn')}
                 </span>
               )}
             </Button>
@@ -188,7 +195,7 @@ export default function BannedScreen() {
           onClick={logout} 
           className="text-zinc-500 hover:text-zinc-300 w-full flex items-center justify-center gap-2"
         >
-          <LogOut className="w-4 h-4" /> {t('admin.banned.signOut')}
+          <LogOut className="size-4" /> {t('admin.banned.signOut')}
         </Button>
       </div>
     </div>

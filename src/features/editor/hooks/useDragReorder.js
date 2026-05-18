@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-export function useDragReorder({ setLines, activeLineIndex, setActiveLineIndex }) {
+export function useDragReorder({ setLines, setActiveLineIndex }) {
   const [dragIndex, setDragIndex] = useState(null);
   const [dragOverIndex, setDragOverIndex] = useState(null);
 
@@ -43,13 +43,16 @@ export function useDragReorder({ setLines, activeLineIndex, setActiveLineIndex }
         endTime: timestamps[i].endTime,
       }));
     });
-    if (activeLineIndex === dragIndex) {
-      setActiveLineIndex(dropIndex);
-    } else if (dragIndex < activeLineIndex && dropIndex >= activeLineIndex) {
-      setActiveLineIndex(activeLineIndex - 1);
-    } else if (dragIndex > activeLineIndex && dropIndex <= activeLineIndex) {
-      setActiveLineIndex(activeLineIndex + 1);
-    }
+    setActiveLineIndex((prevActiveLineIndex) => {
+      if (prevActiveLineIndex === dragIndex) {
+        return dropIndex;
+      } else if (dragIndex < prevActiveLineIndex && dropIndex >= prevActiveLineIndex) {
+        return prevActiveLineIndex - 1;
+      } else if (dragIndex > prevActiveLineIndex && dropIndex <= prevActiveLineIndex) {
+        return prevActiveLineIndex + 1;
+      }
+      return prevActiveLineIndex;
+    });
     setDragIndex(null);
     setDragOverIndex(null);
   };

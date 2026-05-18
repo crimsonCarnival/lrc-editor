@@ -145,7 +145,7 @@ export const projectsService = {
   async get(id) {
     try {
       const data = await gqlRequest(GET_PROJECT, { id });
-      return data.project;
+      return { project: data.project };
     } catch (err) {
       if (err.graphqlErrors?.some(e => e.message.includes('Cannot query field'))) {
         const restData = await request(`/projects/${id}`);
@@ -157,7 +157,7 @@ export const projectsService = {
 
   async update(id, input, { signal } = {}) {
     const data = await gqlRequest(UPDATE_PROJECT, { id, input }, { signal });
-    return data.updateProject;
+    return { project: data.updateProject };
   },
 
   // patch maps to update for GQL
@@ -253,19 +253,5 @@ export const projectsService = {
       }
     `, { id });
     return data.cloneProject;
-  },
-
-  async createGuest(data) {
-    return request('/projects/guest', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  },
-
-  async claim(projectId, claimToken) {
-    return request(`/projects/${projectId}/claim`, {
-      method: 'POST',
-      body: JSON.stringify({ claimToken }),
-    });
   },
 };

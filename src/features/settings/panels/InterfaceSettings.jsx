@@ -32,9 +32,9 @@ export default function InterfaceSettings({ settings, updateSetting, searchTerm 
           <SelectContent className="bg-zinc-900 border-zinc-700">
             <SelectItem value="dark">{t('settings.options.themes.dark')}</SelectItem>
             <SelectItem value="light">{t('settings.options.themes.light')}</SelectItem>
-            <SelectItem value="dracula">{t('settings.options.themes.dracula')}</SelectItem>
-            <SelectItem value="alucard">{t('settings.options.themes.alucard')}</SelectItem>
-            <SelectItem value="alucardlight">{t('settings.options.themes.alucardLight')}</SelectItem>
+            <SelectItem value="cobalt">{t('settings.options.themes.cobalt')}</SelectItem>
+            <SelectItem value="velvet">{t('settings.options.themes.velvet')}</SelectItem>
+            <SelectItem value="sage">{t('settings.options.themes.sage')}</SelectItem>
             <SelectItem value="system">{t('settings.options.themes.system')}</SelectItem>
           </SelectContent>
         </Select>

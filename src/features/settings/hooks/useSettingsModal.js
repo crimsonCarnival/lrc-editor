@@ -92,7 +92,7 @@ export function useSettingsModal(isOpen, onClose, globalSettings, updateAllSetti
         'toggleTranslation',
       ];
       for (const k of shortcutKeys) {
-        if (k !== currentKeyName && settings.shortcuts[k]?.includes(newKey)) return false;
+        if (k !== currentKeyName && new Set(settings.shortcuts[k] || []).has(newKey)) return false;
       }
       return true;
     },

@@ -6,6 +6,17 @@
  * @param {string} locale - The locale to use for formatting.
  * @returns {string}
  */
+const DateTimeFormat = Intl.DateTimeFormat;
+const _formattersCache = new Map();
+
+function _getFormatter(locale, options) {
+  const key = `${locale}:${JSON.stringify(options)}`;
+  if (!_formattersCache.has(key)) {
+    _formattersCache.set(key, new DateTimeFormat(locale, options));
+  }
+  return _formattersCache.get(key);
+}
+
 export function formatInTimezone(date, timezone, options = {}, locale = 'en') {
   const d = typeof date === 'string' ? new Date(date) : date;
   if (isNaN(d.getTime())) return '';
@@ -19,12 +30,12 @@ export function formatInTimezone(date, timezone, options = {}, locale = 'en') {
   const targetLocale = (typeof locale === 'string' && locale) ? locale : 'en';
 
   try {
-    return new Intl.DateTimeFormat(targetLocale, finalOptions).format(d);
+    return _getFormatter(targetLocale, finalOptions).format(d);
   } catch (err) {
     console.warn(`Invalid timezone or locale: ${timezone}, ${targetLocale}`, err);
     try {
       // Try with just the locale if timezone is the issue
-      return new Intl.DateTimeFormat(targetLocale, options).format(d);
+      return _getFormatter(targetLocale, options).format(d);
     } catch {
       return d.toLocaleString(targetLocale);
     }

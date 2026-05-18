@@ -73,6 +73,10 @@ export default function SettingsModal({ isOpen, onClose }) {
             <div
                 className="fixed inset-0 bg-black/70 backdrop-blur-sm z-modal-backdrop animate-fade-in"
                 onClick={onClose}
+                role="button"
+                aria-label={t('common.close') || 'Close'}
+                tabIndex={-1}
+                onKeyDown={(e) => { if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') onClose(); }}
             />
             {/* Modal */}
             <div className="fixed inset-0 z-modal flex items-center justify-center p-4 pointer-events-none">
@@ -85,6 +89,7 @@ export default function SettingsModal({ isOpen, onClose }) {
                         <div
                             className="flex items-center justify-between px-6 pt-5 pb-3 border-b border-zinc-800/60 flex-shrink-0 cursor-grab active:cursor-grabbing select-none"
                             onPointerDown={handleMouseDown}
+                            role="presentation"
                         >
                             <div className="flex items-center gap-4 flex-1">
                                 <h3 className="text-sm font-semibold text-zinc-200 uppercase tracking-widest shrink-0">
@@ -107,7 +112,7 @@ export default function SettingsModal({ isOpen, onClose }) {
                                 onClick={onClose}
                                 className="text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 ml-4"
                             >
-                                <X className="w-4 h-4" />
+                                <X className="size-4" />
                             </Button>
                         </div>
 
@@ -128,7 +133,7 @@ export default function SettingsModal({ isOpen, onClose }) {
                                                         : 'text-zinc-500 hover:text-zinc-300 border-transparent hover:border-zinc-600 hover:scale-105'
                                                     }`}
                                             >
-                                                {tab.icon && <tab.icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-primary' : ''}`} />}
+                                                {tab.icon && <tab.icon className={`size-4 shrink-0 ${isActive ? 'text-primary' : ''}`} />}
                                             </button>
                                         </Tip>
                                     );
@@ -143,7 +148,7 @@ export default function SettingsModal({ isOpen, onClose }) {
                         >
                             <div className={tabPanelClass('profile', activeTab, searchTerm)}>
                                 <div className={contentWrapperClass(searchTerm)}>
-                                    <ProfileSettings searchTerm={searchTerm} />
+                                    <ProfileSettings searchTerm={searchTerm} key={user?.id} />
                                 </div>
                             </div>
                             <div className={tabPanelClass('playback', activeTab, searchTerm)}>

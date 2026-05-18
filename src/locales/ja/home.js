@@ -1,5 +1,5 @@
 export default {
-  "welcome": [
+  welcome: [
     "LRC Studioへようこそ、{{name}}！",
     "始めましょう、{{name}}！",
     "魔法をかけましょう、{{name}}！",
@@ -8,7 +8,31 @@ export default {
     "やあ、{{name}}",
     "{{name}}、また来ましたね！"
   ],
-  "welcomeSub": [
+  "welcome.morning": [
+    "おはようございます、{{name}}！ 🌅",
+    "今日も一日頑張りましょう、{{name}}！",
+    "朝の同期タイムですね、{{name}}。",
+    "音楽で爽やかな朝を始めましょう、{{name}}。"
+  ],
+  "welcome.afternoon": [
+    "こんにちは、{{name}}！ ☀️",
+    "お疲れ様です、{{name}}！",
+    "午後のひと時に音楽はいかがですか、{{name}}？",
+    "良い午後をお過ごしください、{{name}}。"
+  ],
+  "welcome.evening": [
+    "こんばんは、{{name}}！ 🌆",
+    "夕暮れの同期セッションですね、{{name}}。",
+    "一日の終わりに魔法をかけましょう、{{name}}。",
+    "お疲れ様です、{{name}}。素晴らしい夜を。"
+  ],
+  "welcome.night": [
+    "こんばんは、{{name}}。夜更かしですか？ 🌙",
+    "夜の静寂の中で同期しましょう、{{name}}。",
+    "深夜のクリエイティブタイムですね、{{name}}。",
+    "お疲れ様です、{{name}}。夜の創作を楽しみましょう。"
+  ],
+  welcomeSub: [
     "お気に入りのトラックに完全に同期した歌詞を作成しましょう。音声をインポートし、歌詞を読み込み、没入感のあるカラオケ体験を構築できます。",
     "歌詞を音楽に同期する最も簡単な方法です。最初のプロジェクトを始めて流れを体験してください。",
     "お気に入りの曲を生き生きとさせましょう。音声ファイルをアップロードするか、YouTubeリンクを貼り付けて開始してください。",
@@ -16,39 +40,42 @@ export default {
     "今日は何に取り組みましょうか？",
     "素晴らしいものを作りましょう。"
   ],
-  "noProjects": "プロジェクトがまだありません",
-  "createNew": "新規プロジェクト作成",
-  "createNewDesc": "新しい音声ファイルまたはYouTubeリンクからゼロから始めます。",
-  "exploreTemplates": "テンプレートを探索",
-  "exploreTemplatesDesc": "サンプルプロジェクトで同期の仕組みを試してみましょう。",
-  "searchYoutube": "YouTubeを検索",
-  "searchYoutubePlaceholder": "曲を検索するかYouTubeのURLを貼り付け…",
-  "searchProjects": [
+  noProjects: "プロジェクトがまだありません",
+  createNew: "新規プロジェクト作成",
+  createNewDesc: "新しい音声ファイルまたはYouTubeリンクからゼロから始めます。",
+  exploreTemplates: "テンプレートを探索",
+  exploreTemplatesDesc: "サンプルプロジェクトで同期の仕組みを試してみましょう。",
+  searchYoutube: "YouTubeを検索",
+  searchYoutubePlaceholder: "曲を検索するかYouTubeのURLを貼り付け…",
+  searchProjects: [
     "プロジェクトを検索…",
     "プロジェクトを探す…",
     "何かお探しですか？"
   ],
-  "tips": [
+  tips: [
     "スペースバーで音声の再生と一時停止ができます。",
     "音声ファイルをエディターに直接ドラッグ＆ドロップできます。",
     "セカンダリレイヤーを使用して日本語歌詞に翻訳やローマ字を追加できます。",
     "単語をダブルクリックして読み（振り仮名）やアクセントを編集できます。",
-    "LRC、SRTのインポート、または歌詞の直接貼り付けが可能です。"
+    "LRC、SRTのインポート、または歌詞の直接貼り付けが可能です。",
+    "エディターの「その他のアクション」メニューから、読みのひらがなとカタカナを切り替えることができます。",
+    "歌詞セクションのGeniusタブを使って、タイトルやアーティスト名で歌詞を検索できます。コピー＆ペースト不要です。",
+    "GeniusのURLがあればGeniusタブに直接貼り付けるだけで、ワンクリックで歌詞を取得できます。"
   ],
-  "newProject": "新規プロジェクト",
-  "resumeLast": "前回のセッションを再開",
-  "continueEditing": "編集を続ける",
-  "searchResults": "検索結果",
-  "recentProjects": "最近のプロジェクト",
-  "noResults": "\"{{query}}\"に一致するプロジェクトが見つかりません",
-  "noDescription": "説明なし",
-  "connectSpotify": "Spotifyに接続",
-  "connectSpotifyDesc": "プレイリストとライブラリを直接参照",
-  "noResultsFound": "プロジェクトが見つかりません",
-  "proTip": "ヒント",
-  "ytSearchFailed": "検索に失敗しました。もう一度お試しください。",
-  "ytNoResults": "結果が見つかりません。別のキーワードで検索してください。",
-  "ytSearchPrompt": "曲を検索するか、上にYouTubeのURLを貼り付けてください",
-  "viewLibrary": "プロジェクトライブラリ",
-  "viewLibraryDesc": "保存されたすべての同期プロジェクトを管理および整理します。"
+  newProject: "新規プロジェクト",
+  resumeLast: "前回のセッションを再開",
+  continueEditing: "編集を続ける",
+  searchResults: "検索結果",
+  recentProjects: "最近のプロジェクト",
+  noResults: "\"{{query}}\"に一致するプロジェクトが見つかりません",
+  noDescription: "説明なし",
+  connectSpotify: "Spotifyに接続",
+  connectSpotifyDesc: "プレイリストとライブラリを直接参照",
+  noResultsFound: "プロジェクトが見つかりません",
+  proTip: "ヒント",
+  ytSearchFailed: "検索に失敗しました。もう一度お試しください。",
+  ytNoResults: "結果が見つかりません。別のキーワードで検索してください。",
+  ytSearchPrompt: "曲を検索するか、上にYouTubeのURLを貼り付けてください",
+  viewLibrary: "プロジェクトライブラリ",
+  viewLibraryDesc: "保存されたすべての同期プロジェクトを管理および整理します。"
 };

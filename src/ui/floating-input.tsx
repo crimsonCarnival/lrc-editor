@@ -25,7 +25,7 @@ const FloatingInput = React.forwardRef<
     <div className="relative group/floating w-full">
       <Input
         {...props}
-        value={value}
+        value={value ?? ''}
         ref={combinedRef}
         onFocus={(e) => {
           setIsFocused(true)

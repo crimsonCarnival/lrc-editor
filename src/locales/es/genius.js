@@ -1,0 +1,19 @@
+export default {
+  searchPlaceholder: 'Busca una canción o artista…',
+  searchFor: 'Buscar',
+  findLyrics: 'Buscar letra en Genius',
+  useLyrics: 'Usar esta letra',
+  preview: 'Vista previa de la letra',
+  previewDesc: 'Revisa la letra antes de importarla',
+  searching: 'Buscando…',
+  extracting: 'Cargando letra…',
+  noResults: 'No se encontraron resultados',
+  orPasteUrl: 'O pega una URL de Genius',
+  extractUrl: 'Extraer',
+  urlPlaceholder: 'https://genius.com/…',
+  error: {
+    rateLimited: 'Demasiadas solicitudes — espera un momento',
+    lyricsUnavailable: 'No se pudo extraer la letra de esta canción. La estructura de la página puede haber cambiado.',
+    generic: 'Algo salió mal. Por favor intenta de nuevo.',
+  },
+};

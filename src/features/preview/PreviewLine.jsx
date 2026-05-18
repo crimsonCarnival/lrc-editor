@@ -54,7 +54,8 @@ export default function PreviewLine({
   const hasReadings = showFuriganaInPreview && line.words?.some((w) => w.reading);
 
   const inner = (
-    <div
+    <button
+      type="button"
       ref={isActive && !isDualLine ? activeRef : null}
       onClick={hasMedia ? () => handleLineClick(line, i) : undefined}
       onMouseEnter={hasMedia ? () => handleLineHover(i) : undefined}
@@ -63,7 +64,7 @@ export default function PreviewLine({
         opacity: parallaxOpacity,
         animationDelay: staggerDelay,
       }}
-      className={`group px-2 sm:px-4 py-1 sm:py-2 rounded-lg transition-opacity duration-100 ease-out flex select-none relative overflow-hidden animate-preview-line-in ${hasMedia ? 'cursor-pointer' : 'cursor-default'
+      className={`w-full group px-2 sm:px-4 py-1 sm:py-2 rounded-lg transition-opacity duration-100 ease-out flex select-none relative overflow-hidden animate-preview-line-in text-left ${hasMedia ? 'cursor-pointer' : 'cursor-default'
         } ${translationLayout === 'side-by-side' && line.translation && showTranslationsInPreview
           ? 'flex-row items-baseline gap-3 sm:gap-6'
           : 'flex-col'
@@ -80,11 +81,11 @@ export default function PreviewLine({
           } ${settings.interface?.previewAlignment === 'right' ? 'right-0 translate-x-full pl-2' : 'left-0 -translate-x-full pr-2'
           } ${isActive ? 'animate-timestamp-pulse' : ''}`}>
           {isLocked ? (
-            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+            <svg className="size-4" fill="currentColor" viewBox="0 0 24 24">
               <path d="M12 2C9.24 2 7 4.24 7 7v3H6a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2v-8a2 2 0 00-2-2h-1V7c0-2.76-2.24-5-5-5zm3 10H9v-2c0-1.66 1.34-3 3-3s3 1.34 3 3v2z" />
             </svg>
           ) : (
-            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+            <svg className="size-4" fill="currentColor" viewBox="0 0 24 24">
               <path d="M8 5v14l11-7z" />
             </svg>
           )}
@@ -153,7 +154,7 @@ export default function PreviewLine({
           )}
         </>
       )}
-    </div>
+    </button>
   );
 
   if (!hasMedia) return inner;
@@ -381,8 +382,10 @@ function renderParsedSecondary(text) {
   const { segments } = parseRubyMarkup(text);
   return segments.map((seg, i) =>
     seg.reading ? (
+
       <ruby key={i}>{seg.text}<rp>(</rp><rt style={{ paddingBottom: '2px', marginInline: '0.25em' }}>{seg.reading}</rt><rp>)</rp></ruby>
     ) : (
+
       <React.Fragment key={i}>{seg.text}</React.Fragment>
     )
   );
@@ -403,12 +406,14 @@ function renderLineWithReadings(line, fmtReading, showFurigana = true) {
     const addSpace = needsSpaceAfter(w.word, words[i + 1]?.word);
     if (w.reading && isKanjiWord(w.word) && showFurigana) {
       return (
+
         <React.Fragment key={i}>
           <ruby>{w.word}<rp>(</rp><rt style={{ paddingBottom: '2px', marginInline: '0.25em' }}>{fmtReading(w.reading)}</rt><rp>)</rp></ruby>
           {addSpace ? ' ' : null}
         </React.Fragment>
       );
     }
+
     return <React.Fragment key={i}>{w.word}{addSpace ? ' ' : null}</React.Fragment>;
   });
 }

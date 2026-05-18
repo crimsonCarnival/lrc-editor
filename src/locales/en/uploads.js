@@ -1,27 +1,50 @@
 export default {
-  "title": "Uploads",
-  "count_one": "{{count}} file",
-  "count_other": "{{count}} files",
-  "empty": "No uploads yet",
-  "emptyHint": "Upload audio files or link YouTube URLs to see them here",
-  "untitled": "Untitled",
-  "selectFromUploads": "Select from uploads",
-  "titleRequired": "Title is required",
-  "titleUpdated": "Title updated",
-  "updateFailed": "Failed to update title",
-  "associatedProjects": "Associated Projects",
-  "details": "Media Details",
-  "unnamed": "Unnamed Audio",
-  "errorLoading": "Error Loading Media",
-  "notFound": "Media not found",
-  "source": "Source",
-  "duration": "Duration",
-  "unknown": "Unknown",
-  "unknownFile": "Unknown File",
-  "noProjects": "No projects are using this media yet.",
-  "startNewProject": "Start a new project from the Setup screen.",
-  "youtube": "YouTube",
-  "audioFile": "Audio File",
-  "cloudinary": "Cloud",
-  "spotify": "Spotify"
+  title: "Uploads",
+  count_one: "{{count}} file",
+  count_other: "{{count}} files",
+
+  // Dynamic Empty States
+  empty: [
+    "No media uploaded yet",
+    "Your media library is empty",
+    "No files found"
+  ],
+  emptyHint: [
+    "Audio files and linked URLs will appear here once you start a project.",
+    "Upload a track or link a video in the Setup screen to populate your library."
+  ],
+
+  untitled: "Untitled",
+  selectFromUploads: "Select from library",
+  titleRequired: "A title is required",
+  titleUpdated: "Title updated",
+  updateFailed: "Failed to update title",
+  associatedProjects: "Linked Projects",
+  details: "Media Details",
+  unnamed: "Untitled Media",
+
+  // Dynamic Errors
+  errorLoading: "Error Loading Media",
+  notFound: [
+    "Media not found",
+    "This file seems to be missing or deleted."
+  ],
+
+  source: "Source",
+  duration: "Duration",
+  unknown: "Unknown",
+  unknownFile: "Unknown Format",
+
+  // Dynamic Project States
+  noProjects: [
+    "This media isn't linked to any projects yet.",
+    "No projects are using this file.",
+    "Ready to sync. No projects attached yet."
+  ],
+
+  startNewProject: "Start a new project from the Setup screen.",
+  youtube: "YouTube",
+  audioFile: "Audio File",
+  cloudinary: "Cloud Audio",
+  spotify: "Spotify"
 };

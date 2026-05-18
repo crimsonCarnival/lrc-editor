@@ -113,19 +113,36 @@ export function useDragAndDrop({
     [linesLength, setLines, setEditorMode, settings.advanced.confirmDestructive, t, requestConfirm, playerRef],
   );
 
+  const handleDragEnterRef = useRef(handleDragEnter);
+  const handleDragLeaveRef = useRef(handleDragLeave);
+  const handleDragOverRef = useRef(handleDragOver);
+  const handleDropRef = useRef(handleDrop);
+
   useEffect(() => {
-    window.addEventListener('dragenter', handleDragEnter);
-    window.addEventListener('dragleave', handleDragLeave);
-    window.addEventListener('dragover', handleDragOver);
-    window.addEventListener('drop', handleDrop);
+    handleDragEnterRef.current = handleDragEnter;
+    handleDragLeaveRef.current = handleDragLeave;
+    handleDragOverRef.current = handleDragOver;
+    handleDropRef.current = handleDrop;
+  });
+
+  useEffect(() => {
+    const onDragEnter = (e) => handleDragEnterRef.current(e);
+    const onDragLeave = (e) => handleDragLeaveRef.current(e);
+    const onDragOver = (e) => handleDragOverRef.current(e);
+    const onDrop = (e) => handleDropRef.current(e);
+
+    window.addEventListener('dragenter', onDragEnter);
+    window.addEventListener('dragleave', onDragLeave);
+    window.addEventListener('dragover', onDragOver);
+    window.addEventListener('drop', onDrop);
 
     return () => {
-      window.removeEventListener('dragenter', handleDragEnter);
-      window.removeEventListener('dragleave', handleDragLeave);
-      window.removeEventListener('dragover', handleDragOver);
-      window.removeEventListener('drop', handleDrop);
+      window.removeEventListener('dragenter', onDragEnter);
+      window.removeEventListener('dragleave', onDragLeave);
+      window.removeEventListener('dragover', onDragOver);
+      window.removeEventListener('drop', onDrop);
     };
-  }, [handleDragEnter, handleDragLeave, handleDragOver, handleDrop]);
+  }, []);
 
   return { isDraggingFile };
 }

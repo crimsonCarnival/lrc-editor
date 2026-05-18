@@ -1,0 +1,19 @@
+export default {
+  searchPlaceholder: 'Search for a song or artist…',
+  searchFor: 'Search for',
+  findLyrics: 'Find Lyrics on Genius',
+  useLyrics: 'Use These Lyrics',
+  preview: 'Lyrics Preview',
+  previewDesc: 'Review the extracted lyrics before importing',
+  searching: 'Searching…',
+  extracting: 'Loading lyrics…',
+  noResults: 'No results found',
+  orPasteUrl: 'Or paste a Genius URL',
+  extractUrl: 'Extract',
+  urlPlaceholder: 'https://genius.com/…',
+  error: {
+    rateLimited: 'Too many requests — please wait a moment',
+    lyricsUnavailable: "Couldn't extract lyrics for this song. The page structure may have changed.",
+    generic: 'Something went wrong. Please try again.',
+  },
+};

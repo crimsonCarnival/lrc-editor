@@ -1,7 +1,7 @@
 export default {
   dashboard: {
     title: 'Admin Dashboard',
-    subtitle: 'Manage users.',
+    subtitle: 'Monitor and manage platform accounts.',
     searchPlaceholder: 'Search users by username or email...',
     loading: 'Loading users...',
     noUsers: 'No users found.',
@@ -50,7 +50,7 @@ export default {
     reactivate: 'Reactivate',
     promptBanReason: 'Enter reason for banning this user:',
     confirmRoleChange: 'Are you sure you want to change the role of {{name}} to {{role}}?',
-    confirmDelete: 'Are you sure you want to permanently delete {{name}}? This removes all their projects and uploads.',
+    confirmDelete: 'Permanently delete {{name}}? This will instantly erase all their projects, uploads, and data. This cannot be undone.',
     banTitle: 'Ban User',
     roleTitle: 'Change User Role',
     deleteTitle: 'Delete User',
@@ -79,8 +79,8 @@ export default {
     noReason: 'No reason',
     reviewAppeal: 'Review Appeal',
     deviceId: 'Device ID',
-    confirmUnblockIp: 'Are you sure you want to remove this IP block? This network will be able to register and login again.',
-    confirmUnblockDevice: 'Are you sure you want to remove this hardware block? This machine will be able to access the platform again.',
+    confirmUnblockIp: 'Remove this IP block? Users on this network will regain access to registration and login.',
+    confirmUnblockDevice: 'Remove this hardware block? This machine will be able to access the platform again.',
   },
   banned: {
     title: 'Account Suspended',

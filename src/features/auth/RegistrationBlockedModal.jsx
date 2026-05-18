@@ -20,8 +20,8 @@ export default function RegistrationBlockedModal({ isOpen, onClose, errorDetails
         
         <DialogHeader className="pt-6">
           <div className="flex items-center gap-4 mb-4">
-            <div className="w-12 h-12 bg-red-500/10 rounded-2xl flex items-center justify-center border border-red-500/20">
-              <ShieldAlert className="w-6 h-6 text-red-500" />
+            <div className="size-12 bg-red-500/10 rounded-2xl flex items-center justify-center border border-red-500/20">
+              <ShieldAlert className="size-6 text-red-500" />
             </div>
             <div>
               <DialogTitle className="text-xl font-bold text-zinc-100">
@@ -37,7 +37,7 @@ export default function RegistrationBlockedModal({ isOpen, onClose, errorDetails
         <div className="py-2 space-y-4">
           <div className="bg-zinc-950/50 border border-zinc-800 rounded-xl p-4 space-y-3">
             <div className="flex items-start gap-3">
-              <AlertTriangle className="w-4 h-4 text-yellow-500 shrink-0 mt-0.5" />
+              <AlertTriangle className="size-4 text-yellow-500 shrink-0 mt-0.5" />
               <p className="text-sm text-zinc-300 leading-relaxed">
                 {errorDetails || t('auth.registrationBlockedMessage') || 'This email, username, or network has been flagged due to previous policy violations.'}
               </p>

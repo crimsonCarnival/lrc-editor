@@ -46,6 +46,7 @@ const GET_SETTINGS = `
         includeMetadata
         stripEmptyLines
         normalizeTimestamps
+        wordTimestampPrecision
       }
       interface {
         theme
@@ -59,6 +60,7 @@ const GET_SETTINGS = `
         editorWidth
         lockLayout
         mobileTab
+        toastPosition
       }
       shortcuts {
         mark nudgeLeft nudgeRight nudgeLeftFine nudgeRightFine

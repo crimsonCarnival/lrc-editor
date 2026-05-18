@@ -1,54 +1,73 @@
 export default {
-  "welcome": [
+  welcome: [
     "Welcome to LRC Studio, {{name}}!",
-    "Let's get started, {{name}}!",
-    "Time to make some magic, {{name}}!",
+    "Let's get started",
     "Good to see you, {{name}}",
     "Welcome back, {{name}}",
-    "Hey there, {{name}}",
-    "{{name}} back again!"
+    "{{name}} back again!",
+    "You're back!!",
+    "Ready to sync moments?",
+    "Pick up where you left off, {{name}}.",
+    "Studio is ready, {{name}}.",
+
   ],
-  "welcomeSub": [
+  welcomeSub: [
     "Create perfectly synchronized lyrics for your favorite tracks. Import audio, load lyrics, and build immersive karaoke experiences.",
     "The easiest way to sync lyrics to your music. Start your first project to experience the flow.",
     "Bring your favorite songs to life. Upload an audio file or paste a YouTube link to begin.",
     "Ready to sync some lyrics?",
     "What are we working on today?",
-    "Let's make something awesome."
+    "Let's make something awesome.",
+    "Upload a track or drop a link to start syncing.",
+    "Precision lyric synchronization made easy.",
+    "Sync lyrics. Export anywhere.",
+    "Start your next synchronization project.",
+    "Jump back into your library or start a new track.",
+    "Your audio, perfectly in sync."
+
   ],
-  "noProjects": "No projects yet",
-  "createNew": "Create New Project",
-  "createNewDesc": "Start from scratch with a new audio file or YouTube link.",
-  "exploreTemplates": "Explore Templates",
-  "exploreTemplatesDesc": "Try out an example project to see how synchronization works.",
-  "searchYoutube": "Search YouTube",
-  "searchYoutubePlaceholder": "Search for a song or paste a YouTube URL...",
-  "searchProjects": [
+  noProjects: "No projects yet",
+  createNew: "Create New Project",
+  createNewDesc: "Start from scratch with a new audio file or YouTube link.",
+  exploreTemplates: "Explore Templates",
+  exploreTemplatesDesc: "Try out an example project to see how synchronization works.",
+  searchYoutube: "Search YouTube",
+  searchYoutubePlaceholder: "Search for a song or paste a YouTube URL...",
+  searchProjects: [
     "Search projects...",
     "Find a project...",
     "Looking for something?"
   ],
-  "tips": [
+  tips: [
     "Use the spacebar to play and pause the audio.",
     "You can drag and drop an audio file directly into the editor.",
     "Use the secondary layer to add translations or romanization if you're working with japanese lyrics.",
     "Double click a word to edit its reading (furigana) or accent.",
-    "You can import LRC, SRT, or directly paste lyrics."
+    "You can import LRC, SRT, or directly paste lyrics.",
+    "Hold Shift and click to select multiple lines at once.",
+    "Use the 'Words' mode to create granular, karaoke-style per-word timestamps.",
+    "Need a clean slate? Bulk clear timestamps from the Selection Actions menu.",
+    "Exporting? Standard .lrc files work natively with most modern music players.",
+    "Use Tab to iterate between words when using Words Mode.",
+    "Keep your projects organized with tags and descriptions.",
+    "Use the 'More actions' menu in the editor to toggle between Hiragana and Katakana for readings.",
+    "Use the Genius tab in the lyrics section to search for song lyrics by title or artist — no copying and pasting needed.",
+    "Got a Genius song URL? Paste it directly in the Genius tab to extract lyrics in one click."
   ],
-  "newProject": "New Project",
-  "resumeLast": "Resume Last Session",
-  "continueEditing": "Continue Editing",
-  "searchResults": "Search Results",
-  "recentProjects": "Recent Projects",
-  "noResults": "No projects found matching \"{{query}}\"",
-  "noDescription": "No description",
-  "connectSpotify": "Connect Spotify",
-  "connectSpotifyDesc": "Browse your playlists and library directly",
-  "noResultsFound": "No projects found",
-  "proTip": "Pro Tip",
-  "ytSearchFailed": "Search failed. Please try again.",
-  "ytNoResults": "No results found. Try a different query.",
-  "ytSearchPrompt": "Search for a song or paste a YouTube URL above",
-  "viewLibrary": "Project Library",
-  "viewLibraryDesc": "Manage and organize all your saved synchronization projects."
+  newProject: "New Project",
+  resumeLast: "Resume Last Session",
+  continueEditing: "Continue Editing",
+  searchResults: "Search Results",
+  recentProjects: "Recent Projects",
+  noResults: "No projects found matching \"{{query}}\"",
+  noDescription: "No description",
+  connectSpotify: "Connect Spotify",
+  connectSpotifyDesc: "Browse your playlists and library directly",
+  noResultsFound: "No projects found",
+  proTip: "Pro Tip",
+  ytSearchFailed: "Search failed. Please try again.",
+  ytNoResults: "No results found. Try a different query.",
+  ytSearchPrompt: "Search for a song or paste a YouTube URL above",
+  viewLibrary: "Project Library",
+  viewLibraryDesc: "Manage and organize all your saved synchronization projects."
 };

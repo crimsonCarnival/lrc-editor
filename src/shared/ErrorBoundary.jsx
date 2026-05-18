@@ -60,7 +60,7 @@ export default class ErrorBoundary extends Component {
             }}>
               ⚠
             </div>
-            <h1 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: '0.5rem' }}>
+            <h1 style={{ fontSize: '1.125rem', fontWeight: 600, marginBottom: '0.5rem' }}>
               Something went wrong
             </h1>
             <p style={{ fontSize: '0.875rem', color: '#a1a1aa', marginBottom: '1.5rem', lineHeight: 1.6 }}>

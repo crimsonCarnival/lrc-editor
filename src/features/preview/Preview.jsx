@@ -14,7 +14,7 @@ import {
   PopoverTrigger,
 } from '@ui/popover';
 import { Tip } from '@ui/tip';
-import { SharePanel } from '@shared/ShareModal';
+import { SharePanel } from '@features/sharing/components/ShareModal';
 import { useAuthContext } from '@/contexts/useAuthContext';
 import { Eye, Share2, X, Lock, LockOpen, BookOpen, Plus } from 'lucide-react';
 
@@ -132,7 +132,7 @@ export default function Preview(props) {
           {!viewerMode && (
             <h2 className="text-xs sm:text-sm font-semibold tracking-widest text-zinc-400 flex items-center gap-2 overflow-hidden flex-1 pb-1">
               <span className="uppercase shrink-0 text-xs sm:text-sm flex items-center gap-1.5">
-                <Eye className="w-3.5 h-3.5" />
+                <Eye className="size-3.5" />
                 {t('preview.title')}
               </span>
             </h2>
@@ -155,7 +155,7 @@ export default function Preview(props) {
               {user && (
                 <Tip content={shareModal ? t('share.close') : (isSharedProject ? t('share.viewingShared') : t('app.shareProject'))}>
                   {viewerMode ? (
-                    <div className="flex items-center justify-center w-8 h-8 rounded-lg text-primary bg-primary/10">
+                    <div className="flex items-center justify-center size-8 rounded-lg text-primary bg-primary/10">
                       <Share2 className="w-4 sm:w-5 h-4 sm:h-5" strokeWidth={1.8} />
                     </div>
                   ) : (
@@ -327,8 +327,8 @@ export default function Preview(props) {
           className="z-overlay w-80 bg-zinc-900 border border-zinc-700/80 rounded-xl shadow-elevated animate-fade-in"
         >
           <div className="flex items-center gap-2 px-4 pt-3 pb-1">
-            <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-primary to-accent-purple flex items-center justify-center flex-shrink-0">
-              <Share2 className="w-3 h-3 text-white" strokeWidth={2} />
+            <div className="size-6 rounded-lg bg-gradient-to-br from-primary to-accent-purple flex items-center justify-center flex-shrink-0">
+              <Share2 className="size-3 text-white" strokeWidth={2} />
             </div>
             <span className="text-xs font-bold text-zinc-100">{t('share.title', 'Share Project')}</span>
           </div>
@@ -479,6 +479,7 @@ function PreviewViewport({
         <div className="h-full flex flex-col justify-center items-center gap-4 sm:gap-8 overflow-x-hidden px-1 sm:px-0">
           {dualDisplayLines.map(({ line, originalIndex: i }) => (
             <PreviewLine
+
               key={i}
               line={{ ...line, nextTimestamp: nextTimestamps[i] ?? null }}
               originalIndex={i}
@@ -528,6 +529,7 @@ function PreviewViewport({
           const line = lines[i];
           return (
             <div
+
               key={i}
               data-index={i}
               ref={virtualizer.measureElement}

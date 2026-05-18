@@ -20,7 +20,7 @@ export default function NumberInput({ value, onChange, onKeyDown, min, max, step
       <input
         id={id}
         type="number"
-        value={value}
+        value={value ?? ''}
         onChange={onChange}
         onKeyDown={onKeyDown}
         min={min}
@@ -41,7 +41,7 @@ export default function NumberInput({ value, onChange, onKeyDown, min, max, step
           className="flex-1 flex items-center justify-center hover:bg-zinc-700 hover:text-primary transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
           tabIndex={-1}
         >
-          <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+          <svg className="size-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
           </svg>
         </button>
@@ -53,7 +53,7 @@ export default function NumberInput({ value, onChange, onKeyDown, min, max, step
           className="flex-1 flex items-center justify-center hover:bg-zinc-700 hover:text-primary transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
           tabIndex={-1}
         >
-          <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+          <svg className="size-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
           </svg>
         </button>

@@ -9,9 +9,6 @@ export function setAuthFlag(val) {
   isLoggedIn = !!val;
 }
 
-export function getIsLoggedIn() {
-  return isLoggedIn;
-}
 
 // Backward-compatibility alias for synchronous auth checks
 export function getAccessToken() {

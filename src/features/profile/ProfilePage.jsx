@@ -9,6 +9,9 @@ export default function ProfilePage() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuthContext();
+  const formattedDate = user?.createdAt 
+    ? new Date(user.createdAt).toLocaleDateString(i18n.resolvedLanguage || i18n.language, { dateStyle: 'long' })
+    : '';
 
   return (
     <div className="flex-1 flex flex-col px-4 pt-0 pb-12 sm:pb-16 animate-fade-in max-w-6xl mx-auto w-full">
@@ -18,12 +21,12 @@ export default function ProfilePage() {
           variant="ghost"
           size="icon"
           onClick={() => navigate(-1)}
-          className="text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 rounded-full w-12 h-12"
+          className="text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 rounded-full size-12"
         >
-          <ArrowLeft className="w-6 h-6" />
+          <ArrowLeft className="size-6" />
         </Button>
         <div>
-          <h1 className="text-3xl sm:text-4xl font-extrabold text-zinc-100 tracking-tight">
+          <h1 className="text-3xl sm:text-4xl font-semibold text-zinc-100 tracking-tight">
             {t('profile.title') || 'User Profile'}
           </h1>
           <p className="text-zinc-500 text-base">
@@ -41,22 +44,22 @@ export default function ProfilePage() {
                 <img
                   src={user.avatarUrl}
                   alt={user?.username}
-                  className="w-32 h-32 rounded-[2rem] object-cover border-4 border-zinc-800 shadow-2xl shadow-primary/20"
+                  className="size-32 rounded-[2rem] object-cover border-4 border-zinc-800 shadow-2xl shadow-primary/20"
                 />
               ) : (
-                <div className="w-32 h-32 rounded-[2rem] bg-zinc-800 flex items-center justify-center border-4 border-zinc-700">
-                  <User className="w-16 h-16 text-zinc-600" />
+                <div className="size-32 rounded-[2rem] bg-zinc-800 flex items-center justify-center border-4 border-zinc-700">
+                  <User className="size-16 text-zinc-600" />
                 </div>
               )}
               {user?.role === 'admin' && (
-                <div className="absolute -bottom-2 -right-2 px-3 py-1 rounded-xl bg-indigo-500 text-white text-[10px] font-black uppercase tracking-widest shadow-lg">
+                <div className="absolute -bottom-2 -right-2 px-3 py-1 rounded-xl bg-primary text-zinc-950 text-[10px] font-black uppercase tracking-widest shadow-lg">
                   {t('profile.adminBadge') || 'Admin'}
                 </div>
               )}
             </div>
 
             <div className="mt-4 text-center">
-              <h2 className="text-2xl font-bold text-zinc-100">{user?.username || 'User'}</h2>
+              <h2 className="text-2xl font-semibold text-zinc-100">{user?.username || 'User'}</h2>
               <p className="text-zinc-500 text-sm">{user?.email}</p>
               
               <div className="mt-4 max-w-xs mx-auto">
@@ -82,7 +85,7 @@ export default function ProfilePage() {
               <div className="flex items-center justify-between text-xs">
                 <span className="text-zinc-500">{t('profile.memberSince') || 'Joined'}</span>
                 <span className="text-zinc-300 font-medium">
-                  {user?.createdAt ? new Date(user.createdAt).toLocaleDateString(i18n.resolvedLanguage || i18n.language, { dateStyle: 'long' }) : '---'}
+                  {formattedDate || '---'}
                 </span>
               </div>
               <div className="flex items-center justify-between text-xs">

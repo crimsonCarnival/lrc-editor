@@ -119,7 +119,7 @@ export default function KeyboardHelp({ isOpen, onClose }) {
               onPointerDown={(e) => e.stopPropagation()}
               className="text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800"
             >
-              <X className="w-4 h-4" />
+              <X className="size-4" />
             </Button>
           </div>
 
@@ -139,7 +139,7 @@ export default function KeyboardHelp({ isOpen, onClose }) {
                       : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/50'
                   }`}
                 >
-                  <Icon className="w-3.5 h-3.5" />
+                  <Icon className="size-3.5" />
                   {t(tab.labelKey)}
                 </Button>
               );
@@ -159,6 +159,7 @@ export default function KeyboardHelp({ isOpen, onClose }) {
                       <span className="text-sm text-zinc-300">{s.desc}</span>
                       <KbdGroup>
                         {s.keys.map((k, i) => (
+
                           <span key={i} className="inline-flex items-center gap-1">
                             {i > 0 && <span className="text-zinc-600 text-[10px]">+</span>}
                             <Kbd>{k}</Kbd>
