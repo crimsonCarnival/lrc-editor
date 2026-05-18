@@ -16,6 +16,7 @@ import { projectsService } from './services/projects.service.js';
 import { lyricsService, editorService } from './services/lyrics.service.js';
 import { uploadsService } from './services/uploads.service.js';
 import { spotifyService } from './services/spotify.service.js';
+import { googleService } from './services/google.service.js';
 import { adminService } from './services/admin.service.js';
 import { request } from './services/api.client.js';
 
@@ -27,6 +28,7 @@ export const lyrics = lyricsService;
 export const editor = editorService;
 export const uploads = uploadsService;
 export const spotify = spotifyService;
+export const google = googleService;
 export const admin = adminService;
 
 export const api = {
@@ -37,8 +39,7 @@ export const api = {
   editor,
   uploads,
   spotify,
+  google,
   admin,
   getHealth() { return request('/health'); },
 };
-
-export default api;
