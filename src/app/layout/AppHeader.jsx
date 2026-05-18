@@ -169,7 +169,8 @@ export function AppHeader({
   };
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-nav animate-fade-in bg-zinc-950/85 backdrop-blur-lg border-b border-zinc-800/40 pointer-events-none">
+    <>
+    <header className="fixed top-0 left-0 right-0 z-nav animate-fade-in bg-zinc-950/60 backdrop-blur-2xl pointer-events-none">
 
       {/* Step indicator — absolutely centered */}
       {isSetupPage && (
@@ -495,6 +496,21 @@ export function AppHeader({
 
       {/* Scroll progress — absolute so it anchors to the fixed header's bottom edge */}
       <ScrollProgress className="absolute top-auto bottom-0 h-[2px]" />
+
     </header>
+
+    {/* Feather — sibling to <header> so it's outside its stacking context and not clipped */}
+    <div
+      className="fixed left-0 right-0 h-12 pointer-events-none animate-fade-in"
+      style={{
+        top: '3.25rem',
+        zIndex: 49,
+        backdropFilter: 'blur(10px)',
+        WebkitBackdropFilter: 'blur(10px)',
+        maskImage: 'linear-gradient(to bottom, black 0%, transparent 100%)',
+        WebkitMaskImage: 'linear-gradient(to bottom, black 0%, transparent 100%)',
+      }}
+    />
+    </>
   );
 }
