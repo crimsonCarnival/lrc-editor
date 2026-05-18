@@ -1,4 +1,5 @@
 ﻿import { useRef } from 'react';
+// eslint-disable-next-line no-unused-vars
 import { motion, useScroll, useSpring } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useSettings } from '@/features/settings/useSettings';
@@ -73,6 +74,7 @@ export default function SettingsModal({ isOpen, onClose }) {
 
     const outerScrollRef = useRef(null);
     const contentScrollRefs = useRef({});
+    // eslint-disable-next-line react-hooks/refs
     const activeContainerRef = searchTerm
         ? outerScrollRef
         : { current: contentScrollRefs.current[activeTab] ?? null };
