@@ -219,14 +219,7 @@ export function AppHeader({
           </button>
 
           <div className="flex items-center gap-1.5 min-w-0">
-            <button
-              onClick={goHomeOrWarn}
-              className="text-sm font-bold text-zinc-100 tracking-tight cursor-pointer hover:opacity-80 transition-opacity shrink-0"
-            >
-              {t('app.name')}
-            </button>
-
-            {isReady ? (
+  {isReady ? (
               <>
                 <span className="text-zinc-700 shrink-0">/</span>
                 {editingProjectName ? (
@@ -308,36 +301,32 @@ export function AppHeader({
 
           {/* Hide editor toggle — desktop, project pages, when lines exist */}
           {isReady && lines.length > 0 && (
-            <Tip content={`${t('app.hideEditor')} (Ctrl+2)`}>
-              <button
-                aria-label={t('app.hideEditor')}
-                onClick={() => {
-                  if (focusMode === 'playback') { setFocusMode('default'); setHideEditor(false); }
-                  else { setHideEditor(h => !h); }
-                }}
-                className={`hidden lg:flex size-8 items-center justify-center rounded-xl transition-colors flex-shrink-0 border text-xs font-bold ${
-                  (hideEditor || focusMode === 'playback')
-                    ? NAV_ACTIVE
-                    : 'bg-zinc-800/60 border-zinc-800/50 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'
-                }`}
-              >
-                {(hideEditor || focusMode === 'playback') ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
-              </button>
-            </Tip>
+            <button
+              aria-label={t('app.hideEditor')}
+              onClick={() => {
+                if (focusMode === 'playback') { setFocusMode('default'); setHideEditor(false); }
+                else { setHideEditor(h => !h); }
+              }}
+              className={`hidden lg:flex size-8 items-center justify-center rounded-xl transition-colors flex-shrink-0 border text-xs font-bold ${
+                (hideEditor || focusMode === 'playback')
+                  ? NAV_ACTIVE
+                  : 'bg-zinc-800/60 border-zinc-800/50 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'
+              }`}
+            >
+              {(hideEditor || focusMode === 'playback') ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
+            </button>
           )}
 
           {/* Grouped icon controls: theme | lang | shortcuts */}
           <div className="flex items-center bg-zinc-900/60 border border-zinc-800/50 rounded-xl overflow-hidden">
 
-            {/* Theme switcher */}
+            {/* Theme switcher — hidden on mobile (accessible via Settings) */}
             <Popover>
-              <Tip content={t('settings.theme', 'Theme')}>
-                <PopoverTrigger asChild>
-                  <button className={iconBtn} aria-label={t('settings.theme', 'Theme')}>
-                    {(() => { const TI = THEME_ICONS[currentTheme] || Moon; return <TI className="size-3.5" />; })()}
-                  </button>
-                </PopoverTrigger>
-              </Tip>
+              <PopoverTrigger asChild>
+                <button className={`${iconBtn} hidden sm:flex`} aria-label={t('settings.theme', 'Theme')}>
+                  {(() => { const TI = THEME_ICONS[currentTheme] || Moon; return <TI className="size-3.5" />; })()}
+                </button>
+              </PopoverTrigger>
               <PopoverContent className="w-44 p-1" align="end" sideOffset={8}>
                 {THEMES.map(({ id, label, swatch }) => (
                   <PopoverItem
@@ -353,18 +342,16 @@ export function AppHeader({
               </PopoverContent>
             </Popover>
 
-            <div className="w-px h-4 bg-zinc-800/80 shrink-0" />
+            <div className="hidden sm:block w-px h-4 bg-zinc-800/80 shrink-0" />
 
             {/* Language switcher */}
             <Popover>
-              <Tip content={t('settings.language', 'Language')}>
-                <PopoverTrigger asChild>
-                  <button className={`${iconBtn} gap-0.5 w-auto px-2`} aria-label={t('settings.language', 'Language')}>
-                    <Globe className="size-3.5 shrink-0" />
-                    <span className="text-[10px] font-bold tracking-wide">{currentLang}</span>
-                  </button>
-                </PopoverTrigger>
-              </Tip>
+              <PopoverTrigger asChild>
+                <button className={`${iconBtn} gap-0.5 w-auto px-2`} aria-label={t('settings.language', 'Language')}>
+                  <Globe className="size-3.5 shrink-0" />
+                  <span className="text-[10px] font-bold tracking-wide">{currentLang}</span>
+                </button>
+              </PopoverTrigger>
               <PopoverContent className="w-48 p-1" align="end" sideOffset={8}>
                 {LANGUAGES.map(({ code }) => {
                   const currentLang = (i18n?.language || 'en').split('-')[0];
@@ -387,15 +374,13 @@ export function AppHeader({
             <div className="w-px h-4 bg-zinc-800/80 shrink-0" />
 
             {/* Keyboard shortcuts */}
-            <Tip content={`${t('shortcuts.title') || 'Keyboard Shortcuts'} (?)`}>
-              <button
-                onClick={() => setShowKeyboardHelp(p => !p)}
-                aria-label={t('shortcuts.title') || 'Keyboard Shortcuts'}
-                className={iconBtn}
-              >
-                <HelpCircle className="size-3.5" />
-              </button>
-            </Tip>
+            <button
+              onClick={() => setShowKeyboardHelp(p => !p)}
+              aria-label={t('shortcuts.title') || 'Keyboard Shortcuts'}
+              className={iconBtn}
+            >
+              <HelpCircle className="size-3.5" />
+            </button>
           </div>
 
           {/* Auth section */}
@@ -416,7 +401,7 @@ export function AppHeader({
                     navigate('/auth?action=signin');
                   }
                 }}
-                className="h-8 px-3 text-xs font-semibold text-zinc-300 hover:text-zinc-100 bg-zinc-800/70 hover:bg-zinc-700/80 border border-zinc-800/50 rounded-xl transition-colors flex-shrink-0"
+                className="hidden sm:flex h-8 px-3 text-xs font-semibold text-zinc-300 hover:text-zinc-100 bg-zinc-800/70 hover:bg-zinc-700/80 border border-zinc-800/50 rounded-xl transition-colors flex-shrink-0"
               >
                 {t('auth.signIn', 'Sign in')}
               </button>
