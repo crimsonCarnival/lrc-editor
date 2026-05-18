@@ -2,6 +2,7 @@ import { useMemo, useCallback, useState, useEffect } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { useTranslation } from 'react-i18next';
 import { useEditor } from '@features/editor/hooks/useEditor';
+import { ThemedShineBorder } from '@ui/themed-shine-border';
 import EditorToolbar from './EditorToolbar';
 import EditorPasteArea from '../setup/EditorPasteArea';
 import EditorLineItem from '../line/EditorLineItem';
@@ -150,8 +151,9 @@ export default function Editor({
   return (
     <div
       onMouseLeave={handleLineHoverEnd}
-      className={`lg:glass lg:rounded-2xl rounded-none p-3 sm:p-5 flex ${compact ? 'flex-row gap-2' : 'flex-col'} flex-1 animate-fade-in min-h-0`}
+      className={`lg:glass lg:rounded-2xl lg:overflow-hidden rounded-none p-3 sm:p-5 flex ${compact ? 'flex-row gap-2' : 'flex-col'} flex-1 animate-fade-in min-h-0 relative`}
     >
+      <ThemedShineBorder />
       <EditorToolbar
         user={user}
         editorMode={editorMode}

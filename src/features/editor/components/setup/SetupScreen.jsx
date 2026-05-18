@@ -22,6 +22,7 @@ import SpotifyBrowser from '@features/player/components/SpotifyBrowser';
 import SpotifyIcon from '@shared/SpotifyIcon';
 import { useAuthContext } from '@/contexts/useAuthContext';
 import YoutubeSearchPanel from '@features/projects/components/YoutubeSearchPanel';
+import { ThemedShineBorder } from '@ui/themed-shine-border';
 import toast from 'react-hot-toast';
 import { useSpotifyAuth } from '@/features/player/hooks/useSpotifyAuth';
 import MediaLibrary from './MediaLibrary';
@@ -387,7 +388,8 @@ export default function SetupScreen({ onComplete, playerRef, onShowAllUploads })
           <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-3 min-h-0 overflow-hidden">
 
             {/* ── Left: Audio panel ── */}
-            <div className="glass rounded-2xl flex flex-col gap-2.5 overflow-hidden min-h-0 p-4 sm:p-5">
+            <div className="glass rounded-2xl flex flex-col gap-2.5 overflow-hidden min-h-0 p-4 sm:p-5 relative">
+              <ThemedShineBorder />
               <div className="flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-2">
                   <Music2 className="size-4 text-primary shrink-0" />
@@ -551,7 +553,8 @@ export default function SetupScreen({ onComplete, playerRef, onShowAllUploads })
             </div>
 
             {/* ── Right: Lyrics panel ── */}
-            <div className="glass rounded-2xl flex flex-col gap-2.5 overflow-hidden min-h-0 p-4 sm:p-5">
+            <div className="glass rounded-2xl flex flex-col gap-2.5 overflow-hidden min-h-0 p-4 sm:p-5 relative">
+              <ThemedShineBorder />
               <div className="flex items-center gap-2 shrink-0">
                 <FileText className="size-4 text-primary shrink-0" />
                 <span className="text-sm font-semibold text-zinc-200">{t('setup.pasteLyrics')}</span>
@@ -695,7 +698,8 @@ export default function SetupScreen({ onComplete, playerRef, onShowAllUploads })
             </p>
           </div>
 
-          <div className="flex-1 glass rounded-2xl flex flex-col overflow-hidden animate-fade-in border border-zinc-800/50 shadow-elevated min-h-0">
+          <div className="flex-1 glass rounded-2xl flex flex-col overflow-hidden animate-fade-in border border-zinc-800/50 shadow-elevated min-h-0 relative">
+            <ThemedShineBorder />
             <div className="flex-1 p-4 min-h-0 flex flex-col gap-3">
               {/* ── PROJECT NAME (TOP) ── */}
               <div className="relative shrink-0">

@@ -5,6 +5,7 @@ import { useTranslation, Trans } from 'react-i18next';
 import { useAuthContext } from '@/contexts/useAuthContext';
 import { toast } from 'react-hot-toast';
 import { Music2, FileText, Zap } from 'lucide-react';
+import { ThemedShineBorder } from '@ui/themed-shine-border';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useThemeSync } from '@/hooks/useThemeSync';
 import LoginIdentifierStep from './LoginIdentifierStep';
@@ -232,7 +233,8 @@ export default function AuthPage() {
           className="w-full max-w-[400px] flex-shrink"
         >
           {/* Card */}
-          <div className="bg-zinc-900/80 backdrop-blur-2xl border border-zinc-800/50 rounded-[2.5rem] shadow-card p-7 sm:p-8 relative">
+          <div className="bg-zinc-900/80 backdrop-blur-2xl border border-zinc-800/50 rounded-[2.5rem] shadow-card p-7 sm:p-8 relative overflow-hidden">
+            <ThemedShineBorder />
             {view === 'login-identifier' && (
               <LoginIdentifierStep
                 t={t}

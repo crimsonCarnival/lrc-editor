@@ -7,6 +7,7 @@ import { Music2, Video, Plus, Search, Play, FileText, ChevronRight, Activity, Li
 import SpotifyIcon from '@shared/SpotifyIcon';
 import ProjectSetupModal from '@features/editor/components/setup/ProjectSetupModal';
 import { useSpotifyAuth } from '@/features/player/hooks/useSpotifyAuth';
+import { ThemedShineBorder } from '@ui/themed-shine-border';
 
 function formatRelativeTime(dateStr, t, locale = 'en') {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -65,8 +66,9 @@ export default function Home() {
         <button
           type="button"
           onClick={() => navigate('/project/new')}
-          className="group cursor-pointer glass rounded-2xl p-5 text-left hover:border-primary/50 transition-all shadow-elevated flex items-center gap-5 w-full focus:ring-2 focus:ring-primary/50 outline-none"
+          className="group cursor-pointer glass rounded-2xl p-5 text-left hover:border-primary/50 transition-all shadow-elevated flex items-center gap-5 w-full focus:ring-2 focus:ring-primary/50 outline-none relative overflow-hidden"
         >
+          <ThemedShineBorder />
           <div className="size-12 shrink-0 rounded-xl bg-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform">
             <Plus className="size-6 text-primary" />
           </div>
@@ -79,8 +81,9 @@ export default function Home() {
         <button
           type="button"
           onClick={() => navigate('/library')}
-          className="group cursor-pointer glass rounded-2xl p-5 text-left hover:border-accent-purple/40 transition-all shadow-elevated flex items-center gap-5 w-full focus:ring-2 focus:ring-accent-purple/50 outline-none"
+          className="group cursor-pointer glass rounded-2xl p-5 text-left hover:border-accent-purple/40 transition-all shadow-elevated flex items-center gap-5 w-full focus:ring-2 focus:ring-accent-purple/50 outline-none relative overflow-hidden"
         >
+          <ThemedShineBorder />
           <div className="size-12 shrink-0 rounded-xl bg-accent-purple/10 flex items-center justify-center group-hover:scale-110 transition-transform">
             <LibraryIcon className="size-6 text-accent-purple" />
           </div>
@@ -95,8 +98,9 @@ export default function Home() {
         <button
           type="button"
           onClick={handleSpotifyLogin}
-          className="group cursor-pointer glass rounded-2xl p-5 text-center hover:border-green-500/40 transition-all shadow-elevated w-48 flex flex-col items-center justify-center gap-3 shrink-0 isolate focus:ring-2 focus:ring-green-500/50 outline-none"
+          className="group cursor-pointer glass rounded-2xl p-5 text-center hover:border-green-500/40 transition-all shadow-elevated w-48 flex flex-col items-center justify-center gap-3 shrink-0 isolate focus:ring-2 focus:ring-green-500/50 outline-none relative overflow-hidden"
         >
+          <ThemedShineBorder />
           <div className="size-16 rounded-2xl bg-green-500/10 flex items-center justify-center group-hover:scale-110 transition-transform mb-2">
             <SpotifyIcon className="size-10 text-green-500" />
           </div>
@@ -146,6 +150,7 @@ export default function Home() {
                   onClick={() => navigate(`/project/${lastProject.projectId}`)}
                   className="group relative glass rounded-2xl p-1 overflow-hidden cursor-pointer shadow-elevated border-primary/20 hover:border-primary/50 transition-all w-full text-left focus:ring-2 focus:ring-primary/50 outline-none"
                 >
+                  <ThemedShineBorder />
                   <div className="relative flex items-center gap-4 p-3 bg-zinc-950/40 rounded-xl">
                     <div className="size-12 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center shrink-0 overflow-hidden relative">
                       <Music2 className="size-6 text-primary/50" />
@@ -178,7 +183,8 @@ export default function Home() {
           </div>
 
           {/* RIGHT COLUMN: Project Sidebar */}
-          <div className="w-full lg:w-[360px] flex flex-col gap-6 glass border border-white/10 shadow-elevated rounded-2xl p-6 h-[400px] lg:h-full animate-slide-in-right">
+          <div className="w-full lg:w-[360px] flex flex-col gap-6 glass border border-white/10 shadow-elevated rounded-2xl p-6 h-[400px] lg:h-full animate-slide-in-right relative overflow-hidden">
+            <ThemedShineBorder />
             <div className="flex items-center justify-between shrink-0">
               <h2 className="text-sm font-semibold text-zinc-100 uppercase tracking-widest">{t('home.recentProjects')}</h2>
               {!loading && items.length > 0 && (

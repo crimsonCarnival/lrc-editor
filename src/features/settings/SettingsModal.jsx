@@ -1,3 +1,5 @@
+import { useRef } from 'react';
+import { motion, useScroll, useSpring } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useSettings } from '@/contexts/useSettings';
 import { DEFAULT_SETTINGS } from '@/contexts/settingsDefaults';
@@ -15,6 +17,18 @@ import { Button } from '@ui/button';
 import { Input } from '@ui/input';
 import { X, Headphones, FileText, Download, Monitor, Keyboard, SlidersHorizontal, User } from 'lucide-react';
 import { Tip } from '@ui/tip';
+import { ThemedShineBorder } from '@ui/themed-shine-border';
+
+function ModalScrollProgress({ container }) {
+    const { scrollYProgress } = useScroll({ container });
+    const scaleX = useSpring(scrollYProgress, { stiffness: 200, damping: 50, restDelta: 0.001 });
+    return (
+        <motion.div
+            className="h-[2px] w-full flex-shrink-0 origin-left bg-gradient-to-r from-primary to-accent-blue"
+            style={{ scaleX }}
+        />
+    );
+}
 
 const TABS = [
     { id: 'profile', labelKey: 'profile.title', icon: User },
@@ -57,6 +71,12 @@ export default function SettingsModal({ isOpen, onClose }) {
         handleApply,
     } = useSettingsModal(isOpen, onClose, globalSettings, updateAllSettings);
 
+    const outerScrollRef = useRef(null);
+    const contentScrollRefs = useRef({});
+    const activeContainerRef = searchTerm
+        ? outerScrollRef
+        : { current: contentScrollRefs.current[activeTab] ?? null };
+
     // Guests cannot access Profile settings; filter it out
     const visibleTabs = isGuest ? TABS.filter((tab) => tab.id !== 'profile') : TABS;
 
@@ -84,7 +104,8 @@ export default function SettingsModal({ isOpen, onClose }) {
                     className="w-full max-w-2xl pointer-events-auto flex flex-col max-h-[85vh]"
                     style={{ transform: `translate(${position.x}px, ${position.y}px)` }}
                 >
-                    <div className="bg-zinc-900 border border-zinc-700/80 rounded-2xl shadow-elevated w-full flex flex-col h-full animate-slide-up-fade overflow-hidden">
+                    <div className="bg-zinc-900 border border-zinc-700/80 rounded-2xl shadow-elevated w-full flex flex-col h-full animate-slide-up-fade overflow-hidden relative">
+                        <ThemedShineBorder />
                         {/* Header (drag handle) */}
                         <div
                             className="flex items-center justify-between px-6 pt-5 pb-3 border-b border-zinc-800/60 flex-shrink-0 cursor-grab active:cursor-grabbing select-none"
@@ -141,18 +162,25 @@ export default function SettingsModal({ isOpen, onClose }) {
                             </div>
                         )}
 
+                        {/* Scroll progress bar — tracks active tab or search container */}
+                        <ModalScrollProgress
+                            key={searchTerm ? 'modal-search' : `modal-${activeTab}`}
+                            container={activeContainerRef}
+                        />
+
                         {/* Scrollable Content — CSS grid forces consistent height across all tabs */}
                         <div
+                            ref={outerScrollRef}
                             className={`flex-1 min-h-0 ${searchTerm ? 'overflow-y-auto settings-scroll flex flex-col p-6' : 'grid'
                                 }`}
                         >
                             <div className={tabPanelClass('profile', activeTab, searchTerm)}>
-                                <div className={contentWrapperClass(searchTerm)}>
+                                <div ref={(el) => { contentScrollRefs.current.profile = el; }} className={contentWrapperClass(searchTerm)}>
                                     <ProfileSettings searchTerm={searchTerm} key={user?.id} />
                                 </div>
                             </div>
                             <div className={tabPanelClass('playback', activeTab, searchTerm)}>
-                                <div className={contentWrapperClass(searchTerm)}>
+                                <div ref={(el) => { contentScrollRefs.current.playback = el; }} className={contentWrapperClass(searchTerm)}>
                                     <PlaybackSettings
                                         settings={settings}
                                         updateSetting={updateSetting}
@@ -161,7 +189,7 @@ export default function SettingsModal({ isOpen, onClose }) {
                                 </div>
                             </div>
                             <div className={tabPanelClass('editor', activeTab, searchTerm)}>
-                                <div className={contentWrapperClass(searchTerm)}>
+                                <div ref={(el) => { contentScrollRefs.current.editor = el; }} className={contentWrapperClass(searchTerm)}>
                                     <EditorSettings
                                         settings={settings}
                                         updateSetting={updateSetting}
@@ -170,7 +198,7 @@ export default function SettingsModal({ isOpen, onClose }) {
                                 </div>
                             </div>
                             <div className={tabPanelClass('export', activeTab, searchTerm)}>
-                                <div className={contentWrapperClass(searchTerm)}>
+                                <div ref={(el) => { contentScrollRefs.current.export = el; }} className={contentWrapperClass(searchTerm)}>
                                     <ExportSettings
                                         settings={settings}
                                         updateSetting={updateSetting}
@@ -179,7 +207,7 @@ export default function SettingsModal({ isOpen, onClose }) {
                                 </div>
                             </div>
                             <div className={tabPanelClass('interface', activeTab, searchTerm)}>
-                                <div className={contentWrapperClass(searchTerm)}>
+                                <div ref={(el) => { contentScrollRefs.current.interface = el; }} className={contentWrapperClass(searchTerm)}>
                                     <InterfaceSettings
                                         settings={settings}
                                         updateSetting={updateSetting}
@@ -188,7 +216,7 @@ export default function SettingsModal({ isOpen, onClose }) {
                                 </div>
                             </div>
                             <div className={tabPanelClass('shortcuts', activeTab, searchTerm)}>
-                                <div className={contentWrapperClass(searchTerm)}>
+                                <div ref={(el) => { contentScrollRefs.current.shortcuts = el; }} className={contentWrapperClass(searchTerm)}>
                                     <ShortcutsSettings
                                         settings={settings}
                                         updateSetting={updateSetting}
@@ -198,7 +226,7 @@ export default function SettingsModal({ isOpen, onClose }) {
                                 </div>
                             </div>
                             <div className={tabPanelClass('advanced', activeTab, searchTerm)}>
-                                <div className={contentWrapperClass(searchTerm)}>
+                                <div ref={(el) => { contentScrollRefs.current.advanced = el; }} className={contentWrapperClass(searchTerm)}>
                                     <AdvancedSettings
                                         settings={settings}
                                         updateSetting={updateSetting}

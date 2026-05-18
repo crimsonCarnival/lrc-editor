@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { flushSync } from 'react-dom';
+import { ScrollProgress } from '@/components/magicui/scroll-progress';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
@@ -504,6 +505,9 @@ export function AppHeader({
           )}
         </div>
       </div>
+
+      {/* Scroll progress — absolute so it anchors to the fixed header's bottom edge */}
+      <ScrollProgress className="absolute top-auto bottom-0 h-[2px]" />
     </header>
   );
 }

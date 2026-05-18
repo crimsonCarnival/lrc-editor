@@ -4,6 +4,7 @@ import { Button } from '@ui/button';
 import { ArrowLeft, User, ShieldCheck } from 'lucide-react';
 import ProfileSettings from '@features/settings/panels/ProfileSettings';
 import { useAuthContext } from '@/contexts/useAuthContext';
+import { ThemedShineBorder } from '@ui/themed-shine-border';
 
 export default function ProfilePage() {
   const { t, i18n } = useTranslation();
@@ -38,7 +39,8 @@ export default function ProfilePage() {
       {/* Main Content (Centered) */}
       <div className="flex justify-center">
         <div className="w-full max-w-lg space-y-6">
-          <div className="glass rounded-[2rem] p-8 flex flex-col items-center text-center">
+          <div className="glass rounded-[2rem] p-8 flex flex-col items-center text-center relative overflow-hidden">
+            <ThemedShineBorder />
             <div className="relative mb-6">
               {user?.avatarUrl ? (
                 <img

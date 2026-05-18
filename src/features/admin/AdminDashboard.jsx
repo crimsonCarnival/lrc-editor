@@ -13,6 +13,7 @@ import AdminUsersTab from './AdminUsersTab';
 import AdminIpsTab from './AdminIpsTab';
 import AdminDevicesTab from './AdminDevicesTab';
 import AdminAuditTab from './AdminAuditTab';
+import { ThemedShineBorder } from '@ui/themed-shine-border';
 
 export default function AdminDashboard() {
   const { t } = useTranslation();
@@ -316,7 +317,8 @@ export default function AdminDashboard() {
       </div>
 
       {/* Tab Content */}
-      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl flex-1 flex flex-col min-h-[400px] overflow-hidden">
+      <div className="relative bg-zinc-900 border border-zinc-800 rounded-2xl flex-1 flex flex-col min-h-[400px] overflow-hidden">
+        <ThemedShineBorder />
         {activeTab === 'users' && (
           <AdminUsersTab
             users={users}

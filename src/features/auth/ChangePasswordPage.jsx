@@ -8,7 +8,7 @@ import toast from 'react-hot-toast';
 
 export default function ChangePasswordPage() {
   const { t } = useTranslation();
-  const { user, logout } = useAuthContext();
+  const { user, logout, setUser } = useAuthContext();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const fromPasswordReset = searchParams.get('from') === 'password-reset';
@@ -55,6 +55,12 @@ export default function ChangePasswordPage() {
           await logout();
           navigate('/auth/signin');
         } else {
+          try {
+            const freshUser = await auth.me();
+            setUser(freshUser);
+          } catch {
+            // navigation still proceeds even if refresh fails
+          }
           navigate(fromPasswordReset ? '/' : -1);
         }
       }, 2000);

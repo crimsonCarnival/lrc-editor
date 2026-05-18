@@ -6,6 +6,7 @@ import { Input } from '@ui/input';
 import { FloatingInput } from '@ui/floating-input';
 import { Checkbox } from '@ui/checkbox';
 import { Label } from '@ui/label';
+import { ThemedShineBorder } from '@ui/themed-shine-border';
 
 export default function ExportPanel({
   showExportPanel,
@@ -58,7 +59,8 @@ export default function ExportPanel({
       className="flex-1 min-h-0 flex flex-col animate-fade-in font-sans text-left"
     >
       {/* Scrollable options */}
-      <div className="flex-1 min-h-0 overflow-y-auto space-y-3 p-3 sm:p-4 rounded-xl bg-zinc-900 border border-zinc-700">
+      <div className="relative flex-1 min-h-0 overflow-y-auto space-y-3 p-3 sm:p-4 rounded-xl bg-zinc-900 border border-zinc-700">
+        <ThemedShineBorder />
         {/* Filename */}
         <div className="flex items-center gap-2 mt-1 w-full">
           <div className="flex-1">

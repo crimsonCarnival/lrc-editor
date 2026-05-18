@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@ui/button';
 import SmoothWavyCanvas from './SmoothWavyCanvas';
+import { ThemedShineBorder } from '@ui/themed-shine-border';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 28 },
@@ -125,8 +126,9 @@ export default function GuestLanding() {
               <motion.div
                 key={titleKey}
                 variants={fadeUp}
-                className="glass rounded-2xl p-6 flex gap-4 hover:border-zinc-600/50 transition-colors"
+                className="glass rounded-2xl p-6 flex gap-4 hover:border-zinc-600/50 transition-colors relative overflow-hidden"
               >
+                <ThemedShineBorder />
                 <div className={`size-10 rounded-xl ${bg} flex items-center justify-center shrink-0 mt-0.5`}>
                   <Icon className={`size-5 ${color}`} />
                 </div>
@@ -168,8 +170,9 @@ export default function GuestLanding() {
               <motion.div
                 key={step}
                 variants={fadeUp}
-                className="flex items-center gap-3 p-4 glass rounded-xl"
+                className="flex items-center gap-3 p-4 glass rounded-xl relative overflow-hidden"
               >
+                <ThemedShineBorder />
                 <div className="flex items-center justify-center size-9 rounded-xl bg-zinc-800/80 border border-zinc-700/50 relative shrink-0">
                   <Icon className="size-4 text-zinc-300" />
                   <span className="absolute -top-1.5 -right-1.5 text-[8px] font-black text-primary bg-zinc-950 border border-primary/30 rounded-full w-4 h-4 flex items-center justify-center leading-none">
