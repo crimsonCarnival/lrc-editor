@@ -20,8 +20,8 @@ export default function AppealDetailsModal({ isOpen, user, onApprove, onReject, 
       <DialogContent className="bg-zinc-900 border border-zinc-700/80 rounded-2xl shadow-elevated sm:max-w-[500px] overflow-hidden">
         <DialogHeader>
           <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 bg-yellow-500/10 rounded-full flex items-center justify-center border border-yellow-500/20">
-              <MessageSquareQuote className="w-5 h-5 text-yellow-500" />
+            <div className="size-10 bg-yellow-500/10 rounded-full flex items-center justify-center border border-yellow-500/20">
+              <MessageSquareQuote className="size-5 text-yellow-500" />
             </div>
             <div>
               <DialogTitle className="text-lg font-bold text-zinc-100">
@@ -48,7 +48,7 @@ export default function AppealDetailsModal({ isOpen, user, onApprove, onReject, 
                 {t('admin.appeal.submittedAt') || 'Submitted At'}
               </span>
               <div className="flex items-center gap-1.5 text-zinc-300 text-xs">
-                <Clock className="w-3.5 h-3.5 text-zinc-500" />
+                <Clock className="size-3.5 text-zinc-500" />
                 {user.appealAt ? new Date(user.appealAt).toLocaleString() : '-'}
               </div>
             </div>
@@ -57,7 +57,7 @@ export default function AppealDetailsModal({ isOpen, user, onApprove, onReject, 
           {/* Appeal Content */}
           <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-5 relative">
             <div className="absolute top-3 right-3 opacity-20">
-              <MessageSquareQuote className="w-12 h-12 text-zinc-500" />
+              <MessageSquareQuote className="size-12 text-zinc-500" />
             </div>
             <span className="text-[10px] font-bold text-yellow-500/70 uppercase tracking-widest mb-2 block">
               {t('admin.banned.yourAppealLabel') || 'User Appeal'}
@@ -84,7 +84,7 @@ export default function AppealDetailsModal({ isOpen, user, onApprove, onReject, 
               onClick={() => onReject(user)}
               className="flex-1 bg-zinc-800 hover:bg-red-500/20 text-red-400 border border-red-500/10"
             >
-              <XCircle className="w-4 h-4 mr-2" />
+              <XCircle className="size-4 mr-2" />
               {t('admin.table.rejectAppeal')}
             </Button>
             <Button
@@ -92,7 +92,7 @@ export default function AppealDetailsModal({ isOpen, user, onApprove, onReject, 
               onClick={() => onApprove(user)}
               className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white font-bold"
             >
-              <CheckCircle2 className="w-4 h-4 mr-2" />
+              <CheckCircle2 className="size-4 mr-2" />
               {t('admin.table.unban')}
             </Button>
           </div>

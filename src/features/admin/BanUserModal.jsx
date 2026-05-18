@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useScrollLock } from '@/hooks/useScrollLock';
 import {
@@ -16,30 +16,46 @@ import { Checkbox } from '@ui/checkbox';
 
 export default function BanUserModal({ isOpen, user, onConfirm, onCancel }) {
   const { t } = useTranslation();
-  const [reason, setReason] = useState('');
-  const [bannedUntil, setBannedUntil] = useState('');
-  const [banIp, setBanIp] = useState(false);
-  const [banDevice, setBanDevice] = useState(false);
+  const [form, setForm] = useState({
+    reason: '',
+    bannedUntil: '',
+    banIp: false,
+    banDevice: false
+  });
   
   useScrollLock(isOpen);
 
+  const inputRef = useRef(null);
+
+  const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
+  if (isOpen && !prevIsOpen) {
+    setPrevIsOpen(true);
+    setForm({
+      reason: '',
+      bannedUntil: '',
+      banIp: false,
+      banDevice: false
+    });
+  } else if (!isOpen && prevIsOpen) {
+    setPrevIsOpen(false);
+  }
+
   useEffect(() => {
-    if (isOpen) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setReason('');
-      setBannedUntil('');
-      setBanIp(false);
-      setBanDevice(false);
-    }
+    // autoFocus removed as requested
   }, [isOpen]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
     let isoDate = null;
-    if (bannedUntil) {
-      isoDate = new Date(bannedUntil).toISOString();
+    if (form.bannedUntil) {
+      isoDate = new Date(form.bannedUntil).toISOString();
     }
-    onConfirm({ reason, bannedUntil: isoDate, banIp, banDevice });
+    onConfirm({ 
+      reason: form.reason, 
+      bannedUntil: isoDate, 
+      banIp: form.banIp, 
+      banDevice: form.banDevice 
+    });
   };
 
   return (
@@ -47,7 +63,7 @@ export default function BanUserModal({ isOpen, user, onConfirm, onCancel }) {
       <DialogContent className="bg-zinc-900 border border-zinc-700/80 rounded-2xl shadow-elevated sm:max-w-[425px]">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle className="text-lg font-bold text-zinc-100 flex items-center gap-2">
+            <DialogTitle className="text-lg font-semibold text-zinc-100 flex items-center gap-2">
               {t('admin.table.banTitle')}: {user?.username}
             </DialogTitle>
             <DialogDescription className="text-sm text-zinc-400 leading-relaxed mt-2">
@@ -56,85 +72,75 @@ export default function BanUserModal({ isOpen, user, onConfirm, onCancel }) {
           </DialogHeader>
           
           <div className="py-4 flex flex-col gap-4">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="ban-reason" className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
-                {t('admin.table.reasonLabel') || 'Reason'}
+            <div className="space-y-2">
+              <Label htmlFor="reason" className="text-zinc-300">
+                {t('admin.table.banReasonLabel')}
               </Label>
               <Input
-                id="ban-reason"
-                autoFocus
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                placeholder={t('admin.table.reasonPlaceholder')}
-                className="bg-zinc-950 border-zinc-800 text-zinc-200"
-                required
+                id="reason"
+                ref={inputRef}
+                value={form.reason}
+                onChange={(e) => setForm(f => ({ ...f, reason: e.target.value }))}
+                placeholder={t('admin.table.banReasonPlaceholder')}
+                className="bg-zinc-800/50 border-zinc-700 focus-visible:ring-red-500/50"
               />
             </div>
             
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="ban-until" className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
-                {t('admin.table.untilLabel') || 'Banned Until (Optional)'}
+            <div className="space-y-2">
+              <Label htmlFor="bannedUntil" className="text-zinc-300">
+                {t('admin.table.banDuration')}
               </Label>
               <Input
-                id="ban-until"
+                id="bannedUntil"
                 type="datetime-local"
-                value={bannedUntil}
-                onChange={(e) => setBannedUntil(e.target.value)}
-                className="bg-zinc-950 border-zinc-800 text-zinc-200"
+                value={form.bannedUntil}
+                onChange={(e) => setForm(f => ({ ...f, bannedUntil: e.target.value }))}
+                className="bg-zinc-800/50 border-zinc-700 focus-visible:ring-red-500/50 [color-scheme:dark]"
               />
-              <p className="text-[10px] text-zinc-500 italic">
-                {t('admin.table.banUntilHint') || 'Leave empty for permanent ban'}
-              </p>
             </div>
 
-            <div className="flex flex-col gap-3 px-1">
-              <div className="flex items-center gap-2">
+            <div className="flex flex-col gap-3 pt-2">
+              <div className="flex items-center gap-x-2">
                 <Checkbox 
-                  id="ban-ip" 
-                  checked={banIp} 
-                  onCheckedChange={setBanIp}
-                  className="border-zinc-700 data-[state=checked]:bg-red-500 data-[state=checked]:border-red-500"
+                  id="banIp" 
+                  checked={form.banIp}
+                  onCheckedChange={(c) => setForm(f => ({ ...f, banIp: !!c }))}
+                  className="data-[state=checked]:bg-red-500 data-[state=checked]:border-red-500"
                 />
-                <Label 
-                  htmlFor="ban-ip" 
-                  className="text-xs font-medium text-zinc-300 cursor-pointer select-none"
-                >
-                  {t('admin.table.banIpLabel') || 'Also ban last known IP address'}
+                <Label htmlFor="banIp" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer">
+                  {t('admin.table.banIpAddress')}
                 </Label>
               </div>
-
-              <div className="flex items-center gap-2">
+              
+              <div className="flex items-center gap-x-2">
                 <Checkbox 
-                  id="ban-device" 
-                  checked={banDevice} 
-                  onCheckedChange={setBanDevice}
-                  className="border-zinc-700 data-[state=checked]:bg-indigo-500 data-[state=checked]:border-indigo-500"
+                  id="banDevice" 
+                  checked={form.banDevice}
+                  onCheckedChange={(c) => setForm(f => ({ ...f, banDevice: !!c }))}
+                  className="data-[state=checked]:bg-red-500 data-[state=checked]:border-red-500"
                 />
-                <Label 
-                  htmlFor="ban-device" 
-                  className="text-xs font-medium text-zinc-300 cursor-pointer select-none"
-                >
-                  {t('admin.table.banDeviceLabel') || 'Also ban this specific machine'}
+                <Label htmlFor="banDevice" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer">
+                  {t('admin.table.banDeviceFingerprint')}
                 </Label>
               </div>
             </div>
           </div>
-
-          <DialogFooter className="flex gap-3">
+          
+          <DialogFooter className="pt-2 sm:justify-between">
             <Button
               type="button"
-              variant="secondary"
+              variant="ghost"
               onClick={onCancel}
-              className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300"
+              className="text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800"
             >
               {t('common.cancel')}
             </Button>
             <Button
               type="submit"
-              disabled={!reason.trim()}
-              className="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold"
+              variant="destructive"
+              className="bg-red-600 hover:bg-red-500 text-white font-bold"
             >
-              {t('admin.table.ban')}
+              {t('admin.table.confirmBan')}
             </Button>
           </DialogFooter>
         </form>
