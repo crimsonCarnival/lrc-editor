@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 
 const Settings = lazy(() => import('@features/settings/SettingsModal'));
 const KeyboardHelp = lazy(() => import('@shared/KeyboardHelp'));
-import ProjectSetupModal from '@features/editor/components/ProjectSetupModal';
+import ProjectSetupModal from '@features/editor/components/setup/ProjectSetupModal';
 
 /**
  * All floating global modals: keyboard help, settings, project naming, restore prompt.
@@ -56,18 +56,24 @@ export function AppModals({
         initialName={mediaTitle}
         initialDescription={projectMetadata?.description}
         initialTags={projectMetadata?.tags}
+        initialSongName={projectMetadata?.songName}
+        initialSongArtist={projectMetadata?.songArtist}
+        initialSongAlbum={projectMetadata?.songAlbum}
+        initialSongYear={projectMetadata?.songYear}
         isEditing={true}
         sourceInfo={sourceInfo}
       />
 
       {pendingProject && (
         <div className="fixed inset-0 z-popover flex items-center justify-center">
-          <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm cursor-default"
             onClick={handleDiscardProject}
+            aria-label={t('common.discard') || 'Discard'}
           />
           <div className="relative bg-zinc-900 border border-zinc-700/80 rounded-2xl p-6 max-w-sm w-full mx-4 shadow-elevated animate-fade-in">
-            <h3 className="text-lg font-bold text-zinc-100 mb-4">{t('project.restoreTitle')}</h3>
+            <h3 className="text-lg font-semibold text-zinc-100 mb-4">{t('project.restoreTitle')}</h3>
             <p className="text-sm text-zinc-400 mb-6">{t('project.restoreMessage')}</p>
             <div className="flex gap-3">
               <Button variant="ghost" onClick={handleDiscardProject} className="flex-1">
@@ -85,12 +91,14 @@ export function AppModals({
       )}
       {unsavedModalTarget && (
         <div className="fixed inset-0 z-popover flex items-center justify-center">
-          <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm cursor-default"
             onClick={() => setUnsavedModalTarget(null)}
+            aria-label={t('common.close') || 'Close'}
           />
           <div className="relative bg-zinc-900 border border-zinc-700/80 rounded-2xl p-6 max-w-sm w-full mx-4 shadow-elevated animate-fade-in">
-            <h3 className="text-lg font-bold text-zinc-100 mb-4">{t('confirm.unsavedChangesTitle') || 'Unsaved Changes'}</h3>
+            <h3 className="text-lg font-semibold text-zinc-100 mb-4">{t('confirm.unsavedChangesTitle') || 'Unsaved Changes'}</h3>
             <p className="text-sm text-zinc-400 mb-6">{t('confirm.unsavedChangesMessage') || 'You have unsaved changes. Do you want to save them before leaving?'}</p>
             <div className="flex flex-col gap-2">
               <Button
@@ -100,7 +108,7 @@ export function AppModals({
                   setUnsavedModalTarget(null);
                   navigate(target);
                 }}
-                className="w-full bg-primary text-zinc-950 hover:bg-primary-dim font-bold"
+                className="w-full bg-primary text-zinc-950 hover:bg-primary-dim font-semibold"
               >
                 {t('common.saveAndLeave') || 'Save and Leave'}
               </Button>
