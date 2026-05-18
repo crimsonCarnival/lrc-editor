@@ -131,7 +131,7 @@ export function useProjectActions({
     } finally {
       setIsProjectLoading(false);
     }
-  }, [setLines, setSyncMode, setActiveLineIndex, setEditorModeRaw, setMediaTitle, setForkedFrom, setRestoredYtUrl, setRestoredCloudinaryUpload, setRestoredPosition, setRestoredSpeed, setActiveProjectId, activeProjectIdRef, lastServerSnapshotRef, setIsProjectLoading]);
+  }, [setLines, setSyncMode, setActiveLineIndex, setEditorModeRaw, setMediaTitle, setForkedFrom, setRestoredYtUrl, setRestoredCloudinaryUpload, setRestoredPosition, setRestoredSpeed, setActiveProjectId, activeProjectIdRef, lastServerSnapshotRef, sessionUploadIdRef, setIsProjectLoading]);
 
   // ── Restore pending (localStorage) project ────────────────────────────────
   const handleRestoreProject = useCallback(() => {
