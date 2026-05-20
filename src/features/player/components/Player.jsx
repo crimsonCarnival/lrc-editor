@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import useDynamicTranslation from '@/shared/hooks/useDynamicTranslation';
 import { useSettings } from '@/features/settings/useSettings';
 import { useSpotifyAuth } from '../hooks/useSpotifyAuth';
+import useHapticFeedback from '@/shared/hooks/useHapticFeedback';
 
 import { formatTime } from '@/shared/utils/format-time';
 import useLocalAudio from '../hooks/useLocalAudio';
@@ -23,6 +24,8 @@ import SpotifyIcon from '@features/player/components/SpotifyIcon';
 import toast from 'react-hot-toast';
 import { ThemedShineBorder } from '@ui/themed-shine-border';
 
+const FOCUS_RING = 'focus:ring-2 focus:ring-primary/50 focus:ring-offset-1 focus:ring-offset-zinc-950 focus:outline-none';
+
 const ALL_SPEED_PRESETS = [0.25, 0.5, 0.75, 1, 1.25, 1.5];
 
 const Player = forwardRef(function Player(
@@ -31,6 +34,7 @@ const Player = forwardRef(function Player(
 ) {
   const { t, dt } = useDynamicTranslation();
   const { settings, updateSetting } = useSettings();
+  const haptic = useHapticFeedback();
 
   const MIN_SPEED = settings.playback?.speedBounds?.min ?? 0.25;
   const MAX_SPEED = settings.playback?.speedBounds?.max ?? 3;
@@ -322,6 +326,10 @@ const Player = forwardRef(function Player(
   }, [local, yt, sp, onTitleChange]);
 
   // ——— Unified controls ———
+  // Player controls are integrated into the Player component with responsive layouts:
+  // - Desktop: Horizontal layout with full controls bar (hidden on mobile, shown on lg:)
+  // - Mobile: Vertical stack with compact controls (hidden on lg:, shown on mobile)
+  // All interactive elements meet 44px+ touch target sizing requirement on mobile
 
   const togglePlay = useCallback(() => {
     console.log('[togglePlay] source:', source, '| isPlaying:', isPlaying, '| audioRef.current:', audioRef.current, '| audio.error:', audioRef.current?.error, '| audio.readyState:', audioRef.current?.readyState, '| audio.src:', audioRef.current?.src?.slice(0, 60));
@@ -339,7 +347,7 @@ const Player = forwardRef(function Player(
       console.warn('[togglePlay] No branch matched — source:', source, 'audioRef.current:', audioRef.current, 'ytReady:', yt.ytReady, 'spReady:', sp.ready);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [source, isPlaying, local, yt, sp]);
+  }, [source, isPlaying, local, yt, sp, haptic]);
 
   const seek = useCallback(
     (time) => {
@@ -676,7 +684,7 @@ const Player = forwardRef(function Player(
                     variant="ghost"
                     size="icon"
                     onClick={() => onDockToggle?.()}
-                    className="shrink-0 text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800/60"
+                    className={`shrink-0 text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800/60 ${FOCUS_RING}`}
                   >
                     {playerTop ? <PanelBottom className="size-4" /> : <PanelTop className="size-4" />}
                   </Button>
@@ -707,7 +715,7 @@ const Player = forwardRef(function Player(
                       variant="ghost"
                       size="icon"
                       onClick={() => seek(currentTime - 0.1)}
-                      className="text-zinc-500 hover:text-zinc-200"
+                      className={`text-zinc-500 hover:text-zinc-200 ${FOCUS_RING}`}
                     >
                       <ChevronLeft className="size-4" />
                     </Button>
@@ -718,7 +726,7 @@ const Player = forwardRef(function Player(
                       variant="ghost"
                       size="icon"
                       onClick={() => seek(Math.max(0, currentTime - (settings.playback?.seekTime ?? 5)))}
-                      className="text-zinc-500 hover:text-zinc-200"
+                      className={`text-zinc-500 hover:text-zinc-200 ${FOCUS_RING}`}
                     >
                       <SkipBack className="size-4" />
                     </Button>
@@ -730,7 +738,7 @@ const Player = forwardRef(function Player(
                       size="icon"
                       onClick={togglePlay}
                       aria-label={isPlaying ? t('shortcuts.playPause') || 'Pause' : t('shortcuts.playPause') || 'Play'}
-                      className="rounded-full bg-primary hover:bg-primary-dim text-zinc-950 hover:scale-105 active:scale-95 glow-primary flex-shrink-0"
+                      className="rounded-full bg-primary hover:bg-primary-dim text-zinc-950 hover:scale-105 active:scale-95 glow-primary flex-shrink-0 transition-all duration-100"
                     >
                       {isPlaying ? (
                         <Pause className="size-4" fill="currentColor" />
@@ -745,7 +753,7 @@ const Player = forwardRef(function Player(
                       variant="ghost"
                       size="icon"
                       onClick={() => seek(Math.min(duration, currentTime + (settings.playback?.seekTime ?? 5)))}
-                      className="text-zinc-500 hover:text-zinc-200"
+                      className={`text-zinc-500 hover:text-zinc-200 ${FOCUS_RING}`}
                     >
                       <SkipForward className="size-4" />
                     </Button>
@@ -756,7 +764,7 @@ const Player = forwardRef(function Player(
                       variant="ghost"
                       size="icon"
                       onClick={() => seek(currentTime + 0.1)}
-                      className="text-zinc-500 hover:text-zinc-200"
+                      className={`text-zinc-500 hover:text-zinc-200 ${FOCUS_RING}`}
                     >
                       <ChevronRight className="size-4" />
                     </Button>
@@ -785,7 +793,7 @@ const Player = forwardRef(function Player(
                       variant="ghost"
                       size="icon"
                       onPointerDown={(e) => { e.preventDefault(); window.dispatchEvent(new CustomEvent('editor:mark')); }}
-                      className="shrink-0 text-zinc-400 hover:text-primary hover:bg-primary/10"
+                      className={`shrink-0 text-zinc-400 hover:text-primary hover:bg-primary/10 ${FOCUS_RING}`}
                     >
                       <Bookmark className="size-4" />
                     </Button>
@@ -802,7 +810,7 @@ const Player = forwardRef(function Player(
                     variant="ghost"
                     size="icon"
                     onClick={() => updateSetting('playback.loopCurrentLine', !settings.playback?.loopCurrentLine)}
-                    className={`rounded-full shrink-0 ${settings.playback?.loopCurrentLine
+                    className={`rounded-full shrink-0 ${FOCUS_RING} ${settings.playback?.loopCurrentLine
                       ? 'bg-violet-500/20 text-violet-400 hover:bg-violet-500/30 border border-violet-500/30'
                       : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800'
                       }`}
@@ -834,7 +842,7 @@ const Player = forwardRef(function Player(
                 <div className="flex items-center gap-2">
                   <label
                     htmlFor="audio-file-compact"
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-zinc-800 border border-zinc-700/60 text-sm font-medium text-zinc-300 cursor-pointer active:scale-95 transition-transform shrink-0"
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-zinc-800 border border-zinc-700/60 text-sm font-medium text-zinc-300 cursor-pointer active:scale-95 transition-all duration-100 shrink-0"
                   >
                     <FolderOpen className="size-4" />
                     {t('player.dropAudio') || 'Load audio'}
@@ -947,7 +955,7 @@ const Player = forwardRef(function Player(
                 <button
                   onClick={togglePlay}
                   aria-label={isPlaying ? 'Pause' : 'Play'}
-                  className="size-10 rounded-full bg-primary flex items-center justify-center flex-shrink-0 active:scale-90 transition-transform shadow-lg shadow-primary/20"
+                  className="size-10 rounded-full bg-primary flex items-center justify-center flex-shrink-0 active:scale-95 transition-all duration-100 shadow-lg shadow-primary/20"
                 >
                   {isPlaying
                     ? <Pause className="size-4 text-zinc-950" fill="currentColor" />
@@ -992,7 +1000,7 @@ const Player = forwardRef(function Player(
               <div className="flex items-center justify-between w-full gap-1 px-1">
                 <button
                   onClick={() => seek(Math.max(0, currentTime - (settings.playback?.seekTime ?? 5)))}
-                  className="flex flex-col items-center justify-center size-14 rounded-2xl text-zinc-400 active:text-zinc-100 active:bg-zinc-800 transition-all shrink-0"
+                  className="flex flex-col items-center justify-center size-14 rounded-2xl text-zinc-400 active:text-zinc-100 active:bg-zinc-800 active:scale-95 transition-all duration-100 shrink-0"
                 >
                   <SkipBack className="size-6" />
                   <span className="text-[10px] font-bold mt-1 text-zinc-500">{settings.playback?.seekTime ?? 5}</span>
@@ -1018,12 +1026,12 @@ const Player = forwardRef(function Player(
                               if (lines[i].timestamp != null) { b = lines[i].timestamp; break; }
                             }
                           }
-                          setLoop(a, b);
+                          setLoop({ a, b });
                         }
                       }
                     }
                   }}
-                  className={`flex flex-col items-center justify-center size-14 rounded-2xl transition-all shrink-0 ${loopA != null && loopB != null ? 'text-accent-purple bg-accent-purple/10' : 'text-zinc-400 active:bg-zinc-800'}`}
+                  className={`flex flex-col items-center justify-center size-14 rounded-2xl transition-all duration-100 shrink-0 active:scale-95 ${loopA != null && loopB != null ? 'text-accent-purple bg-accent-purple/10' : 'text-zinc-400 active:bg-zinc-800'}`}
                 >
                   <Repeat className="size-6" />
                   <span className="text-[9px] font-bold mt-1 opacity-60 uppercase tracking-tight">{t('player.loop') || 'Loop'}</span>
@@ -1035,7 +1043,7 @@ const Player = forwardRef(function Player(
 
                 <button
                   onClick={() => seek(Math.min(duration, currentTime + (settings.playback?.seekTime ?? 5)))}
-                  className="flex flex-col items-center justify-center size-14 rounded-2xl text-zinc-400 active:text-zinc-100 active:bg-zinc-800 transition-all shrink-0"
+                  className="flex flex-col items-center justify-center size-14 rounded-2xl text-zinc-400 active:text-zinc-100 active:bg-zinc-800 active:scale-95 transition-all duration-100 shrink-0"
                 >
                   <SkipForward className="size-6" />
                   <span className="text-[10px] font-bold mt-1 text-zinc-500">{settings.playback?.seekTime ?? 5}</span>
